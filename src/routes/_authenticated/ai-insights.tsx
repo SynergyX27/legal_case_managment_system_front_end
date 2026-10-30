@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader, Panel } from "@/components/lf/ui-bits";
 
 export const Route = createFileRoute("/_authenticated/ai-insights")({
-  head: () => ({ meta: [{ title: "Ai Insights – LegalFlow" }, { name: "description", content: "Ai Insights in LegalFlow." }, { property: "og:title", content: "Ai Insights – LegalFlow" }, { property: "og:description", content: "Ai Insights in LegalFlow." }] }),
+  head: () => ({ meta: [{ title: "Ai Insights – LegalFlow" }, { name: "description", content: "Ai Insights in LegalFlow." }, { property: "og:title", content: "Ai Insights – LegalFlow" }, { property: "og:description", content: "Ai Insights in LegalFlow." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: Page,
 });
 
