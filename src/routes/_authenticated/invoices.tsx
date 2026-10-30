@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader, Panel } from "@/components/lf/ui-bits";
 
 export const Route = createFileRoute("/_authenticated/invoices")({
-  head: () => ({ meta: [{ title: "Invoices – LegalFlow" }, { name: "description", content: "Invoices in LegalFlow." }, { property: "og:title", content: "Invoices – LegalFlow" }, { property: "og:description", content: "Invoices in LegalFlow." }] }),
+  head: () => ({ meta: [{ title: "Invoices – LegalFlow" }, { name: "description", content: "Invoices in LegalFlow." }, { property: "og:title", content: "Invoices – LegalFlow" }, { property: "og:description", content: "Invoices in LegalFlow." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: Page,
 });
 

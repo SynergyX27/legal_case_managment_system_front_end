@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader, Panel } from "@/components/lf/ui-bits";
 
 export const Route = createFileRoute("/_authenticated/notifications")({
-  head: () => ({ meta: [{ title: "Notifications – LegalFlow" }, { name: "description", content: "Notifications in LegalFlow." }, { property: "og:title", content: "Notifications – LegalFlow" }, { property: "og:description", content: "Notifications in LegalFlow." }] }),
+  head: () => ({ meta: [{ title: "Notifications – LegalFlow" }, { name: "description", content: "Notifications in LegalFlow." }, { property: "og:title", content: "Notifications – LegalFlow" }, { property: "og:description", content: "Notifications in LegalFlow." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: Page,
 });
 

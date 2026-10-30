@@ -17,6 +17,8 @@ export const Route = createFileRoute("/")({
       { name: "description", content: "Sign in to LegalFlow, the case management platform for legal service teams." },
       { property: "og:title", content: "Sign in – LegalFlow" },
       { property: "og:description", content: "Case files, service dates, documents and invoices for legal teams." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Login,

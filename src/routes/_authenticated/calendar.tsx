@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader, Panel } from "@/components/lf/ui-bits";
 
 export const Route = createFileRoute("/_authenticated/calendar")({
-  head: () => ({ meta: [{ title: "Calendar – LegalFlow" }, { name: "description", content: "Calendar in LegalFlow." }, { property: "og:title", content: "Calendar – LegalFlow" }, { property: "og:description", content: "Calendar in LegalFlow." }] }),
+  head: () => ({ meta: [{ title: "Calendar – LegalFlow" }, { name: "description", content: "Calendar in LegalFlow." }, { property: "og:title", content: "Calendar – LegalFlow" }, { property: "og:description", content: "Calendar in LegalFlow." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: Page,
 });
 
