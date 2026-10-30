@@ -100,12 +100,3 @@
   }
 }
 
-.case-progress {
-  appearance: none;
-  overflow: hidden;
-  border-radius: 3px;
-  color: inherit;
-}
-.case-progress::-webkit-progress-bar { background: var(--muted); }
-.case-progress::-webkit-progress-value { background: inherit; }
-.case-progress::-moz-progress-bar { background: inherit; }
