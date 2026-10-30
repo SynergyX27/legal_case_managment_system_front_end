@@ -7,3 +7,6 @@
 - [x] Test Clients and Calendar workflows with local persistence.
 - [x] Complete Documents library with search, filtering, previews and case-linked uploads.
 - [x] Verify local uploads, downloads and removal after a page reload.
+- [x] Complete invoice list, totals, filtering and invoice preview.
+- [x] Complete invoice editing and simulated payment/status actions.
+- [x] Verify invoice creation, editing and local persistence.
