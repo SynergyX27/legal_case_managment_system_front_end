@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useMe, useStore, uid } from "@/lib/store";
 import { useUI } from "@/lib/ui-store";
 import { CASE_TYPES, PRIORITIES, STATUSES, iso, type Attachment, type Case } from "@/lib/mock-data";
+import { fileKind, LOCAL_FILE_BUDGET, readLocalFile } from "@/lib/documents";
 
 function F({ label, children, span }: { label: string; children: ReactNode; span?: boolean }) {
   return <div className={span ? "space-y-1.5 sm:col-span-2" : "space-y-1.5"}><Label className="text-xs text-muted-foreground">{label}</Label>{children}</div>;
@@ -32,37 +33,44 @@ function Sel({ value, onChange, items }: { value: string; onChange: (v: string) 
   );
 }
 
-const fileKind = (f: File): Attachment["type"] =>
-  f.type.startsWith("image") ? "image" : f.type.startsWith("video") ? "video" : f.name.endsWith(".pdf") ? "pdf" : /\.docx?$/.test(f.name) ? "word" : /\.xlsx?$/.test(f.name) ? "excel" : "other";
-
 export function FileDrop({ files, setFiles }: { files: Attachment[]; setFiles: (f: Attachment[]) => void }) {
   const ref = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
   const me = useMe();
-  const add = (list: FileList | null) => {
-    if (!list) return;
-    const next = Array.from(list).map((f) => ({
-      id: uid("att"), name: f.name, type: fileKind(f), size: `${(f.size / 1048576).toFixed(1)} MB`,
-      uploadedAt: iso(new Date()), uploadedBy: me?.name ?? "", url: f.type.startsWith("image") || f.type.startsWith("video") ? URL.createObjectURL(f) : undefined,
-    }));
-    setFiles([...files, ...next]);
+  const [reading, setReading] = useState(false);
+  const storedCases = useStore((s) => s.cases);
+  const add = async (list: FileList | null) => {
+    if (!list || reading) return;
+    const existing = new Map([...storedCases.flatMap((c) => c.attachments), ...files].map((a) => [a.id, a]));
+    const storedBytes = [...existing.values()].reduce((n, a) => n + (a.url?.startsWith("data:") ? a.url.length * 0.75 : 0), 0);
+    if (storedBytes + Array.from(list).reduce((n, f) => n + f.size, 0) > LOCAL_FILE_BUDGET) return toast.error("This local prototype can keep up to 2 MB of uploaded files. Remove files or choose smaller ones.");
+    setReading(true);
+    try {
+      const next = await Promise.all(Array.from(list).map(async (f) => ({
+        id: uid("att"), name: f.name, type: fileKind(f), size: f.size < 1048576 ? `${Math.max(1, Math.round(f.size / 1024))} KB` : `${(f.size / 1048576).toFixed(1)} MB`,
+        uploadedAt: iso(new Date()), uploadedBy: me?.name ?? "", url: await readLocalFile(f),
+      })));
+      setFiles([...files, ...next]);
+    } catch { toast.error("Could not read the selected files. Please try again."); }
+    finally { setReading(false); if (ref.current) ref.current.value = ""; }
   };
   return (
     <div className="sm:col-span-2">
       <div onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
         onDrop={(e) => { e.preventDefault(); setOver(false); add(e.dataTransfer.files); }}
         onClick={() => ref.current?.click()}
+        role="button" tabIndex={0} aria-label="Choose files" onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); ref.current?.click(); } }}
         className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-4 py-8 text-center transition-colors ${over ? "border-info bg-info/5" : "hover:bg-muted"}`}>
         <UploadCloud className="mb-2 size-7 text-info" />
-        <p className="text-sm font-medium">Drag & drop files, or click to browse</p>
-        <p className="text-xs text-muted-foreground">Images, videos, PDF, Word and other files</p>
+        <p className="text-sm font-medium">{reading ? "Reading files…" : "Choose files or drop them here"}</p>
+        <p className="text-xs text-muted-foreground">Local uploads · 2 MB total</p>
         <input ref={ref} type="file" multiple hidden onChange={(e) => add(e.target.files)} />
       </div>
       {files.length > 0 && (
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
           {files.map((f) => (
             <div key={f.id} className="flex items-center gap-3 rounded-md border p-2">
-              {f.type === "image" && f.url ? <img src={f.url} alt="" className="size-10 rounded object-cover" /> :
+              {f.type === "image" && f.url?.startsWith("data:image/") && !f.url.startsWith("data:image/svg") ? <img src={f.url} alt="" className="size-10 rounded object-cover" /> :
                 <span className="flex size-10 items-center justify-center rounded bg-muted">{f.type === "video" ? <Film className="size-4" /> : f.type === "image" ? <ImageIcon className="size-4" /> : <FileText className="size-4" />}</span>}
               <div className="min-w-0 flex-1"><div className="truncate text-sm">{f.name}</div><div className="text-xs text-muted-foreground">{f.size}</div></div>
               <Button type="button" variant="ghost" size="icon" onClick={() => setFiles(files.filter((x) => x.id !== f.id))}><X className="size-4" /></Button>
