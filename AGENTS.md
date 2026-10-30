@@ -13,3 +13,4 @@
 - Keep case filtering, sorting, summaries and CSV formatting in a shared browser-safe module so their behavior can be tested independently.
 - Keep client metrics and calendar scheduling calculations in a shared browser-safe module so page logic stays testable.
 - Documents are flattened from case attachments; local upload content uses data URLs with a shared 2 MB budget to fit browser persistence, while fictional seed files are metadata-only.
+- Invoice totals and validation are shared browser-safe logic; sending and payment actions only change local demo statuses and never contact external services.
