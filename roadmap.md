@@ -5,5 +5,5 @@
 - [x] Complete Clients directory, client details and editing.
 - [x] Complete Calendar views with services and editable events.
 - [x] Test Clients and Calendar workflows with local persistence.
-- [ ] Complete Documents library with search, filtering, previews and case-linked uploads.
-- [ ] Verify local uploads, downloads and removal after a page reload.
+- [x] Complete Documents library with search, filtering, previews and case-linked uploads.
+- [x] Verify local uploads, downloads and removal after a page reload.
