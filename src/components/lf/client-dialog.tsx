@@ -16,12 +16,12 @@ export function ClientDialog() {
   useEffect(() => {
     if (!clientDialog.open) return;
     const e = clientDialog.editId ? s.clients.find((x) => x.id === clientDialog.editId) : undefined;
-    setC(e ? { ...e } : { id: uid("c"), name: "", company: "", email: "", phone: "", address: "", status: "Active", accountId: s.accounts[0].id });
+    setC(e ? { ...e } : { id: uid("c"), name: "", company: "", email: "", phone: "", address: "", status: "Active", accountId: s.activeAccountId !== "all" ? s.activeAccountId : s.accounts[0]?.id ?? "" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientDialog.open]);
+  }, [clientDialog.open, clientDialog.editId]);
   if (!c) return null;
   const f = (k: keyof Client, l: string) => (
-    <div className="space-y-1.5"><Label className="text-xs text-muted-foreground">{l}</Label><Input value={c[k]} onChange={(e) => setC({ ...c, [k]: e.target.value })} /></div>
+    <div className="space-y-1.5"><Label htmlFor={`client-${k}`} className="text-xs text-muted-foreground">{l}</Label><Input id={`client-${k}`} value={c[k]} onChange={(e) => setC({ ...c, [k]: e.target.value })} /></div>
   );
   return (
     <Dialog open={clientDialog.open} onOpenChange={(o) => !o && close()}>
