@@ -39,10 +39,11 @@ const nav = [
 const roleLabel = { owner: "Owner / Super Admin", manager: "Account Manager", staff: "Staff Member" };
 
 function SidebarBody({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
-  const me = useMe()!;
+  const me = useMe();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const logout = useStore((s) => s.logout);
   const navigate = useNavigate();
+  if (!me) return null;
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
       <div className={cn("flex h-14 items-center border-b border-sidebar-border px-4", collapsed && "justify-center px-0")}>
@@ -86,7 +87,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const me = useMe()!;
+  const me = useMe();
   const navigate = useNavigate();
   const { openCase, openInvoice, openClient, setAi } = useUI();
   const notifications = useStore((s) => s.notifications);
@@ -106,6 +107,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("keydown", k);
   }, []);
 
+  if (!me) return null;
+
   return (
     <div className="flex min-h-screen w-full">
       <aside className={cn("sticky top-0 hidden h-screen shrink-0 transition-[width] md:block", collapsed ? "w-16" : "w-60")}>
@@ -121,11 +124,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Button variant="ghost" size="icon" className="hidden md:inline-flex" onClick={() => setCollapsed(!collapsed)} aria-label="Toggle sidebar">
             {collapsed ? <PanelLeft className="size-4" /> : <PanelLeftClose className="size-4" />}
           </Button>
-          <button onClick={() => setSearchOpen(true)} className="flex h-9 flex-1 items-center gap-2 rounded-md border bg-background px-3 text-sm text-muted-foreground hover:border-ring/40 md:max-w-md">
-            <Search className="size-4" /> <span className="truncate">Search cases, clients, residents…</span>
+          <Button variant="outline" onClick={() => setSearchOpen(true)} aria-label="Search workspace" className="h-9 min-w-0 flex-1 justify-start gap-2 bg-background px-3 text-sm text-muted-foreground md:max-w-md">
+            <Search className="size-4 shrink-0" /> <span className="truncate">Search cases, clients, residents…</span>
             <kbd className="ml-auto hidden rounded border bg-muted px-1.5 text-[10px] sm:inline">⌘K</kbd>
-          </button>
-          <div className="ml-auto flex items-center gap-1.5">
+          </Button>
+          <div className="ml-auto flex shrink-0 items-center gap-1.5">
             {me.role === "owner" && (
               <Select value={acct} onValueChange={setAccount}>
                 <SelectTrigger className="hidden h-9 w-48 lg:flex"><Building2 className="size-4" /><SelectValue /></SelectTrigger>
@@ -182,7 +185,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </DropdownMenu>
           </div>
         </header>
-        <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
+        <main className="min-w-0 flex-1 p-4 md:p-6 lg:p-8">{children}</main>
       </div>
 
       <CommandDialog open={searchOpen} onOpenChange={setSearchOpen}>

@@ -11,3 +11,4 @@
 
 - Dashboard and Case Files derive their records from the existing Zustand demo store so all local edits stay synchronized.
 - Keep case filtering, sorting, summaries and CSV formatting in a shared browser-safe module so their behavior can be tested independently.
+- Keep client metrics and calendar scheduling calculations in a shared browser-safe module so page logic stays testable.
