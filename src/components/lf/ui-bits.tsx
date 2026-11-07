@@ -1,3 +1,4 @@
+import { Layers2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
@@ -22,28 +23,63 @@ const tone: Record<string, string> = {
 
 export function StatusBadge({ value, className }: { value: string; className?: string }) {
   return (
-    <span className={cn("inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border px-2 py-0.5 text-xs font-medium", tone[value] ?? "bg-muted text-muted-foreground border-border", className)}>
-      {["Active", "Overdue", "Urgent"].includes(value) && <span className="size-1.5 rounded-full bg-current" />}
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1 text-[11px] font-semibold",
+        tone[value] ?? "bg-muted text-muted-foreground border-border",
+        className,
+      )}
+    >
+      {["Active", "Overdue", "Urgent"].includes(value) && (
+        <span className="size-1.5 rounded-full bg-current" />
+      )}
       {value}
     </span>
   );
 }
 
-export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: ReactNode; actions?: ReactNode }) {
+export function PageHeader({
+  title,
+  subtitle,
+  actions,
+}: {
+  title: string;
+  subtitle?: ReactNode;
+  actions?: ReactNode;
+}) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div className="page-header">
       <div>
-        <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground md:text-3xl">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
+        <h1 className="font-display text-[28px] font-semibold leading-tight tracking-[-0.035em] text-foreground md:text-[32px]">
+          {title}
+        </h1>
+        {subtitle && (
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{subtitle}</p>
+        )}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
   );
 }
 
-export function Panel({ title, action, children, className }: { title?: ReactNode; action?: ReactNode; children: ReactNode; className?: string }) {
+export function Panel({
+  title,
+  action,
+  children,
+  className,
+}: {
+  title?: ReactNode;
+  action?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
-    <section className={cn("rounded-xl border bg-card shadow-[0_1px_2px_0_oklch(0.3_0.08_262/0.05)]", className)}>
+    <section
+      className={cn(
+        "rounded-xl border bg-card shadow-[0_1px_2px_0_oklch(0.3_0.08_262/0.05)]",
+        className,
+      )}
+    >
       {title && (
         <header className="flex items-center justify-between border-b px-5 py-3.5">
           <h2 className="text-sm font-semibold text-foreground">{title}</h2>
@@ -56,18 +92,44 @@ export function Panel({ title, action, children, className }: { title?: ReactNod
 }
 
 export function Avatar({ name, className }: { name: string; className?: string }) {
-  const initials = name.split(" ").map((p) => p[0]).slice(0, 2).join("");
+  const initials = name
+    .split(" ")
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join("");
   return (
-    <span className={cn("inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-semibold text-accent-foreground", className)}>
+    <span
+      className={cn(
+        "inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-semibold text-accent-foreground ring-1 ring-primary/5",
+        className,
+      )}
+    >
       {initials}
     </span>
   );
 }
 
-export function Logo({ light }: { light?: boolean }) {
+export function Logo({ light, compact }: { light?: boolean; compact?: boolean }) {
   return (
-    <span className={cn("font-display text-xl font-semibold tracking-tight", light ? "text-sidebar-accent-foreground" : "text-primary")}>
-      Legal<span className={light ? "text-sidebar-primary" : "text-info"}>Flow</span>
+    <span className="inline-flex items-center gap-2.5">
+      <span
+        className={cn(
+          "flex size-9 items-center justify-center rounded-xl bg-primary text-white shadow-sm",
+          light && "bg-white/15",
+        )}
+      >
+        <Layers2 className="size-5" />
+      </span>
+      {!compact && (
+        <span
+          className={cn(
+            "font-display text-[21px] font-bold tracking-[-0.045em]",
+            light ? "text-white" : "text-foreground",
+          )}
+        >
+          LegalFlow<span className="ml-0.5 text-primary">.</span>
+        </span>
+      )}
     </span>
   );
 }

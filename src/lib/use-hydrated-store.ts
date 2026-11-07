@@ -1,14 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useStore } from "./store";
-
-/** Rehydrates persisted demo data from localStorage after mount (avoids SSR mismatch). */
+/** The server session determines access; business records are never persisted in the browser. */
 export function useStoreHydrated() {
-  const [ready, setReady] = useState(false);
+  const ready = useStore((s) => s.ready);
   useEffect(() => {
-    if (useStore.persist.hasHydrated()) { setReady(true); return; }
-    const unsub = useStore.persist.onFinishHydration(() => setReady(true));
-    void useStore.persist.rehydrate();
-    return unsub;
+    if (!useStore.getState().ready) void useStore.getState().initialize();
   }, []);
   return ready;
 }

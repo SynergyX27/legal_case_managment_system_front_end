@@ -1,20 +1,66 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Download, Eye, FileText, Film, FolderOpen, Image, LayoutGrid, List, Search, Trash2, UploadCloud, FileSpreadsheet } from "lucide-react";
+import {
+  Download,
+  Eye,
+  FileText,
+  Film,
+  FolderOpen,
+  Image,
+  LayoutGrid,
+  List,
+  Search,
+  Trash2,
+  UploadCloud,
+  FileSpreadsheet,
+} from "lucide-react";
 import { PageHeader, Avatar } from "@/components/lf/ui-bits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { FileDrop } from "@/components/lf/case-form-dialog";
 import { useStore, useVisibleCases, fmtDate } from "@/lib/store";
 import { useUI } from "@/lib/ui-store";
-import { documentRecords, filterDocuments, hasLocalContent, type DocumentRecord } from "@/lib/documents";
-import type { Attachment } from "@/lib/mock-data";
+import {
+  documentRecords,
+  filterDocuments,
+  hasLocalContent,
+  type DocumentRecord,
+} from "@/lib/documents";
+import type { Attachment } from "@/lib/domain";
 
 export const Route = createFileRoute("/_authenticated/documents")({
-  head: () => ({ meta: [{ title: "Documents – LegalFlow" }, { name: "description", content: "Browse case documents, upload local files and manage legal service records in LegalFlow." }, { property: "og:title", content: "Documents – LegalFlow" }, { property: "og:description", content: "Case-linked documents and local file uploads in LegalFlow." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
+  head: () => ({
+    meta: [
+      { title: "Documents – LegalFlow" },
+      {
+        name: "description",
+        content:
+          "Browse case documents, upload files to Dropbox and manage legal service records in LegalFlow.",
+      },
+      { property: "og:title", content: "Documents – LegalFlow" },
+      {
+        property: "og:description",
+        content: "Case-linked documents and Dropbox file uploads in LegalFlow.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: Page,
 });
 
@@ -33,20 +79,434 @@ function Page() {
   const [uploadCase, setUploadCase] = useState("");
   const [files, setFiles] = useState<Attachment[]>([]);
   const records = documentRecords(cases);
-  const rows = filterDocuments(records, search, type, caseId).sort((a, b) => sort === "name" ? a.name.localeCompare(b.name) : b.uploadedAt.localeCompare(a.uploadedAt));
-  const types = [{ id: "pdf", name: "PDF", icon: FileText }, { id: "word", name: "Word", icon: FileText }, { id: "image", name: "Images", icon: Image }, { id: "video", name: "Videos", icon: Film }, { id: "excel", name: "Spreadsheets", icon: FileSpreadsheet }, { id: "other", name: "Other", icon: FolderOpen }];
-  const icon = (r: Attachment) => { const I = types.find((t) => t.id === r.type)?.icon ?? FileText; return <I className="size-5" />; };
-  const download = (r: DocumentRecord) => { if (!hasLocalContent(r)) return; const a = document.createElement("a"); a.href = r.url ?? ""; a.download = r.name; a.click(); };
-  const beginUpload = () => { setFiles([]); setUploadCase(caseId || cases[0]?.id || ""); setUpload(true); };
-  const saveFiles = () => { if (!uploadCase || !files.length) return; s.addAttachments(uploadCase, files); setUpload(false); setFiles([]); setSearch(""); setType(""); setCaseId(uploadCase); toast.success("Documents uploaded to case"); };
-  return <>
-    <PageHeader title="Documents" subtitle={`${records.length} documents across ${new Set(records.map((r) => r.caseId)).size} case files`} actions={<Button onClick={beginUpload} disabled={!cases.length}><UploadCloud />Upload documents</Button>} />
-    <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">{[{ label: "All documents", count: records.length, Icon: FileText }, { label: "Legal documents", count: records.filter((r) => ["pdf", "word"].includes(r.type)).length, Icon: FolderOpen }, { label: "Photos & videos", count: records.filter((r) => ["image", "video"].includes(r.type)).length, Icon: Image }, { label: "Local uploads", count: records.filter(hasLocalContent).length, Icon: UploadCloud }].map(({ label, count, Icon }) => <div key={label} className="flex items-center gap-3 rounded-lg border bg-card p-4"><span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-accent text-info"><Icon className="size-4" /></span><div><div className="text-2xl font-semibold tabular-nums">{count}</div><div className="text-xs text-muted-foreground">{label}</div></div></div>)}</div>
-    <div className="mb-4 flex flex-wrap items-center gap-2"><div className="relative min-w-44 flex-1 sm:max-w-sm"><Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" /><Input aria-label="Search documents" className="pl-9" placeholder="Search files, case numbers or uploader…" value={search} onChange={(e) => setSearch(e.target.value)} /></div><Select value={type || "all"} onValueChange={(v) => setType(v === "all" ? "" : v)}><SelectTrigger aria-label="File type" className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All file types</SelectItem>{types.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}</SelectContent></Select><Select value={caseId || "all"} onValueChange={(v) => setCaseId(v === "all" ? "" : v)}><SelectTrigger aria-label="Filter by case" className="w-44"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All cases</SelectItem>{cases.map((c) => <SelectItem key={c.id} value={c.id}>{c.number}</SelectItem>)}</SelectContent></Select><Select value={sort} onValueChange={setSort}><SelectTrigger aria-label="Sort documents" className="w-36"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="recent">Newest first</SelectItem><SelectItem value="name">Name A–Z</SelectItem></SelectContent></Select><div className="flex gap-1"><Button variant={grid ? "outline" : "secondary"} size="icon" aria-label="List view" title="List view" onClick={() => setGrid(false)}><List /></Button><Button variant={grid ? "secondary" : "outline"} size="icon" aria-label="Grid view" title="Grid view" onClick={() => setGrid(true)}><LayoutGrid /></Button></div></div>
-    {!rows.length ? <div className="border-y py-16 text-center"><FolderOpen className="mx-auto mb-3 size-8 text-muted-foreground" /><h2 className="font-medium">No matching documents</h2><Button variant="link" onClick={() => { setSearch(""); setType(""); setCaseId(""); }}>Clear filters</Button></div> : grid ? <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{rows.map((r) => <article key={r.id} className="overflow-hidden rounded-lg border bg-card"><Button variant="ghost" className="flex h-28 w-full items-center justify-center rounded-none bg-muted/50 text-info" aria-label={`Preview ${r.name}`} onClick={() => setPreview(r)}>{icon(r)}</Button><div className="p-4"><h2 className="truncate text-sm font-medium" title={r.name}>{r.name}</h2><Button variant="link" className="h-auto p-0 text-xs text-info" onClick={() => openCase(r.caseId)}>{r.caseNumber}</Button><div className="mt-3 flex items-center justify-between gap-2 text-xs text-muted-foreground"><span>{r.size} · {fmtDate(r.uploadedAt)}</span><Button variant="ghost" size="icon" aria-label={`Delete ${r.name}`} onClick={() => setDeleting(r)}><Trash2 className="size-3.5" /></Button></div></div></article>)}</div> : <div className="overflow-x-auto rounded-lg border bg-card"><table className="w-full min-w-[850px] text-left text-sm"><thead className="border-b bg-muted/60 text-xs text-muted-foreground"><tr>{["Document", "Case file", "Uploaded by", "Date", "Size", "Actions"].map((h) => <th key={h} className="px-4 py-3 font-medium">{h}</th>)}</tr></thead><tbody className="divide-y">{rows.map((r) => <tr key={r.id}><td className="max-w-80 px-4 py-3"><div className="flex items-center gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-accent text-info">{icon(r)}</span><div className="min-w-0"><Button variant="link" className="block h-auto max-w-full truncate p-0 text-left text-foreground" title={r.name} onClick={() => setPreview(r)}>{r.name}</Button><p className="mt-0.5 text-[10px] uppercase text-muted-foreground">{r.type} · {hasLocalContent(r) ? "Local upload" : "Sample record"}</p></div></div></td><td className="px-4 py-3"><Button variant="link" className="h-auto p-0 text-xs text-info" onClick={() => openCase(r.caseId)}>{r.caseNumber}</Button></td><td className="px-4 py-3"><div className="flex items-center gap-2 whitespace-nowrap"><Avatar name={r.uploadedBy} /><span className="text-xs">{r.uploadedBy}</span></div></td><td className="whitespace-nowrap px-4 py-3 text-xs">{fmtDate(r.uploadedAt)}</td><td className="whitespace-nowrap px-4 py-3 text-xs">{r.size}</td><td className="px-4 py-3"><div className="flex"><Button variant="ghost" size="icon" aria-label={`Preview ${r.name}`} title="Preview" onClick={() => setPreview(r)}><Eye className="size-4" /></Button><Button variant="ghost" size="icon" aria-label={`Download ${r.name}`} title={hasLocalContent(r) ? "Download" : "Sample record has no file content"} disabled={!hasLocalContent(r)} onClick={() => download(r)}><Download className="size-4" /></Button><Button variant="ghost" size="icon" aria-label={`Delete ${r.name}`} title="Delete" onClick={() => setDeleting(r)}><Trash2 className="size-4" /></Button></div></td></tr>)}</tbody></table></div>}
-    <p className="mt-3 text-xs text-muted-foreground">{rows.length} document{rows.length === 1 ? "" : "s"}</p>
-    <Dialog open={upload} onOpenChange={setUpload}><DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl"><DialogHeader><DialogTitle>Upload documents</DialogTitle></DialogHeader><Select value={uploadCase} onValueChange={setUploadCase}><SelectTrigger aria-label="Attach to case" className="w-full"><SelectValue placeholder="Choose a case" /></SelectTrigger><SelectContent>{cases.map((c) => <SelectItem key={c.id} value={c.id}>{c.number} · {c.residentName}</SelectItem>)}</SelectContent></Select><FileDrop files={files} setFiles={setFiles} /><DialogFooter><Button variant="outline" onClick={() => setUpload(false)}>Cancel</Button><Button disabled={!uploadCase || !files.length} onClick={saveFiles}>Save documents</Button></DialogFooter></DialogContent></Dialog>
-    <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}><DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl"><DialogHeader><DialogTitle className="break-all pr-5">{preview?.name}</DialogTitle></DialogHeader>{preview && <><div className="flex flex-wrap gap-3 text-xs text-muted-foreground"><span>{preview.caseNumber}</span><span>{preview.size}</span><span>{fmtDate(preview.uploadedAt)}</span><span>{preview.uploadedBy}</span></div>{hasLocalContent(preview) && preview.type === "image" && preview.url?.startsWith("data:image/") && !preview.url.startsWith("data:image/svg") ? <img src={preview.url} alt={preview.name} className="max-h-96 w-full object-contain" /> : hasLocalContent(preview) && preview.type === "video" && preview.url?.startsWith("data:video/") ? <video src={preview.url} controls className="max-h-96 w-full" /> : hasLocalContent(preview) && preview.type === "pdf" && preview.url?.startsWith("data:application/pdf") ? <iframe title={preview.name} src={preview.url} sandbox="" className="h-96 w-full rounded-md border" /> : <div className="flex flex-col items-center gap-3 bg-muted/50 py-12 text-center"><span className="text-info">{icon(preview)}</span><p className="max-w-md px-4 text-sm text-muted-foreground">{hasLocalContent(preview) ? "Preview is unavailable for this file type. Download the file to view it." : "This fictional sample record has no file content. Upload your own file to preview or download it."}</p></div>}<DialogFooter><Button variant="outline" onClick={() => { setPreview(null); openCase(preview.caseId); }}>Open case</Button><Button disabled={!hasLocalContent(preview)} onClick={() => download(preview)}><Download />Download file</Button></DialogFooter></>}</DialogContent></Dialog>
-    <Dialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}><DialogContent><DialogHeader><DialogTitle>Delete document?</DialogTitle></DialogHeader><p className="break-all text-sm text-muted-foreground">Remove {deleting?.name} from its case file? This cannot be undone.</p><DialogFooter><Button variant="outline" onClick={() => setDeleting(null)}>Cancel</Button><Button variant="destructive" onClick={() => { if (!deleting) return; const c = s.cases.find((c) => c.id === deleting.caseId); if (c) s.updateCase(c.id, { attachments: c.attachments.filter((a) => a.id !== deleting.id) }, `Document removed: ${deleting.name}`); setDeleting(null); toast.success("Document deleted"); }}>Delete document</Button></DialogFooter></DialogContent></Dialog>
-  </>;
+  const rows = filterDocuments(records, search, type, caseId).sort((a, b) =>
+    sort === "name" ? a.name.localeCompare(b.name) : b.uploadedAt.localeCompare(a.uploadedAt),
+  );
+  const types = [
+    { id: "pdf", name: "PDF", icon: FileText },
+    { id: "word", name: "Word", icon: FileText },
+    { id: "image", name: "Images", icon: Image },
+    { id: "video", name: "Videos", icon: Film },
+    { id: "excel", name: "Spreadsheets", icon: FileSpreadsheet },
+    { id: "other", name: "Other", icon: FolderOpen },
+  ];
+  const icon = (r: Attachment) => {
+    const I = types.find((t) => t.id === r.type)?.icon ?? FileText;
+    return <I className="size-5" />;
+  };
+  const download = (r: DocumentRecord) => {
+    if (!hasLocalContent(r)) return;
+    const a = document.createElement("a");
+    a.href = (r.url ?? "") + "?download=1";
+    a.download = r.name;
+    a.click();
+  };
+  const beginUpload = () => {
+    setFiles([]);
+    setUploadCase(caseId || cases[0]?.id || "");
+    setUpload(true);
+  };
+  const [saving, setSaving] = useState(false);
+  const saveFiles = async () => {
+    if (saving || !uploadCase || !files.length) return;
+    setSaving(true);
+    try {
+      if (!(await s.addAttachments(uploadCase, files))) return;
+      setUpload(false);
+      setFiles([]);
+      setSearch("");
+      setType("");
+      setCaseId(uploadCase);
+      toast.success("Documents uploaded to case");
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <>
+      <PageHeader
+        title="Documents"
+        subtitle={`${records.length} documents across ${new Set(records.map((r) => r.caseId)).size} case files`}
+        actions={
+          <Button onClick={beginUpload} disabled={!cases.length}>
+            <UploadCloud />
+            Upload documents
+          </Button>
+        }
+      />
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {[
+          { label: "All documents", count: records.length, Icon: FileText },
+          {
+            label: "Legal documents",
+            count: records.filter((r) => ["pdf", "word"].includes(r.type)).length,
+            Icon: FolderOpen,
+          },
+          {
+            label: "Photos & videos",
+            count: records.filter((r) => ["image", "video"].includes(r.type)).length,
+            Icon: Image,
+          },
+          {
+            label: "Local uploads",
+            count: records.filter(hasLocalContent).length,
+            Icon: UploadCloud,
+          },
+        ].map(({ label, count, Icon }) => (
+          <div key={label} className="flex items-center gap-3 rounded-lg border bg-card p-4">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-accent text-primary">
+              <Icon className="size-4" />
+            </span>
+            <div>
+              <div className="text-[28px] font-semibold tracking-tight tabular-nums">{count}</div>
+              <div className="text-xs text-muted-foreground">{label}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="records-toolbar mb-4 flex flex-wrap items-center gap-2">
+        <div className="relative min-w-44 flex-1 sm:max-w-sm">
+          <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+          <Input
+            aria-label="Search documents"
+            className="pl-9"
+            placeholder="Search files, case numbers or uploader…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <Select value={type || "all"} onValueChange={(v) => setType(v === "all" ? "" : v)}>
+          <SelectTrigger aria-label="File type" className="w-36">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All file types</SelectItem>
+            {types.map((t) => (
+              <SelectItem key={t.id} value={t.id}>
+                {t.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={caseId || "all"} onValueChange={(v) => setCaseId(v === "all" ? "" : v)}>
+          <SelectTrigger aria-label="Filter by case" className="w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All cases</SelectItem>
+            {cases.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.number}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={sort} onValueChange={setSort}>
+          <SelectTrigger aria-label="Sort documents" className="w-36">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="recent">Newest first</SelectItem>
+            <SelectItem value="name">Name A–Z</SelectItem>
+          </SelectContent>
+        </Select>
+        <div className="flex gap-1">
+          <Button
+            variant={grid ? "outline" : "secondary"}
+            size="icon"
+            aria-label="List view"
+            title="List view"
+            onClick={() => setGrid(false)}
+          >
+            <List />
+          </Button>
+          <Button
+            variant={grid ? "secondary" : "outline"}
+            size="icon"
+            aria-label="Grid view"
+            title="Grid view"
+            onClick={() => setGrid(true)}
+          >
+            <LayoutGrid />
+          </Button>
+        </div>
+      </div>
+      {!rows.length ? (
+        <div className="border-y py-16 text-center">
+          <FolderOpen className="mx-auto mb-3 size-8 text-muted-foreground" />
+          <h2 className="font-medium">No matching documents</h2>
+          <Button
+            variant="link"
+            onClick={() => {
+              setSearch("");
+              setType("");
+              setCaseId("");
+            }}
+          >
+            Clear filters
+          </Button>
+        </div>
+      ) : grid ? (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {rows.map((r) => (
+            <article key={r.id} className="overflow-hidden rounded-lg border bg-card">
+              <Button
+                variant="ghost"
+                className="flex h-28 w-full items-center justify-center rounded-none bg-muted/50 text-info"
+                aria-label={`Preview ${r.name}`}
+                onClick={() => setPreview(r)}
+              >
+                {icon(r)}
+              </Button>
+              <div className="p-4">
+                <h2 className="truncate text-sm font-medium" title={r.name}>
+                  {r.name}
+                </h2>
+                <Button
+                  variant="link"
+                  className="h-auto p-0 text-xs text-info"
+                  onClick={() => openCase(r.caseId)}
+                >
+                  {r.caseNumber}
+                </Button>
+                <div className="mt-3 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <span>
+                    {r.size} · {fmtDate(r.uploadedAt)}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`Delete ${r.name}`}
+                    onClick={() => setDeleting(r)}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-lg border bg-card">
+          <table className="w-full min-w-[850px] text-left text-sm">
+            <thead className="border-b bg-muted/60 text-xs text-muted-foreground">
+              <tr>
+                {["Document", "Case file", "Uploaded by", "Date", "Size", "Actions"].map((h) => (
+                  <th key={h} className="px-4 py-3 font-medium">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {rows.map((r) => (
+                <tr key={r.id}>
+                  <td className="max-w-80 px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-accent text-primary">
+                        {icon(r)}
+                      </span>
+                      <div className="min-w-0">
+                        <Button
+                          variant="link"
+                          className="block h-auto max-w-full truncate p-0 text-left text-foreground"
+                          title={r.name}
+                          onClick={() => setPreview(r)}
+                        >
+                          {r.name}
+                        </Button>
+                        <p className="mt-0.5 text-[10px] uppercase text-muted-foreground">
+                          {r.type} · {hasLocalContent(r) ? "Dropbox file" : "Unavailable"}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Button
+                      variant="link"
+                      className="h-auto p-0 text-xs text-info"
+                      onClick={() => openCase(r.caseId)}
+                    >
+                      {r.caseNumber}
+                    </Button>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2 whitespace-nowrap">
+                      <Avatar name={r.uploadedBy} />
+                      <span className="text-xs">{r.uploadedBy}</span>
+                    </div>
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-xs">{fmtDate(r.uploadedAt)}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-xs">{r.size}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Preview ${r.name}`}
+                        title="Preview"
+                        onClick={() => setPreview(r)}
+                      >
+                        <Eye className="size-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Download ${r.name}`}
+                        title={hasLocalContent(r) ? "Download" : "File content unavailable"}
+                        disabled={!hasLocalContent(r)}
+                        onClick={() => download(r)}
+                      >
+                        <Download className="size-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Delete ${r.name}`}
+                        title="Delete"
+                        onClick={() => setDeleting(r)}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className="mt-3 text-xs text-muted-foreground">
+        {rows.length} document{rows.length === 1 ? "" : "s"}
+      </p>
+      <Dialog open={upload} onOpenChange={(value) => !saving && setUpload(value)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Upload documents</DialogTitle>
+          </DialogHeader>
+          <Select value={uploadCase} onValueChange={setUploadCase}>
+            <SelectTrigger aria-label="Attach to case" className="w-full">
+              <SelectValue placeholder="Choose a case" />
+            </SelectTrigger>
+            <SelectContent>
+              {cases.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.number} · {c.residentName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FileDrop files={files} setFiles={setFiles} />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUpload(false)}>
+              Cancel
+            </Button>
+            <Button disabled={saving || !uploadCase || !files.length} onClick={saveFiles}>
+              Save documents
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="break-all pr-5">{preview?.name}</DialogTitle>
+          </DialogHeader>
+          {preview && (
+            <>
+              <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                <span>{preview.caseNumber}</span>
+                <span>{preview.size}</span>
+                <span>{fmtDate(preview.uploadedAt)}</span>
+                <span>{preview.uploadedBy}</span>
+              </div>
+              {hasLocalContent(preview) &&
+              preview.type === "image" &&
+              preview.url?.startsWith("data:image/") &&
+              !preview.url.startsWith("data:image/svg") ? (
+                <img
+                  src={preview.url}
+                  alt={preview.name}
+                  className="max-h-96 w-full object-contain"
+                />
+              ) : hasLocalContent(preview) &&
+                preview.type === "video" &&
+                preview.url?.startsWith("data:video/") ? (
+                <video src={preview.url} controls className="max-h-96 w-full" />
+              ) : hasLocalContent(preview) &&
+                preview.type === "pdf" &&
+                preview.url?.startsWith("data:application/pdf") ? (
+                <iframe
+                  title={preview.name}
+                  src={preview.url}
+                  sandbox=""
+                  className="h-96 w-full rounded-md border"
+                />
+              ) : (
+                <div className="flex flex-col items-center gap-3 bg-muted/50 py-12 text-center">
+                  <span className="text-info">{icon(preview)}</span>
+                  <p className="max-w-md px-4 text-sm text-muted-foreground">
+                    {hasLocalContent(preview)
+                      ? "Preview is unavailable for this file type. Download the file to view it."
+                      : "This file is currently unavailable. Please try again."}
+                  </p>
+                </div>
+              )}
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setPreview(null);
+                    openCase(preview.caseId);
+                  }}
+                >
+                  Open case
+                </Button>
+                <Button disabled={!hasLocalContent(preview)} onClick={() => download(preview)}>
+                  <Download />
+                  Download file
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete document?</DialogTitle>
+          </DialogHeader>
+          <p className="break-all text-sm text-muted-foreground">
+            Remove {deleting?.name} from its case file? This cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleting(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (!deleting) return;
+                const c = s.cases.find((c) => c.id === deleting.caseId);
+                if (c) {
+                  if (
+                    !(await s.updateCase(
+                      c.id,
+                      { attachments: c.attachments.filter((a) => a.id !== deleting.id) },
+                      `Document removed: ${deleting.name}`,
+                    ))
+                  )
+                    return;
+                }
+                setDeleting(null);
+                toast.success("Document deleted");
+              }}
+            >
+              Delete document
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
 }

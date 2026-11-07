@@ -1,205 +1,474 @@
+import { useUI } from "./ui-store";
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { toast } from "sonner";
+import { api, resetCsrf } from "./api";
+import { visibleCasesFor } from "./access";
+import { caseBilling } from "./billing";
 import {
-  buildSeed, iso, type Case, type Client, type Invoice, type CalendarEvent, type Notification,
-  type Automation, type CustomField, type User, type Activity, type Attachment,
-} from "./mock-data";
-
+  iso,
+  type Account,
+  type User,
+  type Client,
+  type Case,
+  type Invoice,
+  type CalendarEvent,
+  type Attachment,
+  type Activity,
+  type Conversation,
+  type Notification,
+  type CustomField,
+} from "./domain";
 export interface SavedView {
-  id: string; name: string; builtIn?: boolean;
-  filters: { status: string[]; clientId: string; staffId: string; type: string; dateFrom: string; dateTo: string; mine?: boolean; search: string };
+  id: string;
+  name: string;
+  builtIn?: boolean;
+  filters: {
+    status: string[];
+    clientId: string;
+    staffId: string;
+    type: string;
+    dateFrom: string;
+    dateTo: string;
+    mine?: boolean;
+    search: string;
+  };
 }
-export interface TablePrefs { visible: string[]; order: string[]; widths: Record<string, number>; pageSize: number }
+export interface TablePrefs {
+  visible: string[];
+  order: string[];
+  widths: Record<string, number>;
+  pageSize: number;
+}
 
-const seed = () => buildSeed();
-type Seed = ReturnType<typeof buildSeed>;
+export interface UserInput {
+  name: string;
+  email: string;
+  username: string;
+  password: string;
+  company?: string;
+  phone?: string;
+  address?: string;
+  title?: string;
+  clientId?: string;
+  role?: User["role"];
+}
 
 const todayIso = () => iso(new Date());
-const emptyFilters = { status: [], clientId: "", staffId: "", type: "", dateFrom: "", dateTo: "", search: "" };
-
-interface State extends Seed {
-  sessionUserId: string | null;
-  activeAccountId: string | "all";
-  savedViews: SavedView[];
-  tablePrefs: TablePrefs | null;
-  login: (email: string, password: string) => boolean;
-  logout: () => void;
-  setAccount: (id: string) => void;
-  addCase: (c: Case) => void;
-  updateCase: (id: string, patch: Partial<Case>, note?: string) => void;
-  deleteCase: (id: string) => void;
-  addAttachments: (caseId: string, a: Attachment[]) => void;
-  addComment: (caseId: string, text: string) => void;
-  addActivity: (caseId: string, text: string, kind?: string) => void;
-  upsertClient: (c: Client) => void;
-  deleteClient: (id: string) => void;
-  upsertInvoice: (i: Invoice) => void;
-  upsertEvent: (e: CalendarEvent) => void;
-  deleteEvent: (id: string) => void;
-  markRead: (id: string) => void;
-  markAllRead: () => void;
-  notify: (kind: string, text: string, link?: string) => void;
-  sendMessage: (convId: string, text: string, file?: string) => void;
-  upsertAutomation: (a: Automation) => void;
-  upsertCustomField: (f: CustomField) => void;
-  deleteCustomField: (id: string) => void;
-  upsertUser: (u: User) => void;
-  saveView: (v: SavedView) => void;
-  deleteView: (id: string) => void;
-  setTablePrefs: (p: TablePrefs) => void;
-  resetDemo: () => void;
-}
-
+const emptyFilters = {
+  status: [],
+  clientId: "",
+  staffId: "",
+  type: "",
+  dateFrom: "",
+  dateTo: "",
+  search: "",
+};
 export const defaultViews = (): SavedView[] => {
   const t = todayIso();
   const in30 = iso(new Date(Date.now() + 30 * 864e5));
   return [
     { id: "all", name: "All Cases", builtIn: true, filters: { ...emptyFilters } },
     { id: "mine", name: "My Cases", builtIn: true, filters: { ...emptyFilters, mine: true } },
-    { id: "active", name: "Active", builtIn: true, filters: { ...emptyFilters, status: ["Active"] } },
-    { id: "pending", name: "Pending", builtIn: true, filters: { ...emptyFilters, status: ["Pending"] } },
-    { id: "today", name: "Today's Services", builtIn: true, filters: { ...emptyFilters, dateFrom: t, dateTo: t } },
-    { id: "upcoming", name: "Upcoming Services", builtIn: true, filters: { ...emptyFilters, dateFrom: t, dateTo: in30, status: ["Active", "Scheduled", "Pending"] } },
-    { id: "completed", name: "Completed", builtIn: true, filters: { ...emptyFilters, status: ["Completed"] } },
+    {
+      id: "active",
+      name: "Active",
+      builtIn: true,
+      filters: { ...emptyFilters, status: ["Active"] },
+    },
+    {
+      id: "pending",
+      name: "Pending",
+      builtIn: true,
+      filters: { ...emptyFilters, status: ["Pending"] },
+    },
+    {
+      id: "today",
+      name: "Today's Services",
+      builtIn: true,
+      filters: { ...emptyFilters, dateFrom: t, dateTo: t },
+    },
+    {
+      id: "upcoming",
+      name: "Upcoming Services",
+      builtIn: true,
+      filters: {
+        ...emptyFilters,
+        dateFrom: t,
+        dateTo: in30,
+        status: ["Active", "Scheduled", "Pending"],
+      },
+    },
+    {
+      id: "completed",
+      name: "Completed",
+      builtIn: true,
+      filters: { ...emptyFilters, status: ["Completed"] },
+    },
   ];
 };
 
-let idc = 0;
-export const uid = (p: string) => `${p}${Date.now().toString(36)}${(idc++).toString(36)}`;
-
-export const useStore = create<State>()(
-  persist(
-    (set, get) => ({
-      ...seed(),
-      sessionUserId: null,
-      activeAccountId: "all",
-      savedViews: defaultViews(),
-      tablePrefs: null,
-      login: (email, password) => {
-        const u = get().users.find((x) => x.email.toLowerCase() === email.trim().toLowerCase());
-        if (!u || password !== "password123" || u.status !== "Active") return false;
-        set({ sessionUserId: u.id, activeAccountId: u.role === "owner" ? "all" : u.accountId });
+export const uid = (prefix: string) => prefix + crypto.randomUUID();
+interface Data {
+  accounts: Account[];
+  users: User[];
+  clients: Client[];
+  cases: Case[];
+  invoices: Invoice[];
+  events: CalendarEvent[];
+  activities: Activity[];
+  conversations: Conversation[];
+  notifications: Notification[];
+  customFields: CustomField[];
+  companyDocuments: Attachment[];
+  chatRead: Record<string, string>;
+  savedViews: SavedView[];
+  tablePrefs: TablePrefs | null;
+}
+const emptyData = (): Data => ({
+  accounts: [{ id: "company", name: "LegalFlow" }],
+  users: [],
+  clients: [],
+  cases: [],
+  invoices: [],
+  events: [],
+  activities: [],
+  conversations: [],
+  notifications: [],
+  customFields: [],
+  companyDocuments: [],
+  chatRead: {},
+  savedViews: defaultViews(),
+  tablePrefs: null,
+});
+interface State extends Data {
+  ready: boolean;
+  connectionError: string;
+  sessionUserId: string | null;
+  activeAccountId: string;
+  initialize: () => Promise<void>;
+  refresh: () => Promise<void>;
+  login: (identity: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+  registerCustomer: (input: UserInput) => Promise<string>;
+  createUser: (input: UserInput) => Promise<string>;
+  updateUserAccess: (
+    id: string,
+    patch: { role: User["role"]; status: User["status"]; password?: string },
+  ) => Promise<string>;
+  addCase: (c: Case) => Promise<boolean>;
+  updateCase: (id: string, patch: Partial<Case>, note?: string) => Promise<boolean>;
+  deleteCase: (id: string) => Promise<boolean>;
+  addAttachments: (caseId: string, files: Attachment[]) => Promise<boolean>;
+  addCompanyDocuments: (files: Attachment[]) => Promise<string>;
+  deleteCompanyDocument: (id: string) => Promise<boolean>;
+  addComment: (id: string, text: string) => Promise<boolean>;
+  upsertClient: (c: Client) => Promise<boolean>;
+  deleteClient: (id: string) => Promise<boolean>;
+  upsertInvoice: (i: Invoice) => Promise<boolean>;
+  upsertEvent: (e: CalendarEvent) => Promise<boolean>;
+  deleteEvent: (id: string) => Promise<boolean>;
+  markRead: (id: string) => Promise<boolean>;
+  markAllRead: () => Promise<boolean>;
+  startChat: (otherId: string) => Promise<string>;
+  sendMessage: (id: string, text: string) => Promise<boolean>;
+  markConversationRead: (id: string) => Promise<void>;
+  saveView: (view: SavedView) => Promise<boolean>;
+  deleteView: (id: string) => Promise<boolean>;
+  setTablePrefs: (prefs: TablePrefs) => Promise<boolean>;
+  upsertCustomField: (field: CustomField) => Promise<boolean>;
+  deleteCustomField: (id: string) => Promise<boolean>;
+}
+let initializing: Promise<void> | null = null;
+let refreshing: Promise<void> | null = null;
+let polling: ReturnType<typeof setInterval> | undefined;
+let sessionEpoch = 0;
+export const useStore = create<State>((set, get) => {
+  const refresh = async () => {
+    if (refreshing) return refreshing;
+    const epoch = sessionEpoch;
+    refreshing = (async () => {
+      try {
+        const data = await api<Data>("/workspace");
+        if (epoch !== sessionEpoch) return;
+        data.savedViews = [...defaultViews(), ...data.savedViews.filter((v) => !v.builtIn)];
+        data.cases = data.cases.map((c) => ({ ...c, ...caseBilling(data.invoices, c.id) }) as Case);
+        set({ ...data, connectionError: "" });
+      } catch (e) {
+        if (epoch !== sessionEpoch) return;
+        set({ connectionError: (e as Error).message });
+        if ((e as any).status === 401) {
+          sessionEpoch++;
+          set({ ...emptyData(), sessionUserId: null });
+        }
+      } finally {
+        refreshing = null;
+      }
+    })();
+    return refreshing;
+  };
+  const mutate = async (path: string, method: string, body?: unknown) => {
+    try {
+      await api(path, { method, body });
+      await refresh();
+      return true;
+    } catch (e) {
+      toast.error((e as Error).message);
+      return false;
+    }
+  };
+  const upload = async (files: Attachment[], caseId?: string) => {
+    for (const f of files.filter((f) => f.pendingFile)) {
+      const form = new FormData();
+      if (caseId) form.append("caseId", caseId);
+      form.append("file", f.pendingFile!);
+      const saved = await api<Attachment>("/documents", {
+        method: "POST",
+        body: form,
+        headers: { "X-Upload-Id": f.id },
+      });
+      Object.assign(f, saved, { pendingFile: undefined });
+    }
+    await refresh();
+  };
+  const saveCase = async (c: Case) => {
+    try {
+      await api(`/cases/${c.id}`, { method: "PUT", body: c });
+      await upload(c.attachments, c.id);
+      await refresh();
+      return true;
+    } catch (e) {
+      await refresh();
+      toast.error((e as Error).message);
+      return false;
+    }
+  };
+  const startPolling = () => {
+    if (!polling)
+      polling = setInterval(() => {
+        if (get().sessionUserId && document.visibilityState === "visible") void refresh();
+      }, 5000);
+  };
+  return {
+    ...emptyData(),
+    ready: false,
+    connectionError: "",
+    sessionUserId: null,
+    activeAccountId: "company",
+    initialize: async () => {
+      if (initializing) return initializing;
+      initializing = (async () => {
+        try {
+          const result = await api<{ user: User | null }>("/auth/session");
+          if (result.user) {
+            sessionEpoch++;
+            set({ sessionUserId: result.user.id, users: [result.user] });
+            await refresh();
+            startPolling();
+          }
+          set({ ready: true });
+        } catch (e) {
+          set({ ready: true, connectionError: (e as Error).message });
+        } finally {
+          initializing = null;
+        }
+      })();
+      return initializing;
+    },
+    refresh,
+    login: async (identity, password) => {
+      try {
+        const r = await api<{ user: User }>("/auth/login", {
+          method: "POST",
+          body: { identity, password },
+        });
+        sessionEpoch++;
+        set({ ...emptyData(), sessionUserId: r.user.id, users: [r.user], connectionError: "" });
+        await refresh();
+        startPolling();
         return true;
-      },
-      logout: () => set({ sessionUserId: null }),
-      setAccount: (id) => set({ activeAccountId: id }),
-      addActivity: (caseId, text, kind = "note") => {
-        const me = get().users.find((u) => u.id === get().sessionUserId);
-        const a: Activity = { id: uid("ac"), caseId, text, by: me?.name ?? "System", at: new Date().toISOString(), kind };
-        set({ activities: [a, ...get().activities] });
-      },
-      addCase: (c) => {
-        set({ cases: [c, ...get().cases] });
-        get().addActivity(c.id, "Case created", "created");
-        const staff = get().users.find((u) => u.id === c.staffId);
-        get().notify("assigned", `New case ${c.number} assigned to ${staff?.name ?? "staff"}`, `/cases/${c.id}`);
-      },
-      updateCase: (id, patch, note) => {
-        const old = get().cases.find((c) => c.id === id);
-        if (!old) return;
-        set({ cases: get().cases.map((c) => (c.id === id ? { ...c, ...patch, updatedAt: todayIso() } : c)) });
-        if (patch.status && patch.status !== old.status) {
-          get().addActivity(id, `Status changed from ${old.status} to ${patch.status}`, "status");
-          get().notify("status", `Case ${old.number} status changed to ${patch.status}`, `/cases/${id}`);
+      } catch (e) {
+        set({ connectionError: (e as Error).message });
+        return false;
+      }
+    },
+    logout: async () => {
+      try {
+        await api("/auth/logout", { method: "POST" });
+        sessionEpoch++;
+        set({ ...emptyData(), sessionUserId: null, connectionError: "" });
+        resetCsrf();
+        useUI.setState({
+          chatDrafts: {},
+          chatOpen: false,
+          chatPersonId: undefined,
+          chatConversationId: "",
+          caseDialog: { open: false },
+          invoiceDialog: { open: false },
+          clientDialog: { open: false },
+        });
+        if (polling) {
+          clearInterval(polling);
+          polling = undefined;
         }
-        if (patch.serviceDate && patch.serviceDate !== old.serviceDate) {
-          get().addActivity(id, `Service date updated from ${old.serviceDate} to ${patch.serviceDate}`, "service");
-          get().notify("service", `Service date updated for ${old.number}`, `/cases/${id}`);
+      } catch (e) {
+        toast.error((e as Error).message);
+      }
+    },
+    registerCustomer: async (input) => {
+      try {
+        const r = await api<{ user: User }>("/auth/register", { method: "POST", body: input });
+        sessionEpoch++;
+        set({ ...emptyData(), sessionUserId: r.user.id, users: [r.user] });
+        await refresh();
+        startPolling();
+        return "";
+      } catch (e) {
+        return (e as Error).message;
+      }
+    },
+    createUser: async (input) => {
+      try {
+        await api("/users", { method: "POST", body: input });
+        await refresh();
+        return "";
+      } catch (e) {
+        return (e as Error).message;
+      }
+    },
+    updateUserAccess: async (id, patch) => {
+      try {
+        await api(`/users/${id}/access`, { method: "PATCH", body: patch });
+        await refresh();
+        return "";
+      } catch (e) {
+        return (e as Error).message;
+      }
+    },
+    addCase: saveCase,
+    updateCase: async (id, patch) => {
+      const old = get().cases.find((c) => c.id === id);
+      if (!old) return false;
+      try {
+        if (patch.attachments) {
+          const retained = new Set(patch.attachments.map((a) => a.id));
+          for (const a of old.attachments.filter((a) => !retained.has(a.id)))
+            await api(`/documents/${a.id}`, { method: "DELETE" });
         }
-        if (patch.staffId && patch.staffId !== old.staffId) {
-          const s = get().users.find((u) => u.id === patch.staffId);
-          get().addActivity(id, `${s?.name} assigned to case`, "assigned");
-        }
-        if (note) get().addActivity(id, note);
-      },
-      deleteCase: (id) => set({ cases: get().cases.filter((c) => c.id !== id) }),
-      addAttachments: (caseId, a) => {
-        set({ cases: get().cases.map((c) => (c.id === caseId ? { ...c, attachments: [...a, ...c.attachments] } : c)) });
-        a.forEach((x) => get().addActivity(caseId, `Document uploaded: ${x.name}`, "document"));
-      },
-      addComment: (caseId, text) => {
-        const by = get().sessionUserId ?? "u1";
-        set({ cases: get().cases.map((c) => (c.id === caseId ? { ...c, comments: [...c.comments, { id: uid("cm"), by, text, at: new Date().toISOString() }] } : c)) });
-        get().addActivity(caseId, "New comment added", "comment");
-      },
-      upsertClient: (c) => {
-        const exists = get().clients.some((x) => x.id === c.id);
-        set({ clients: exists ? get().clients.map((x) => (x.id === c.id ? c : x)) : [c, ...get().clients] });
-      },
-      deleteClient: (id) => set({ clients: get().clients.filter((c) => c.id !== id) }),
-      upsertInvoice: (i) => {
-        const exists = get().invoices.some((x) => x.id === i.id);
-        set({ invoices: exists ? get().invoices.map((x) => (x.id === i.id ? i : x)) : [i, ...get().invoices] });
-        set({ cases: get().cases.map((c) => (c.id === i.caseId ? { ...c, invoiceStatus: i.status, paymentStatus: i.status === "Paid" ? "Paid" : "Unpaid" } : c)) });
-        if (!exists) {
-          get().addActivity(i.caseId, `Invoice ${i.number} created`, "invoice");
-          get().notify("invoice", `Invoice ${i.number} created`, `/invoices`);
-        }
-      },
-      upsertEvent: (e) => {
-        const exists = get().events.some((x) => x.id === e.id);
-        set({ events: exists ? get().events.map((x) => (x.id === e.id ? e : x)) : [...get().events, e] });
-      },
-      deleteEvent: (id) => set({ events: get().events.filter((e) => e.id !== id) }),
-      markRead: (id) => set({ notifications: get().notifications.map((n) => (n.id === id ? { ...n, read: true } : n)) }),
-      markAllRead: () => set({ notifications: get().notifications.map((n) => ({ ...n, read: true })) }),
-      notify: (kind, text, link) => set({ notifications: [{ id: uid("n"), kind, text, link, at: new Date().toISOString(), read: false }, ...get().notifications] }),
-      sendMessage: (convId, text, file) => {
-        const by = get().sessionUserId ?? "u1";
-        set({ conversations: get().conversations.map((c) => (c.id === convId ? { ...c, messages: [...c.messages, { id: uid("m"), by, text, file, at: new Date().toISOString() }] } : c)) });
-      },
-      upsertAutomation: (a) => {
-        const exists = get().automations.some((x) => x.id === a.id);
-        set({ automations: exists ? get().automations.map((x) => (x.id === a.id ? a : x)) : [...get().automations, a] });
-      },
-      upsertCustomField: (f) => {
-        const exists = get().customFields.some((x) => x.id === f.id);
-        set({ customFields: exists ? get().customFields.map((x) => (x.id === f.id ? f : x)) : [...get().customFields, f] });
-      },
-      deleteCustomField: (id) => set({ customFields: get().customFields.filter((f) => f.id !== id) }),
-      upsertUser: (u) => {
-        const exists = get().users.some((x) => x.id === u.id);
-        set({ users: exists ? get().users.map((x) => (x.id === u.id ? u : x)) : [...get().users, u] });
-      },
-      saveView: (v) => set({ savedViews: [...get().savedViews.filter((x) => x.id !== v.id), v] }),
-      deleteView: (id) => set({ savedViews: get().savedViews.filter((v) => v.id !== id) }),
-      setTablePrefs: (p) => set({ tablePrefs: p }),
-      resetDemo: () => set({ ...seed(), savedViews: defaultViews(), tablePrefs: null }),
-    }),
-    { name: "legalflow-demo-v1", skipHydration: true },
-  ),
-);
-
+        return await saveCase({ ...old, ...patch });
+      } catch (e) {
+        await refresh();
+        toast.error((e as Error).message);
+        return false;
+      }
+    },
+    deleteCase: (id) => mutate(`/cases/${id}`, "DELETE"),
+    addAttachments: async (id, files) => {
+      try {
+        await upload(files, id);
+        return true;
+      } catch (e) {
+        await refresh();
+        toast.error((e as Error).message);
+        return false;
+      }
+    },
+    addCompanyDocuments: async (files) => {
+      try {
+        await upload(files);
+        return "";
+      } catch (e) {
+        await refresh();
+        return (e as Error).message;
+      }
+    },
+    deleteCompanyDocument: (id) => mutate(`/documents/${id}`, "DELETE"),
+    addComment: (id, text) => mutate(`/cases/${id}/comments`, "POST", { text }),
+    upsertClient: (c) => mutate(`/clients/${c.id}`, "PUT", c),
+    deleteClient: (id) => mutate(`/clients/${id}`, "DELETE"),
+    upsertInvoice: (i) => mutate(`/invoices/${i.id}`, "PUT", i),
+    upsertEvent: (e) => mutate(`/events/${e.id}`, "PUT", e),
+    deleteEvent: (id) => mutate(`/events/${id}`, "DELETE"),
+    markRead: (id) => mutate("/notifications/read", "POST", { id }),
+    markAllRead: () => mutate("/notifications/read", "POST", {}),
+    startChat: async (otherId) => {
+      try {
+        const r = await api<{ id: string }>("/conversations", {
+          method: "POST",
+          body: { otherId },
+        });
+        await refresh();
+        return r.id;
+      } catch (e) {
+        toast.error((e as Error).message);
+        return "";
+      }
+    },
+    sendMessage: (id, text) => mutate(`/conversations/${id}/messages`, "POST", { text }),
+    markConversationRead: async (id) => {
+      const conv = get().conversations.find((c) => c.id === id);
+      const last = conv?.messages.at(-1)?.id;
+      const key = `${get().sessionUserId}:${id}`;
+      if (!last || get().chatRead[key] === last) return;
+      try {
+        await api(`/conversations/${id}/read`, { method: "POST", body: { lastMessageId: last } });
+        set({ chatRead: { ...get().chatRead, [key]: last } });
+      } catch {
+        /* A later refresh can retry without losing the conversation. */
+      }
+    },
+    saveView: (view) =>
+      mutate("/preferences", "PATCH", {
+        savedViews: [...get().savedViews.filter((v) => !v.builtIn && v.id !== view.id), view],
+      }),
+    deleteView: (id) =>
+      mutate("/preferences", "PATCH", {
+        savedViews: get().savedViews.filter((v) => !v.builtIn && v.id !== id),
+      }),
+    setTablePrefs: (prefs) => mutate("/preferences", "PATCH", { tablePrefs: prefs }),
+    upsertCustomField: (f) => mutate(`/custom-fields/${f.id}`, "PUT", f),
+    deleteCustomField: (id) => mutate(`/custom-fields/${id}`, "DELETE"),
+  };
+});
 export const useMe = () => {
   const id = useStore((s) => s.sessionUserId);
   const users = useStore((s) => s.users);
   return users.find((u) => u.id === id) ?? null;
 };
-
-/** Simulated role-based visibility. */
 export function useVisibleCases() {
   const me = useMe();
   const cases = useStore((s) => s.cases);
   const clients = useStore((s) => s.clients);
-  const acct = useStore((s) => s.activeAccountId);
-  if (!me) return [];
-  return cases.filter((c) => {
-    const cl = clients.find((x) => x.id === c.clientId);
-    if (me.role === "owner") return acct === "all" || cl?.accountId === acct;
-    if (me.role === "manager") return c.managerId === me.id;
-    return c.staffId === me.id;
-  });
+  return visibleCasesFor(me, cases, clients, "company");
 }
-
 export const canAccess = (role: string | undefined, section: string) => {
+  if (["ai", "ai-insights", "automations"].includes(section)) return false;
+  if (section === "company-documents") return role === "owner";
+  if (role === "customer")
+    return [
+      "dashboard",
+      "cases",
+      "invoices",
+      "communications",
+      "settings",
+      "notifications",
+    ].includes(section);
+  if (!role) return false;
   if (role === "owner") return true;
   if (role === "manager") return !["users"].includes(section);
   return !["users", "reports", "automations", "invoices"].includes(section);
 };
 
-export const money = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+export const money = (n: number) =>
+  n.toLocaleString("en-US", { style: "currency", currency: "USD" });
 export const invoiceTotal = (i: Invoice) => {
   const sub = i.lines.reduce((s, l) => s + l.qty * l.price, 0);
   return { sub, tax: (sub * i.taxRate) / 100, total: sub * (1 + i.taxRate / 100) };
 };
-export const fmtDate = (d: string) => (d ? new Date(d.length === 10 ? d + "T00:00:00" : d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—");
+export const fmtDate = (d: string) =>
+  d
+    ? new Date(d.length === 10 ? d + "T00:00:00" : d).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "—";

@@ -17,6 +17,7 @@ import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedCasesRouteImport } from './routes/_authenticated/cases'
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients'
 import { Route as AuthenticatedCommunicationsRouteImport } from './routes/_authenticated/communications'
+import { Route as AuthenticatedCompanyDocumentsRouteImport } from './routes/_authenticated/company-documents'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDocumentsRouteImport } from './routes/_authenticated/documents'
 import { Route as AuthenticatedInvoicesRouteImport } from './routes/_authenticated/invoices'
@@ -68,6 +69,12 @@ const AuthenticatedCommunicationsRoute =
   AuthenticatedCommunicationsRouteImport.update({
     id: '/communications',
     path: '/communications',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedCompanyDocumentsRoute =
+  AuthenticatedCompanyDocumentsRouteImport.update({
+    id: '/company-documents',
+    path: '/company-documents',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
@@ -136,6 +143,7 @@ export interface FileRoutesByFullPath {
   '/cases': typeof AuthenticatedCasesRouteWithChildren
   '/clients': typeof AuthenticatedClientsRouteWithChildren
   '/communications': typeof AuthenticatedCommunicationsRoute
+  '/company-documents': typeof AuthenticatedCompanyDocumentsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/documents': typeof AuthenticatedDocumentsRoute
   '/invoices': typeof AuthenticatedInvoicesRoute
@@ -154,6 +162,7 @@ export interface FileRoutesByTo {
   '/automations': typeof AuthenticatedAutomationsRoute
   '/calendar': typeof AuthenticatedCalendarRoute
   '/communications': typeof AuthenticatedCommunicationsRoute
+  '/company-documents': typeof AuthenticatedCompanyDocumentsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/documents': typeof AuthenticatedDocumentsRoute
   '/invoices': typeof AuthenticatedInvoicesRoute
@@ -176,6 +185,7 @@ export interface FileRoutesById {
   '/_authenticated/cases': typeof AuthenticatedCasesRouteWithChildren
   '/_authenticated/clients': typeof AuthenticatedClientsRouteWithChildren
   '/_authenticated/communications': typeof AuthenticatedCommunicationsRoute
+  '/_authenticated/company-documents': typeof AuthenticatedCompanyDocumentsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/documents': typeof AuthenticatedDocumentsRoute
   '/_authenticated/invoices': typeof AuthenticatedInvoicesRoute
@@ -198,6 +208,7 @@ export interface FileRouteTypes {
     | '/cases'
     | '/clients'
     | '/communications'
+    | '/company-documents'
     | '/dashboard'
     | '/documents'
     | '/invoices'
@@ -216,6 +227,7 @@ export interface FileRouteTypes {
     | '/automations'
     | '/calendar'
     | '/communications'
+    | '/company-documents'
     | '/dashboard'
     | '/documents'
     | '/invoices'
@@ -237,6 +249,7 @@ export interface FileRouteTypes {
     | '/_authenticated/cases'
     | '/_authenticated/clients'
     | '/_authenticated/communications'
+    | '/_authenticated/company-documents'
     | '/_authenticated/dashboard'
     | '/_authenticated/documents'
     | '/_authenticated/invoices'
@@ -311,6 +324,13 @@ declare module '@tanstack/react-router' {
       path: '/communications'
       fullPath: '/communications'
       preLoaderRoute: typeof AuthenticatedCommunicationsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/company-documents': {
+      id: '/_authenticated/company-documents'
+      path: '/company-documents'
+      fullPath: '/company-documents'
+      preLoaderRoute: typeof AuthenticatedCompanyDocumentsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/dashboard': {
@@ -426,6 +446,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedCasesRoute: typeof AuthenticatedCasesRouteWithChildren
   AuthenticatedClientsRoute: typeof AuthenticatedClientsRouteWithChildren
   AuthenticatedCommunicationsRoute: typeof AuthenticatedCommunicationsRoute
+  AuthenticatedCompanyDocumentsRoute: typeof AuthenticatedCompanyDocumentsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDocumentsRoute: typeof AuthenticatedDocumentsRoute
   AuthenticatedInvoicesRoute: typeof AuthenticatedInvoicesRoute
@@ -442,6 +463,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedCasesRoute: AuthenticatedCasesRouteWithChildren,
   AuthenticatedClientsRoute: AuthenticatedClientsRouteWithChildren,
   AuthenticatedCommunicationsRoute: AuthenticatedCommunicationsRoute,
+  AuthenticatedCompanyDocumentsRoute: AuthenticatedCompanyDocumentsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDocumentsRoute: AuthenticatedDocumentsRoute,
   AuthenticatedInvoicesRoute: AuthenticatedInvoicesRoute,
@@ -462,13 +484,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

@@ -1,54 +1,576 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { BriefcaseBusiness, CalendarClock, CircleCheck, Clock3, Plus, ArrowUpRight, AlertCircle, Activity } from "lucide-react";
+import {
+  Activity,
+  ArrowUpRight,
+  CalendarClock,
+  CheckCheck,
+  CircleCheck,
+  Clock3,
+  FolderOpen,
+  MessageCircle,
+  Plus,
+  Receipt,
+} from "lucide-react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { PageHeader, Avatar, StatusBadge } from "@/components/lf/ui-bits";
+import { Avatar, StatusBadge } from "@/components/lf/ui-bits";
 import { Button } from "@/components/ui/button";
-import { useMe, useStore, useVisibleCases, fmtDate } from "@/lib/store";
+import { useMe, useStore, useVisibleCases, fmtDate, money } from "@/lib/store";
 import { useUI } from "@/lib/ui-store";
-import { iso, STATUSES } from "@/lib/mock-data";
+import { iso, STATUSES } from "@/lib/domain";
 import { summarizeCases } from "@/lib/case-management";
-
+import { caseBilling } from "@/lib/billing";
 export const Route = createFileRoute("/_authenticated/dashboard")({
-  head: () => ({ meta: [{ title: "Dashboard – LegalFlow" }, { name: "description", content: "Your LegalFlow workspace overview: case activity, upcoming services and outstanding work." }, { property: "og:title", content: "Dashboard – LegalFlow" }, { property: "og:description", content: "Case activity, upcoming services and outstanding work in LegalFlow." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
+  head: () => ({ meta: [{ title: "Overview – LegalFlow" }] }),
   component: Page,
 });
-
 function Page() {
-  const me = useMe();
-  const cases = useVisibleCases();
-  const s = useStore();
-  const openCase = useUI((u) => u.openCase);
+  const me = useMe(),
+    cases = useVisibleCases(),
+    s = useStore(),
+    ui = useUI();
   const [weeks, setWeeks] = useState(4);
-  const today = iso(new Date());
-  const stats = summarizeCases(cases, today);
+  const today = iso(new Date()),
+    stats = summarizeCases(cases, today),
+    customer = me?.role === "customer";
   const open = cases.filter((c) => !["Completed", "Cancelled"].includes(c.status));
-  const upcoming = open.filter((c) => c.serviceDate >= today).sort((a, b) => (a.serviceDate + a.serviceTime).localeCompare(b.serviceDate + b.serviceTime)).slice(0, 5);
-  const activity = s.activities.filter((a) => cases.some((c) => c.id === a.caseId)).sort((a, b) => b.at.localeCompare(a.at)).slice(0, 5);
+  const upcoming = open
+    .filter((c) => c.serviceDate >= today)
+    .sort((a, b) => (a.serviceDate + a.serviceTime).localeCompare(b.serviceDate + b.serviceTime))
+    .slice(0, 4);
   const recent = [...cases].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 5);
-  const chartData = Array.from({ length: weeks }, (_, i) => {
-    const start = new Date(today + "T00:00:00"); start.setDate(start.getDate() - (Math.floor(weeks / 2) - i) * 7);
-    const end = new Date(start); end.setDate(end.getDate() + 6);
-    const from = iso(start), to = iso(end);
-    return { week: start.toLocaleDateString("en-US", { month: "short", day: "numeric" }), Scheduled: open.filter((c) => c.serviceDate >= from && c.serviceDate <= to).length, Completed: cases.filter((c) => c.status === "Completed" && c.serviceDate >= from && c.serviceDate <= to).length };
+  const activities = s.activities
+    .filter((a) => cases.some((c) => c.id === a.caseId))
+    .sort((a, b) => b.at.localeCompare(a.at))
+    .slice(0, 4);
+  const balance = cases.reduce((n, c) => n + caseBilling(s.invoices, c.id).balance, 0);
+  const chart = Array.from({ length: weeks }, (_, i) => {
+    const start = new Date(today + "T00:00:00");
+    start.setDate(start.getDate() - (Math.floor(weeks / 2) - i) * 7);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 6);
+    const from = iso(start),
+      to = iso(end);
+    return {
+      week: start.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      Scheduled: open.filter((c) => c.serviceDate >= from && c.serviceDate <= to).length,
+      Completed: cases.filter(
+        (c) => c.status === "Completed" && c.serviceDate >= from && c.serviceDate <= to,
+      ).length,
+    };
   });
-  const statusTone: Record<string, string> = { Active: "bg-info", Pending: "bg-warning", Scheduled: "bg-primary", Completed: "bg-success", Cancelled: "bg-muted-foreground" };
-  return <>
-    <PageHeader title="Dashboard" subtitle={`Welcome back, ${me?.name.split(" ")[0] ?? "team"}. ${new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}`} actions={<Button onClick={() => openCase()}><Plus />New case</Button>} />
-    <div className="mb-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      {[{ label: "Total case files", value: stats.total, detail: "Across your workspace", icon: BriefcaseBusiness, tone: "text-primary bg-accent" }, { label: "Active cases", value: stats.active, detail: `${stats.pending} pending cases`, icon: Clock3, tone: "text-info bg-info/10" }, { label: "Services today", value: stats.today, detail: `${upcoming.length} upcoming on the schedule`, icon: CalendarClock, tone: "text-warning bg-warning/10" }, { label: "Completed cases", value: stats.completed, detail: `${stats.total ? Math.round(stats.completed / stats.total * 100) : 0}% of all case files`, icon: CircleCheck, tone: "text-success bg-success/10" }].map((item) => <div key={item.label} className="rounded-lg border bg-card p-5"><div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">{item.label}</span><span className={`flex size-9 items-center justify-center rounded-md ${item.tone}`}><item.icon className="size-4" /></span></div><div className="mt-2 text-3xl font-semibold tabular-nums">{item.value}</div><p className="mt-1 text-xs text-muted-foreground">{item.detail}</p></div>)}
-    </div>
-    {stats.overdue > 0 && <div className="mb-7 flex flex-wrap items-center gap-3 border-y border-warning/30 bg-warning/10 px-4 py-3"><AlertCircle className="size-4 text-warning" /><span className="flex-1 text-sm"><strong>{stats.overdue} overdue service{stats.overdue === 1 ? "" : "s"}</strong> · Awaiting a new service date</span><Button variant="ghost" size="sm" onClick={() => { const c = open.find((c) => c.serviceDate < today); if (c) openCase(c.id); }}>Review case<ArrowUpRight /></Button></div>}
-    <div className="mb-7 grid gap-8 lg:grid-cols-[1.65fr_1fr]">
-      <section className="min-w-0"><header className="mb-5 flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-semibold">Service activity</h2><p className="mt-1 text-xs text-muted-foreground">Recent and upcoming services by week</p></div><div className="flex gap-1">{[4, 8].map((n) => <Button key={n} size="sm" variant={weeks === n ? "secondary" : "ghost"} onClick={() => setWeeks(n)}>{n} weeks</Button>)}</div></header>
-        <div className="h-60 w-full" aria-label="Weekly service activity chart"><ResponsiveContainer width="100%" height="100%"><BarChart data={chartData} barGap={4}><CartesianGrid vertical={false} stroke="var(--border)" /><XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} /><YAxis allowDecimals={false} axisLine={false} tickLine={false} width={28} tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} /><Tooltip cursor={false} /><Bar isAnimationActive={false} dataKey="Scheduled" fill="var(--info)" radius={[3, 3, 0, 0]} maxBarSize={36} /><Bar isAnimationActive={false} dataKey="Completed" fill="var(--success)" radius={[3, 3, 0, 0]} maxBarSize={36} /></BarChart></ResponsiveContainer></div><div className="mt-3 flex justify-center gap-5 text-xs text-muted-foreground"><span className="flex items-center gap-2"><span className="size-2.5 rounded-sm bg-info" />Scheduled</span><span className="flex items-center gap-2"><span className="size-2.5 rounded-sm bg-success" />Completed</span></div>
+  const statusColor: Record<string, string> = {
+    Active: "#285ba7",
+    Pending: "#e2b86c",
+    Scheduled: "#7a9cc2",
+    Completed: "#abd7c1",
+    Cancelled: "#d7e0dc",
+  };
+  const metrics = customer
+    ? [
+        {
+          label: "Your case files",
+          value: stats.total,
+          icon: FolderOpen,
+          detail: "Cases linked to your account",
+        },
+        {
+          label: "In progress",
+          value: open.length,
+          icon: Clock3,
+          detail: "Your active and upcoming cases",
+        },
+        {
+          label: "Invoice balance",
+          value: money(balance),
+          icon: Receipt,
+          detail: "Issued invoices awaiting payment",
+        },
+        {
+          label: "Completed",
+          value: stats.completed,
+          icon: CircleCheck,
+          detail: "Services completed for you",
+        },
+      ]
+    : [
+        {
+          label: "Total case files",
+          value: stats.total,
+          icon: FolderOpen,
+          detail: `${stats.active} currently active`,
+        },
+        {
+          label: "Pending cases",
+          value: stats.pending,
+          icon: Clock3,
+          detail: "Ready for your next action",
+        },
+        {
+          label: "Services today",
+          value: stats.today,
+          icon: CalendarClock,
+          detail: `${upcoming.length} upcoming services`,
+        },
+        {
+          label: "Completed cases",
+          value: stats.completed,
+          icon: CircleCheck,
+          detail: `${stats.total ? Math.round((stats.completed / stats.total) * 100) : 0}% of your case files`,
+        },
+      ];
+  return (
+    <>
+      <section className="overview-hero">
+        <div>
+          <p className="hero-kicker">
+            {customer ? "Your personal case workspace" : "Your workspace, at a glance"}
+          </p>
+          <h1>
+            Good{" "}
+            {new Date().getHours() < 12
+              ? "morning"
+              : new Date().getHours() < 18
+                ? "afternoon"
+                : "evening"}
+            , {me?.name.split(" ")[0]}
+            <span className="font-normal text-[#b3cbed]">.</span>
+          </h1>
+          <p className="mt-3 max-w-md text-xs leading-relaxed text-white/60">
+            {customer
+              ? "A clear view of your cases, appointments and conversations."
+              : "Here's what's happening across your cases and team today."}
+          </p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            {customer ? (
+              <Button
+                className="bg-white text-[#193e72] hover:bg-white/90"
+                onClick={() => ui.openChat()}
+              >
+                <MessageCircle />
+                Talk to your team
+              </Button>
+            ) : (
+              <Button
+                className="bg-white text-[#193e72] hover:bg-white/90"
+                onClick={() => ui.openCase()}
+              >
+                <Plus />
+                Create a case
+              </Button>
+            )}
+            <Link
+              to="/cases"
+              className="flex items-center gap-2 px-2 text-xs font-medium text-white/80"
+            >
+              View case files <ArrowUpRight className="size-3.5" />
+            </Link>
+          </div>
+        </div>
+        <div className="hero-action">
+          <CalendarClock className="size-7 text-[#b3cbed]" />
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-white/50">
+              {new Date().toLocaleDateString(undefined, { weekday: "long" })}
+            </p>
+            <p className="mt-1 text-sm font-semibold">
+              {new Date().toLocaleDateString(undefined, {
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </p>
+            <p className="mt-2 text-[10px] text-[#b3cbed]">
+              {stats.today} service{stats.today === 1 ? "" : "s"} on today's schedule
+            </p>
+          </div>
+        </div>
       </section>
-      <section className="lg:border-l lg:pl-8"><h2 className="mb-1 font-semibold">Case breakdown</h2><p className="mb-5 text-xs text-muted-foreground">Current status of {stats.total} case files</p><div className="space-y-4">{STATUSES.map((status) => { const count = cases.filter((c) => c.status === status).length; return <div key={status}><div className="mb-1.5 flex items-center justify-between text-sm"><span className="flex items-center gap-2"><span className={`size-2 rounded-full ${statusTone[status]}`} />{status}</span><span className="font-medium tabular-nums">{count}</span></div><div role="progressbar" aria-label={`${status} cases`} aria-valuenow={count} aria-valuemax={stats.total} className="h-1.5 overflow-hidden rounded-sm bg-muted"><div className={`h-full ${statusTone[status]}`} style={{ width: `${stats.total ? count / stats.total * 100 : 0}%` }} /></div></div>; })}</div></section>
-    </div>
-    <div className="mb-7 grid gap-8 border-t pt-6 xl:grid-cols-2">
-      <section><header className="mb-4 flex items-center justify-between"><h2 className="font-semibold">Upcoming services</h2><CalendarClock className="size-4 text-muted-foreground" /></header><div className="divide-y">{upcoming.map((c) => { const staff = s.users.find((u) => u.id === c.staffId); return <div key={c.id} className="flex items-center gap-3 py-3"><div className="flex w-12 shrink-0 flex-col items-center border-r pr-3"><span className="text-[10px] uppercase text-muted-foreground">{new Date(c.serviceDate + "T00:00:00").toLocaleDateString("en-US", { month: "short" })}</span><span className="text-xl font-semibold">{Number(c.serviceDate.slice(-2))}</span></div><div className="min-w-0 flex-1"><Button variant="link" className="h-auto p-0 text-info" onClick={() => openCase(c.id)}>{c.number}</Button><div className="truncate text-xs text-muted-foreground">{c.type} · {c.residentName}</div></div><div className="text-right"><div className="text-xs font-medium">{c.serviceTime}</div><div className="text-xs text-muted-foreground">{staff?.name.split(" ")[0]}</div></div></div>; })}{!upcoming.length && <p className="py-8 text-sm text-muted-foreground">No upcoming services.</p>}</div></section>
-      <section><header className="mb-4 flex items-center justify-between"><h2 className="font-semibold">Recent activity</h2><Activity className="size-4 text-muted-foreground" /></header><div className="divide-y">{activity.map((a) => <div key={a.id} className="flex items-start gap-3 py-3"><Avatar name={a.by} /><div className="min-w-0 flex-1"><div className="truncate text-sm" title={a.text}>{a.text}</div><div className="text-xs text-muted-foreground">{a.by} · {fmtDate(a.at)}</div></div><Button variant="ghost" size="icon" aria-label={`Open activity case ${a.caseId}`} onClick={() => openCase(a.caseId)}><ArrowUpRight className="size-4" /></Button></div>)}{!activity.length && <p className="py-8 text-sm text-muted-foreground">No recent activity.</p>}</div></section>
-    </div>
-    <section className="border-t pt-6"><h2 className="mb-4 font-semibold">Recently updated cases</h2><div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="border-b text-xs text-muted-foreground"><tr><th className="pb-3 font-medium">Case file</th><th className="pb-3 font-medium">Client</th><th className="pb-3 font-medium">Status</th><th className="whitespace-nowrap pb-3 font-medium">Service date</th><th className="pb-3 font-medium">Assigned to</th></tr></thead><tbody className="divide-y">{recent.map((c) => <tr key={c.id}><td className="min-w-48 py-3 pr-4"><Button variant="link" className="h-auto p-0 text-info" onClick={() => openCase(c.id)}>{c.number}</Button><div className="text-xs text-muted-foreground">{c.type}</div></td><td className="min-w-44 pr-4">{s.clients.find((cl) => cl.id === c.clientId)?.company}</td><td className="pr-4"><StatusBadge value={c.status} /></td><td className="whitespace-nowrap pr-4">{fmtDate(c.serviceDate)}</td><td className="whitespace-nowrap">{s.users.find((u) => u.id === c.staffId)?.name}</td></tr>)}</tbody></table>{!recent.length && <p className="py-8 text-sm text-muted-foreground">No case files yet.</p>}</div></section>
-  </>;
+      <div className="mb-6 grid grid-cols-2 gap-3 xl:grid-cols-4">
+        {metrics.map(({ label, value, icon: Icon, detail }, i) => (
+          <section key={label} className="metric-card">
+            <div className="flex items-center justify-between gap-2">
+              <p className="metric-label">{label}</p>
+              <span
+                className={`flex size-8 items-center justify-center rounded-xl ${i === 1 ? "bg-amber-50 text-amber-600" : i === 2 ? "bg-blue-50 text-blue-600" : "bg-primary/8 text-primary"}`}
+              >
+                <Icon className="size-4" />
+              </span>
+            </div>
+            <p className="metric-value">{value}</p>
+            <p className="metric-footer">
+              <span className="size-1 rounded-full bg-primary/50" />
+              {detail}
+            </p>
+          </section>
+        ))}
+      </div>
+      {customer ? (
+        <div className="mb-6 grid gap-6 xl:grid-cols-[1.65fr_1fr]">
+          <section className="overview-card">
+            <div className="mb-6 flex items-center justify-between">
+              <h2>Your case files</h2>
+              <Link to="/cases" className="text-xs font-medium text-primary">
+                View all <ArrowUpRight className="inline size-3" />
+              </Link>
+            </div>
+            {cases.slice(0, 5).map((c) => (
+              <Link
+                to="/cases/$id"
+                params={{ id: c.id }}
+                key={c.id}
+                className="mb-3 flex flex-wrap items-center justify-between gap-4 rounded-2xl border p-4 transition hover:border-primary/30 hover:bg-accent/30"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="rounded-xl bg-accent p-3 text-primary">
+                    <FolderOpen className="size-4" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold">{c.number}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {c.residentName} · {c.type}
+                    </p>
+                  </div>
+                </div>
+                <StatusBadge value={c.status} />
+              </Link>
+            ))}
+            {!cases.length && (
+              <div className="py-14 text-center">
+                <FolderOpen className="mx-auto mb-3 size-8 text-primary/40" />
+                <h3 className="text-sm font-semibold">Your workspace is ready</h3>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Your team will link your cases to this account.
+                </p>
+              </div>
+            )}
+          </section>
+          <section className="overview-card">
+            <p className="section-eyebrow mb-3">We're here for you</p>
+            <h2>Meet your case team</h2>
+            <p className="mb-5 mt-3 text-xs leading-relaxed text-muted-foreground">
+              A question about an appointment or invoice? Start a conversation with the people
+              handling your case.
+            </p>
+            {s.users
+              .filter(
+                (u) =>
+                  u.role === "owner" ||
+                  cases.some((c) => c.staffId === u.id || c.managerId === u.id),
+              )
+              .slice(0, 4)
+              .map((u) => (
+                <button
+                  key={u.id}
+                  className="mb-3 flex w-full items-center gap-3 rounded-xl border p-3 text-left hover:bg-accent"
+                  onClick={() => ui.openChat(u.id)}
+                >
+                  <Avatar name={u.name} className="size-9 rounded-xl" />
+                  <span className="flex-1">
+                    <span className="block text-xs font-semibold">{u.name}</span>
+                    <span className="mt-1 block text-[10px] capitalize text-muted-foreground">
+                      {u.title}
+                    </span>
+                  </span>
+                  <MessageCircle className="size-4 text-primary" />
+                </button>
+              ))}
+          </section>
+        </div>
+      ) : (
+        <div className="mb-6 grid gap-6 xl:grid-cols-[1.65fr_1fr]">
+          <section className="overview-card">
+            <div className="mb-7 flex items-center justify-between gap-3">
+              <div>
+                <h2>Service activity</h2>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Scheduled and completed services over time
+                </p>
+              </div>
+              <div className="flex rounded-xl border bg-background p-1">
+                {[4, 8].map((n) => (
+                  <button
+                    key={n}
+                    className={`rounded-lg px-3 py-1.5 text-[10px] font-medium ${weeks === n ? "bg-card text-primary shadow-sm" : "text-muted-foreground"}`}
+                    onClick={() => setWeeks(n)}
+                  >
+                    {n} weeks
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="h-60">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={chart}
+                  barGap={5}
+                  margin={{ top: 10, right: 4, bottom: 0, left: -20 }}
+                >
+                  <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="4 4" />
+                  <XAxis
+                    dataKey="week"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                    tickMargin={12}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                  />
+                  <Tooltip
+                    cursor={{ fill: "var(--muted)" }}
+                    contentStyle={{
+                      borderRadius: 14,
+                      borderColor: "var(--border)",
+                      background: "var(--card)",
+                      color: "var(--foreground)",
+                      fontSize: 12,
+                    }}
+                  />
+                  <Bar
+                    isAnimationActive={false}
+                    dataKey="Scheduled"
+                    fill="#285ba7"
+                    radius={[5, 5, 0, 0]}
+                    maxBarSize={24}
+                  />
+                  <Bar
+                    isAnimationActive={false}
+                    dataKey="Completed"
+                    fill="#b9cfee"
+                    radius={[5, 5, 0, 0]}
+                    maxBarSize={24}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-5 flex justify-center gap-5 text-[10px] text-muted-foreground">
+              <span className="flex items-center gap-2">
+                <span className="size-2 rounded-sm bg-primary" />
+                Scheduled
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="size-2 rounded-sm bg-[#b9cfee]" />
+                Completed
+              </span>
+            </div>
+          </section>
+          <section className="overview-card">
+            <h2>Case distribution</h2>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              A snapshot of your current workload
+            </p>
+            <div className="mb-6 mt-8 flex h-3 gap-1 overflow-hidden rounded-full">
+              {STATUSES.map((st) => (
+                <div
+                  key={st}
+                  style={{
+                    background: statusColor[st],
+                    width: `${stats.total ? (cases.filter((c) => c.status === st).length / stats.total) * 100 : 0}%`,
+                  }}
+                />
+              ))}
+            </div>
+            <div className="space-y-4">
+              {STATUSES.map((st) => {
+                const n = cases.filter((c) => c.status === st).length;
+                return (
+                  <div key={st} className="flex items-center gap-3 text-xs">
+                    <span className="size-2 rounded-full" style={{ background: statusColor[st] }} />
+                    <span className="flex-1 text-muted-foreground">{st}</span>
+                    <span className="font-semibold tabular-nums">{n}</span>
+                    <span className="w-8 text-right text-[10px] text-muted-foreground">
+                      {stats.total ? Math.round((n / stats.total) * 100) : 0}%
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            {stats.overdue > 0 && (
+              <Link
+                to="/cases"
+                className="mt-6 flex items-center gap-2 rounded-xl bg-amber-50 px-3 py-2.5 text-[10px] text-amber-700"
+              >
+                <Clock3 className="size-3.5" />
+                {stats.overdue} overdue services to review
+                <ArrowUpRight className="ml-auto size-3" />
+              </Link>
+            )}
+          </section>
+        </div>
+      )}
+      <div className="mb-6 grid gap-6 xl:grid-cols-[1.65fr_1fr]">
+        <section className="overview-card">
+          <div className="mb-5 flex items-center justify-between">
+            <div>
+              <h2>{customer ? "Upcoming appointments" : "Upcoming services"}</h2>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                The next dates on your schedule
+              </p>
+            </div>
+            {!customer && (
+              <Link to="/calendar" className="text-xs text-primary">
+                View calendar <ArrowUpRight className="inline size-3" />
+              </Link>
+            )}
+          </div>
+          <div className="divide-y">
+            {upcoming.map((c) => (
+              <Link
+                to="/cases/$id"
+                params={{ id: c.id }}
+                key={c.id}
+                className="flex items-center gap-3 py-4"
+              >
+                <div className="schedule-date">
+                  <small>
+                    {new Date(c.serviceDate + "T00:00:00").toLocaleDateString(undefined, {
+                      month: "short",
+                    })}
+                  </small>
+                  <strong>{Number(c.serviceDate.slice(-2))}</strong>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold">
+                    {c.number}{" "}
+                    <span className="font-normal text-muted-foreground">· {c.residentName}</span>
+                  </p>
+                  <p className="mt-1 text-[10px] text-muted-foreground">{c.type}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs font-medium">{c.serviceTime}</p>
+                  <p className="mt-1 text-[10px] text-muted-foreground">
+                    {s.users.find((u) => u.id === c.staffId)?.name.split(" ")[0]}
+                  </p>
+                </div>
+                <ArrowUpRight className="ml-2 size-4 text-muted-foreground" />
+              </Link>
+            ))}
+            {!upcoming.length && (
+              <p className="py-10 text-center text-xs text-muted-foreground">
+                No upcoming services. Your schedule is clear.
+              </p>
+            )}
+          </div>
+        </section>
+        <section className="overview-card">
+          <div className="mb-6 flex justify-between">
+            <h2>{customer ? "Your invoice summary" : "Recent activity"}</h2>
+            {customer ? (
+              <Receipt className="size-4 text-muted-foreground" />
+            ) : (
+              <Activity className="size-4 text-muted-foreground" />
+            )}
+          </div>
+          {customer ? (
+            <>
+              <p className="section-eyebrow">Outstanding balance</p>
+              <p className="mt-4 text-3xl font-semibold tracking-tight">{money(balance)}</p>
+              <p className="mb-6 mt-3 text-xs leading-relaxed text-muted-foreground">
+                Your issued service invoices, all in one place.
+              </p>
+              <Link
+                to="/invoices"
+                search={{ caseId: undefined }}
+                className="flex items-center justify-between rounded-xl bg-accent p-4 text-xs font-semibold text-primary"
+              >
+                View your invoices <ArrowUpRight className="size-4" />
+              </Link>
+            </>
+          ) : (
+            <div>
+              {activities.map((a, i) => (
+                <div key={a.id} className="relative flex gap-3 pb-6">
+                  {i < activities.length - 1 && (
+                    <span className="absolute bottom-1 left-[15px] top-8 w-px bg-border" />
+                  )}
+                  <span className="relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border bg-background">
+                    <CheckCheck className="size-3.5 text-primary" />
+                  </span>
+                  <div>
+                    <Link
+                      to="/cases/$id"
+                      params={{ id: a.caseId }}
+                      className="line-clamp-2 text-xs leading-relaxed hover:text-primary"
+                    >
+                      {a.text}
+                    </Link>
+                    <p className="mt-1 text-[10px] text-muted-foreground">
+                      {a.by.split(" ")[0]} · {fmtDate(a.at)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              {!activities.length && (
+                <p className="py-10 text-center text-xs text-muted-foreground">
+                  Your latest updates will appear here.
+                </p>
+              )}
+            </div>
+          )}
+        </section>
+      </div>
+      {!customer && (
+        <section className="overview-card mb-6 !p-0">
+          <div className="flex items-center justify-between px-6 py-5">
+            <h2>Recently updated cases</h2>
+            <Link to="/cases" className="text-xs font-medium text-primary">
+              All cases <ArrowUpRight className="inline size-3" />
+            </Link>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[680px] text-left">
+              <thead>
+                <tr>
+                  {["Case file", "Customer", "Status", "Setout date", "Assigned to"].map((h) => (
+                    <th key={h} className="px-6">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {recent.map((c) => (
+                  <tr key={c.id}>
+                    <td className="px-6">
+                      <Link
+                        to="/cases/$id"
+                        params={{ id: c.id }}
+                        className="font-semibold text-primary"
+                      >
+                        {c.number}
+                      </Link>
+                      <p className="mt-1 text-[10px] text-muted-foreground">{c.type}</p>
+                    </td>
+                    <td className="px-6">
+                      {s.clients.find((cl) => cl.id === c.clientId)?.company}
+                    </td>
+                    <td className="px-6">
+                      <StatusBadge value={c.status} />
+                    </td>
+                    <td className="px-6 text-muted-foreground">{fmtDate(c.serviceDate)}</td>
+                    <td className="px-6">
+                      <div className="flex items-center gap-2">
+                        <Avatar
+                          name={s.users.find((u) => u.id === c.staffId)?.name ?? "?"}
+                          className="size-6 text-[9px]"
+                        />
+                        {s.users.find((u) => u.id === c.staffId)?.name}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {!recent.length && (
+              <p className="p-10 text-center text-xs text-muted-foreground">No case files yet.</p>
+            )}
+          </div>
+        </section>
+      )}
+    </>
+  );
 }

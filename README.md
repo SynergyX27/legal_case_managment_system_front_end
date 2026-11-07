@@ -1,24 +1,15 @@
-# Mock Data Playground
+# LegalFlow frontend
 
-this is only a prototype so don't connect with any database. use only moc data.
+React + TypeScript + TanStack Router + Vite + Tailwind. The backend is a separate JavaScript project in `../backend`.
 
-This project was built with [Lovable](https://lovable.dev).
+Run `npm ci` and `npm run dev`. Open `http://localhost:8080`. Vite proxies `/api` to `http://127.0.0.1:3001`; start the backend separately. No frontend environment secrets are required.
 
-## Build with Lovable
+Build with `npm run build`. Serve `dist` through the backend (default) or reverse-proxy `/api` to the backend on the same public origin. Do not use `vite preview` as the production application server.
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/559f6a61-01de-46bd-b315-b44cd900b1c8).
+Commands: `npm run typecheck`, `npm test`, `npm run build`.
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+The Zustand store holds only the current API response in memory. Cases, documents, invoices, user profiles, conversations, read markers, saved views and column settings are persisted by PostgreSQL. Only the appearance preference is saved in localStorage. Message drafts remain in memory until sent or signed out. Old prototype browser storage is removed on startup.
 
-## Development
+An active browser tab refreshes authorized records every five seconds. Successful mutations also reload records immediately. Hidden tabs stop polling. Messaging uses this five-second synchronization; it does not require a WebSocket service.
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
-```
+The shared `src/lib/domain.ts` contains types and allowed status/type options, with no generated records. Reports and dashboard figures are computed from the server-authorized records. The floating messenger and light/dark layouts are preserved.
