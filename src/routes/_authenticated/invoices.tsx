@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { Check, Clock, Download, Eye, FileText, Pencil, Plus, Receipt, Send } from "lucide-react";
 import { PageHeader, StatusBadge } from "@/components/lf/ui-bits";
@@ -52,8 +53,14 @@ export const Route = createFileRoute("/_authenticated/invoices")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { caseId?: string; payment?: string; invoiceId?: string } => ({
     caseId: typeof search["caseId"] === "string" ? search["caseId"] : undefined,
+    payment: ["success", "cancelled"].includes(String(search["payment"]))
+      ? String(search["payment"])
+      : undefined,
+    invoiceId: typeof search["invoiceId"] === "string" ? search["invoiceId"] : undefined,
   }),
   component: Page,
 });
@@ -63,13 +70,92 @@ function Page() {
   const me = useMe();
   const cases = useVisibleCases();
   const bill = canBill(me);
-  const searchParams = useSearch({ strict: false }) as { caseId?: string };
+  const searchParams = useSearch({ strict: false }) as {
+    caseId?: string;
+    payment?: string;
+    invoiceId?: string;
+  };
   const openInvoice = useUI((u) => u.openInvoice);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
   const [clientId, setClientId] = useState("");
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [paidId, setPaidId] = useState<string | null>(null);
+  const [paymentConfig, setPaymentConfig] = useState<{
+    enabled: boolean;
+    testMode: boolean;
+  } | null>(null);
+  const [payingId, setPayingId] = useState<string | null>(null);
+  const [paymentMessage, setPaymentMessage] = useState("");
+  useEffect(() => {
+    let cancelled = false;
+    void api("/payments/config")
+      .then((value) => {
+        if (!cancelled) setPaymentConfig(value);
+      })
+      .catch(() => {
+        if (!cancelled) setPaymentConfig({ enabled: false, testMode: false });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  useEffect(() => {
+    if (!searchParams.payment) return;
+    if (searchParams.payment === "cancelled") {
+      setPaymentMessage("Checkout was closed. If the invoice is still unpaid, you can try again.");
+      return;
+    }
+    if (!searchParams.invoiceId) return;
+    let cancelled = false;
+    setPaymentMessage("Checking your payment with Stripe…");
+    void api<{ status: string }>(
+      `/invoices/${encodeURIComponent(searchParams.invoiceId)}/payment-status`,
+      { method: "POST" },
+    )
+      .then(async (result) => {
+        if (cancelled) return;
+        await s.refresh();
+        if (!cancelled)
+          setPaymentMessage(
+            result.status === "Paid"
+              ? "Payment confirmed. Your invoice is paid."
+              : "Your payment has not been confirmed yet. This page will update when Stripe confirms it.",
+          );
+      })
+      .catch((error) => {
+        if (!cancelled) setPaymentMessage(error.message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams.payment, searchParams.invoiceId, s.refresh]);
+  const payOnline = async (invoice: Invoice) => {
+    if (payingId) return;
+    setPayingId(invoice.id);
+    try {
+      const result = await api<{ url?: string; paid?: boolean }>(
+        `/invoices/${invoice.id}/checkout`,
+        { method: "POST" },
+      );
+      if (result.paid) {
+        await s.refresh();
+        toast.success("Payment confirmed. Invoice paid.");
+        return;
+      }
+      if (result.url) {
+        const url = new URL(result.url);
+        if (url.protocol !== "https:" || url.hostname !== "checkout.stripe.com")
+          throw new Error("Unexpected checkout address");
+        window.location.assign(url.href);
+      }
+    } catch (error) {
+      toast.error((error as Error).message);
+    } finally {
+      setPayingId(null);
+    }
+  };
+
   const invoices = s.invoices.filter(
     (i) =>
       cases.some((c) => c.id === i.caseId) && (me?.role !== "customer" || i.status !== "Draft"),
@@ -126,9 +212,27 @@ function Page() {
     );
   return (
     <>
+      {paymentMessage && (
+        <p role="status" className="mb-4 rounded-xl border bg-accent p-4 text-sm">
+          {searchParams.payment === "success" &&
+          s.invoices.some((i) => i.id === searchParams.invoiceId && i.status === "Paid")
+            ? "Payment confirmed. Your invoice is paid."
+            : paymentMessage}
+        </p>
+      )}
+      {me?.role === "customer" && paymentConfig && !paymentConfig.enabled && (
+        <p className="mb-4 rounded-xl border p-4 text-sm text-muted-foreground">
+          Online payments are not enabled yet. Please contact your case team.
+        </p>
+      )}
+      {me?.role === "customer" && paymentConfig?.enabled && paymentConfig.testMode && (
+        <p className="mb-4 rounded-xl border p-4 text-sm text-muted-foreground">
+          Test payments: use Stripe test card details. No real money will be charged.
+        </p>
+      )}
       <PageHeader
         title="Invoices"
-        subtitle={`${invoices.length} invoices · Local billing records`}
+        subtitle={`${invoices.length} invoices · Billing and online payments`}
         actions={
           <>
             <Button variant="outline" onClick={exportCsv}>
@@ -277,6 +381,9 @@ function Page() {
                 </td>
                 <td className="px-4 py-3">
                   <StatusBadge value={i.status} />
+                  {i.paymentMethod === "stripe" && (
+                    <p className="mt-1 text-xs text-muted-foreground">Paid online · Stripe</p>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex">
@@ -289,9 +396,20 @@ function Page() {
                     >
                       <Eye className="size-4" />
                     </Button>
+                    {me?.role === "customer" && ["Sent", "Overdue"].includes(i.status) && (
+                      <Button
+                        size="sm"
+                        className="ml-2"
+                        disabled={!paymentConfig?.enabled || !!payingId}
+                        onClick={() => payOnline(i)}
+                      >
+                        {payingId === i.id ? "Opening…" : "Pay online"}
+                      </Button>
+                    )}
                     {bill && (
                       <>
                         <Button
+                          disabled={i.paymentMethod === "stripe"}
                           variant="ghost"
                           size="icon"
                           aria-label={`Edit ${i.number}`}
@@ -422,7 +540,17 @@ function Page() {
                 <Button variant="outline" onClick={() => setPreviewId(null)}>
                   Close
                 </Button>
-                {bill && (
+                {me?.role === "customer" && ["Sent", "Overdue"].includes(preview.status) && (
+                  <Button
+                    disabled={!paymentConfig?.enabled || !!payingId}
+                    onClick={() => payOnline(preview)}
+                  >
+                    {payingId === preview.id
+                      ? "Opening checkout…"
+                      : `Pay ${money(invoiceTotal(preview).total)} online`}
+                  </Button>
+                )}
+                {bill && preview.paymentMethod !== "stripe" && (
                   <Button
                     onClick={() => {
                       setPreviewId(null);

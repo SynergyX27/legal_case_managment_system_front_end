@@ -102,6 +102,7 @@ export interface InvoiceLine {
   price: number;
 }
 export interface Invoice {
+  paymentMethod?: "stripe";
   updatedAt?: string;
   id: string;
   number: string;

@@ -17,3 +17,7 @@ The shared `src/lib/domain.ts` contains types and allowed status/type options, w
 ## Create cases in a modal or on a page
 
 The New case button on Case Files and Create a case on Overview offer two choices: Create in modal and Create on full page. The header's Create new menu also offers both. The page is `/cases/new`; successful creation opens the case details, and Cancel returns to Case Files. Both presentations use `CaseForm` in `src/components/lf/case-form-dialog.tsx`, including the same fields, validation, Dropbox attachments and API save operation. Editing existing cases still opens the modal. Owners and managers can create cases, with permissions enforced by the existing API. No backend or SQL update is required.
+
+## Online invoice payments
+
+Customers can pay Sent/Overdue invoices through Stripe-hosted Checkout from the invoice list or preview. The backend confirms payments and updates invoice status. No Stripe key is stored in frontend code. Preserve the existing /api proxy/rewrite. See ../STRIPE_SETUP.md for backend/webhook setup.
