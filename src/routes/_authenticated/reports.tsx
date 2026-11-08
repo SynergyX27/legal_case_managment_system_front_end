@@ -30,7 +30,7 @@ function Page() {
     a.click();
     URL.revokeObjectURL(url);
   };
-  if (!canAccess(me?.role, "reports"))
+  if (!canAccess(me, "reports"))
     return (
       <PageHeader
         title="Reports unavailable"

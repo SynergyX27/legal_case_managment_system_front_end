@@ -21,6 +21,7 @@ function Page() {
     [editing, setEditing] = useState<User | null>(null),
     [role, setRole] = useState<Role>("staff"),
     [status, setStatus] = useState<User["status"]>("Active"),
+    [managerId, setManagerId] = useState(""),
     [password, setPassword] = useState(""),
     [busy, setBusy] = useState(false);
   if (me?.role !== "owner") return <PageHeader title="Owner access required" />;
@@ -88,7 +89,7 @@ function Page() {
         <table className="w-full min-w-[800px] text-left text-sm">
           <thead>
             <tr>
-              {["Person", "Username", "Role", "Customer profile", "Status", "Access"].map((h) => (
+              {["Person", "Username", "Role", "Manager / customer", "Status", "Access"].map((h) => (
                 <th key={h} className="p-4">
                   {h}
                 </th>
@@ -110,7 +111,9 @@ function Page() {
                 <td className="p-4 font-mono text-xs">{u.username ?? u.email}</td>
                 <td className="p-4 capitalize">{u.role}</td>
                 <td className="p-4">
-                  {s.clients.find((c) => c.id === u.clientId)?.company || "—"}
+                  {u.role === "staff"
+                    ? s.users.find((m) => m.id === u.managerId)?.name || "Needs manager"
+                    : s.clients.find((c) => c.id === u.clientId)?.company || "—"}
                 </td>
                 <td className="p-4">
                   <StatusBadge value={u.status} />
@@ -124,6 +127,7 @@ function Page() {
                       setRole(u.role);
                       setStatus(u.status);
                       setPassword("");
+                      setManagerId(u.managerId ?? "");
                     }}
                   >
                     <ShieldCheck />
@@ -164,6 +168,8 @@ function Page() {
                   role,
                   status,
                   password: password || undefined,
+                  managerId: role === "staff" ? managerId : undefined,
+                  updatedAt: editing.updatedAt,
                 });
                 if (error) toast.error(error);
                 else {
@@ -211,12 +217,37 @@ function Page() {
                 <option>Inactive</option>
               </select>
             </div>
+            {role === "staff" && (
+              <div className="space-y-2">
+                <Label htmlFor="access-manager">Responsible manager</Label>
+                <select
+                  id="access-manager"
+                  required
+                  value={managerId}
+                  onChange={(e) => setManagerId(e.target.value)}
+                  className="h-10 w-full rounded-xl border bg-card px-3 text-sm"
+                >
+                  <option value="">Select a manager</option>
+                  {s.users
+                    .filter((u) => u.role === "manager" && u.status === "Active")
+                    .map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name}
+                      </option>
+                    ))}
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  Changing the manager also moves this staff member’s existing cases to that
+                  manager.
+                </p>
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="access-password">Set new password (optional)</Label>
               <Input
                 id="access-password"
                 type="password"
-                minLength={8}
+                minLength={10}
                 autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

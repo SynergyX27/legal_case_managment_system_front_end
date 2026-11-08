@@ -16,8 +16,13 @@ export function visibleCasesFor(
           : c.staffId === me.id,
   );
 }
+export const can = (me: User | null | undefined, key: string) =>
+  !!me && me.status === "Active" && (me.role === "owner" || me.permissions?.[key] === true);
+export const canViewInvoices = (me: User | null | undefined) =>
+  me?.role === "customer" ||
+  ["invoices.view", "invoices.create", "invoices.edit", "invoices.delete"].some((k) => can(me, k));
 export const canBill = (me: User | null | undefined) =>
-  me?.role === "owner" || me?.role === "manager";
+  can(me, "invoices.create") || can(me, "invoices.edit");
 export function canMessage(me: User | undefined | null, other: User | undefined, cases: Case[]) {
   if (!me || !other || me.id === other.id || me.status !== "Active" || other.status !== "Active")
     return false;

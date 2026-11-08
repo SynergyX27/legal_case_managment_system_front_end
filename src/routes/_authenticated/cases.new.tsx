@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CaseForm } from "@/components/lf/case-form-dialog";
+import { can } from "@/lib/access";
 import { useMe } from "@/lib/store";
 import { PageHeader } from "@/components/lf/ui-bits";
 
@@ -10,8 +11,7 @@ export const Route = createFileRoute("/_authenticated/cases/new")({
 function CreateCasePage() {
   const navigate = useNavigate();
   const me = useMe();
-  if (!me || !["owner", "manager"].includes(me.role))
-    return <PageHeader title="Owner or manager access required" />;
+  if (!can(me, "cases.create")) return <PageHeader title="Case creation permission required" />;
   return (
     <CaseForm
       presentation="page"

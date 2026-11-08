@@ -8,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
+import { can } from "@/lib/access";
 import { useMe } from "@/lib/store";
 import { useUI } from "@/lib/ui-store";
 
@@ -21,7 +22,7 @@ export function CreateCaseButton({
   const me = useMe();
   const navigate = useNavigate();
   const openCase = useUI((s) => s.openCase);
-  if (!me || !["owner", "manager"].includes(me.role)) return null;
+  if (!can(me, "cases.create")) return null;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>

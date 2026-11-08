@@ -5,6 +5,10 @@ export type InvoiceStatus = "Draft" | "Sent" | "Paid" | "Overdue";
 
 export interface User {
   username?: string;
+  managerId?: string;
+  permissions?: Record<string, boolean>;
+  permissionOverrides?: Record<string, boolean>;
+  updatedAt?: string;
   phone?: string;
   id: string;
   name: string;

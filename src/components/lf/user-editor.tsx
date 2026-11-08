@@ -201,6 +201,30 @@ export function OwnerUserForm({
           </select>
         </div>
       )}
+      {role === "staff" && (
+        <div className="space-y-2">
+          <Label htmlFor="new-staff-manager">Responsible manager</Label>
+          <select
+            id="new-staff-manager"
+            required
+            className="h-10 w-full rounded-xl border bg-card px-3 text-sm"
+            value={draft.managerId ?? ""}
+            onChange={(e) => setDraft({ ...draft, managerId: e.target.value })}
+          >
+            <option value="">Select a manager</option>
+            {s.users
+              .filter((u) => u.role === "manager" && u.status === "Active")
+              .map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name}
+                </option>
+              ))}
+          </select>
+          <p className="text-xs text-muted-foreground">
+            Create a manager account first. New cases will automatically use this manager.
+          </p>
+        </div>
+      )}
       <UserFields value={draft} onChange={setDraft} customer={role === "customer"} />
       <Button type="submit" className="w-full" disabled={busy}>
         {busy ? "Creating…" : role === "customer" ? "Create customer & login" : "Create user"}

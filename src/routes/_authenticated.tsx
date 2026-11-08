@@ -26,7 +26,7 @@ function AuthLayout() {
   }
   return (
     <AppShell>
-      {canAccess(me.role, section === "ai-insights" ? "ai" : section) ? (
+      {canAccess(me, section === "ai-insights" ? "ai" : section) ? (
         <Outlet />
       ) : (
         <p className="rounded-lg border bg-card p-8">

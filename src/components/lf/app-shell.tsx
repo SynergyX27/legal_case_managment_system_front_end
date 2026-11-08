@@ -54,7 +54,7 @@ import {
 import { Avatar, Logo } from "./ui-bits";
 import { canAccess, useMe, useStore, useVisibleCases } from "@/lib/store";
 import { useUI } from "@/lib/ui-store";
-import { canReadConversation } from "@/lib/access";
+import { can, canReadConversation } from "@/lib/access";
 import { conversationUnread } from "@/lib/messaging";
 import { CaseFormDialog } from "./case-form-dialog";
 import { InvoiceDialog } from "./invoice-dialog";
@@ -96,6 +96,13 @@ const navigation = [
     group: "Management",
   },
   { to: "/users", label: "People & access", icon: UserCog, key: "users", group: "Management" },
+  {
+    to: "/permissions",
+    label: "Permissions",
+    icon: UserCog,
+    key: "permissions",
+    group: "Management",
+  },
   { to: "/settings", label: "Settings", icon: Settings, key: "settings", group: "Management" },
 ] as const;
 const roles = {
@@ -133,7 +140,7 @@ function Sidebar({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: (
       )}
       <nav className="sidebar-nav" aria-label="Main navigation">
         {["Workspace", "Management"].map((group) => {
-          const items = navigation.filter((n) => n.group === group && canAccess(me.role, n.key));
+          const items = navigation.filter((n) => n.group === group && canAccess(me, n.key));
           return (
             items.length > 0 && (
               <div key={group} className="mb-5">
@@ -218,7 +225,7 @@ function Sidebar({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: (
         </DropdownMenuTrigger>
         <DropdownMenuContent side="top" align="start" className="w-64">
           <DropdownMenuLabel>{roles[me.role]}</DropdownMenuLabel>
-          {canAccess(me.role, "settings") && (
+          {canAccess(me, "settings") && (
             <DropdownMenuItem onClick={() => navigate({ to: "/settings" })}>
               <Settings />
               Settings
@@ -413,11 +420,14 @@ export function AppShell({ children }: { children: ReactNode }) {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem disabled={me.role === "staff"} onClick={() => ui.openCase()}>
+                  <DropdownMenuItem
+                    disabled={!can(me, "cases.create")}
+                    onClick={() => ui.openCase()}
+                  >
                     <FolderOpen />
                     Case file (modal)
                   </DropdownMenuItem>
-                  {["owner", "manager"].includes(me.role) && (
+                  {can(me, "cases.create") && (
                     <DropdownMenuItem onClick={() => navigate({ to: "/cases/new" })}>
                       <FolderOpen />
                       Case file (full page)
@@ -429,7 +439,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                       Customer
                     </DropdownMenuItem>
                   )}
-                  {["owner", "manager"].includes(me.role) && (
+                  {can(me, "invoices.create") && (
                     <DropdownMenuItem onClick={() => ui.openInvoice()}>
                       <Receipt />
                       Invoice

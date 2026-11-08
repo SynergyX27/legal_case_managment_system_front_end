@@ -21,6 +21,7 @@ import {
 import { invoiceTotal, money, useMe, useStore, useVisibleCases, uid } from "@/lib/store";
 import { useUI } from "@/lib/ui-store";
 import { iso, type Invoice } from "@/lib/domain";
+import { can } from "@/lib/access";
 import { validateInvoice } from "@/lib/invoices";
 
 export function InvoiceDialog() {
@@ -63,7 +64,7 @@ export function InvoiceDialog() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invoiceDialog.open, invoiceDialog.invoiceId, invoiceDialog.caseId]);
 
-  if (!inv || !["owner", "manager"].includes(me?.role ?? "")) return null;
+  if (!inv || !can(me, invoiceDialog.invoiceId ? "invoices.edit" : "invoices.create")) return null;
   const c = s.cases.find((x) => x.id === inv.caseId);
   const client = s.clients.find((x) => x.id === inv.clientId);
   const t = invoiceTotal(inv);

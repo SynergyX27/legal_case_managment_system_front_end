@@ -82,3 +82,38 @@ describe("customer invoice payments", () => {
     expect(screen.queryByRole("button", { name: "Pay online" })).not.toBeInTheDocument();
   });
 });
+
+describe("invoice deletion", () => {
+  it("requires confirmation before deleting an unpaid invoice", async () => {
+    const remove = vi.fn(async () => true);
+    useStore.setState({
+      users: [{ ...customer, role: "owner" }],
+      deleteInvoice: remove,
+      invoices: [{ ...invoice, updatedAt: "2026-11-08T00:00:00Z" }],
+    });
+    render(<Page />);
+    fireEvent.click(screen.getByRole("button", { name: "Delete INV-000001" }));
+    expect(remove).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Delete invoice" }));
+    await waitFor(() => expect(remove).toHaveBeenCalledWith("invoice-1", "2026-11-08T00:00:00Z"));
+  });
+  it("offers no deletion control for paid invoices, including manual payments", () => {
+    useStore.setState({
+      users: [{ ...customer, role: "owner" }],
+      invoices: [{ ...invoice, status: "Paid" }],
+    });
+    render(<Page />);
+    expect(screen.queryByRole("button", { name: "Delete INV-000001" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit INV-000001" })).toBeDisabled();
+  });
+  it("hides invoice editing for a staff member with view-only permission", () => {
+    useStore.setState({
+      users: [{ ...customer, role: "staff", permissions: { "invoices.view": true } }],
+      cases: [{ id: "case-1", number: "CASE-1", staffId: customer.id, clientId: "client" } as Case],
+    });
+    render(<Page />);
+    expect(screen.getByRole("button", { name: "Preview INV-000001" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Edit INV-000001" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Create invoice" })).not.toBeInTheDocument();
+  });
+});

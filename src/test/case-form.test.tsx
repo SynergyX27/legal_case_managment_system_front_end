@@ -29,7 +29,11 @@ const addCase = vi.fn(async (_c: Case) => true);
 beforeEach(() => {
   vi.stubGlobal("crypto", { randomUUID: () => "test-id" });
   useStore.setState({
-    users: [owner],
+    users: [
+      owner,
+      { ...owner, id: "manager", name: "Manager", role: "manager" },
+      { ...owner, id: "staff", name: "Staff", role: "staff", managerId: "manager" },
+    ],
     sessionUserId: owner.id,
     clients: [customer],
     cases: [],
@@ -44,6 +48,31 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 describe("one case form in two presentations", () => {
+  it("allows permitted staff and automatically selects their manager", async () => {
+    const staff: User = {
+      ...owner,
+      id: "staff",
+      role: "staff",
+      managerId: "manager",
+      permissions: { "cases.create": true },
+    };
+    useStore.setState({
+      sessionUserId: staff.id,
+      users: [staff, { ...owner, id: "manager", name: "Manager", role: "manager" }],
+    });
+    render(<CaseForm presentation="page" onCancel={() => {}} onSaved={() => {}} />);
+    fireEvent.change(screen.getByLabelText("Case Number"), { target: { value: "STAFF-1" } });
+    fireEvent.change(screen.getByLabelText("Tenant *"), { target: { value: "Tenant" } });
+    expect(screen.getByLabelText("Assigned Manager (from staff team)")).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Create case" }));
+    await waitFor(() => expect(addCase).toHaveBeenCalledTimes(1));
+    expect(addCase.mock.calls[0][0]).toMatchObject({
+      staffId: "staff",
+      managerId: "manager",
+      clientId: "test-client",
+    });
+  });
+
   it.each(["modal", "page"] as const)(
     "%s saves the same fields and pending attachment",
     async (presentation) => {

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useMe, useStore, useVisibleCases, money, fmtDate } from "@/lib/store";
 import { caseBilling, totalFor } from "@/lib/billing";
-import { canBill } from "@/lib/access";
+import { can, canViewInvoices } from "@/lib/access";
 import { useUI } from "@/lib/ui-store";
 export const Route = createFileRoute("/_authenticated/cases/$id")({ component: Page });
 function Page() {
@@ -28,6 +28,8 @@ function Page() {
     client = s.clients.find((x) => x.id === c.clientId);
   const invoices = s.invoices.filter((i) => i.caseId === id && (!customer || i.status !== "Draft"));
   const fields = [
+    ["Responsible staff", s.users.find((u) => u.id === c.staffId)?.name],
+    ["Responsible manager", s.users.find((u) => u.id === c.managerId)?.name],
     ["REF", c.ref],
     ["Case Number", c.number],
     ["Plaintiff", c.plaintiff],
@@ -54,12 +56,12 @@ function Page() {
         subtitle={c.title}
         actions={
           <>
-            {!customer && (
+            {can(me, "cases.edit") && (
               <Button variant="outline" onClick={() => ui.openCase(id)}>
                 Edit case
               </Button>
             )}
-            {canBill(me) && (
+            {can(me, "invoices.create") && (
               <Button onClick={() => ui.openInvoice({ caseId: id })}>Create invoice</Button>
             )}
           </>
@@ -86,7 +88,7 @@ function Page() {
             </dl>
             {c.description && <p className="mt-6 border-t pt-4 text-sm">{c.description}</p>}
           </section>
-          {(customer || canBill(me)) && (
+          {canViewInvoices(me) && (
             <section className="rounded-xl border bg-card p-6">
               <div className="mb-5 flex items-center justify-between">
                 <h2 className="font-semibold">
@@ -141,7 +143,7 @@ function Page() {
               </div>
             </section>
           )}
-          {!customer && (
+          {can(me, "cases.edit") && (
             <section className="rounded-xl border bg-card p-6">
               <h2 className="mb-4 font-semibold">Internal notes & comments</h2>
               {c.comments.map((m) => (
@@ -198,7 +200,7 @@ function Page() {
                 );
               })}
           </section>
-          {!customer && (
+          {can(me, "cases.edit") && (
             <section className="rounded-xl border bg-card p-5">
               <h2 className="mb-4 font-semibold">Activity timeline</h2>
               {s.activities

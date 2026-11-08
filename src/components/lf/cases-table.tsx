@@ -1,3 +1,4 @@
+import { can, canViewInvoices } from "@/lib/access";
 import { CreateCaseButton } from "./create-case-button";
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
@@ -81,6 +82,7 @@ const extraColumns = [
   { id: "visTO", label: "VIS - TO" },
   { id: "locs", label: "LOCS" },
   { id: "lbx", label: "LBX" },
+  { id: "manager", label: "Assigned manager" },
 ];
 const columns: { id: string; label: string }[] = [
   { id: "number", label: "Case file" },
@@ -136,7 +138,7 @@ export function CasesTable() {
   const [saveOpen, setSaveOpen] = useState(false);
   const [viewName, setViewName] = useState("");
   const availableColumns = columns.filter(
-    (c) => me?.role !== "staff" || !["invoice", "balance", "lastPayment", "fee"].includes(c.id),
+    (c) => canViewInvoices(me) || !["invoice", "balance", "lastPayment", "fee"].includes(c.id),
   );
   const visible = (s.tablePrefs?.visible ?? availableColumns.map((c) => c.id)).filter((id) =>
     availableColumns.some((c) => c.id === id),
@@ -185,7 +187,7 @@ export function CasesTable() {
             s.clients,
             s.users,
             s.invoices,
-            me?.role !== "staff",
+            canViewInvoices(me),
           ),
       ],
       { type: "text/csv;charset=utf-8" },
@@ -210,7 +212,7 @@ export function CasesTable() {
               <Download />
               Export
             </Button>
-            {["owner", "manager"].includes(me?.role ?? "") && <CreateCaseButton />}
+            <CreateCaseButton />
           </>
         }
       />
@@ -387,6 +389,7 @@ export function CasesTable() {
         <div className="mb-3 flex flex-wrap items-center gap-3 bg-accent px-3 py-2 text-sm">
           <span className="font-medium">{selection.length} selected</span>
           <Select
+            disabled={!can(me, "cases.edit")}
             onValueChange={(v) => {
               void Promise.all(
                 selection.map((id) => s.updateCase(id, { status: v as CaseStatus })),
@@ -408,7 +411,7 @@ export function CasesTable() {
             </SelectContent>
           </Select>
           <Button
-            disabled={me?.role === "staff"}
+            disabled={!can(me, "cases.delete")}
             variant="ghost"
             size="sm"
             onClick={() => setConfirmDelete(selection)}
@@ -557,19 +560,21 @@ export function CasesTable() {
                     .map((col) => {
                       const b = caseBilling(s.invoices, c.id);
                       const value =
-                        col.id === "tenant"
-                          ? c.residentName
-                          : col.id === "address"
-                            ? c.residentAddress
-                            : col.id === "lastPayment"
-                              ? b.lastPaymentDate
-                                ? `${money(b.lastPayment)} · ${fmtDate(b.lastPaymentDate)}`
-                                : "—"
-                              : col.id === "balance"
-                                ? money(b.balance)
-                                : col.id === "setoutTime"
-                                  ? c.serviceTime
-                                  : c[col.id as keyof typeof c];
+                        col.id === "manager"
+                          ? s.users.find((u) => u.id === c.managerId)?.name
+                          : col.id === "tenant"
+                            ? c.residentName
+                            : col.id === "address"
+                              ? c.residentAddress
+                              : col.id === "lastPayment"
+                                ? b.lastPaymentDate
+                                  ? `${money(b.lastPayment)} · ${fmtDate(b.lastPaymentDate)}`
+                                  : "—"
+                                : col.id === "balance"
+                                  ? money(b.balance)
+                                  : col.id === "setoutTime"
+                                    ? c.serviceTime
+                                    : c[col.id as keyof typeof c];
                       return (
                         <TableCell key={col.id} className="min-w-28 whitespace-nowrap">
                           {typeof value === "string" || typeof value === "number"
@@ -585,6 +590,7 @@ export function CasesTable() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            disabled={!can(me, "cases.edit")}
                             title="Edit case"
                             aria-label={`Edit ${c.number}`}
                             onClick={() => openCase(c.id)}
@@ -594,7 +600,7 @@ export function CasesTable() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            disabled={me?.role === "staff"}
+                            disabled={!can(me, "cases.delete")}
                             title="Delete case"
                             aria-label={`Delete ${c.number}`}
                             onClick={() => setConfirmDelete([c.id])}

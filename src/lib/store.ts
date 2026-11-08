@@ -2,6 +2,7 @@ import { useUI } from "./ui-store";
 import { create } from "zustand";
 import { toast } from "sonner";
 import { api, resetCsrf } from "./api";
+import { canViewInvoices } from "./access";
 import { visibleCasesFor } from "./access";
 import { caseBilling } from "./billing";
 import {
@@ -51,6 +52,7 @@ export interface UserInput {
   title?: string;
   clientId?: string;
   role?: User["role"];
+  managerId?: string;
 }
 
 const todayIso = () => iso(new Date());
@@ -108,7 +110,13 @@ export const defaultViews = (): SavedView[] => {
 };
 
 export const uid = (prefix: string) => prefix + crypto.randomUUID();
+export interface RolePermissions {
+  role: "manager" | "staff";
+  permissions: Record<string, boolean>;
+  updatedAt: string;
+}
 interface Data {
+  rolePermissions: RolePermissions[];
   accounts: Account[];
   users: User[];
   clients: Client[];
@@ -125,6 +133,7 @@ interface Data {
   tablePrefs: TablePrefs | null;
 }
 const emptyData = (): Data => ({
+  rolePermissions: [],
   accounts: [{ id: "company", name: "LegalFlow" }],
   users: [],
   clients: [],
@@ -153,8 +162,17 @@ interface State extends Data {
   createUser: (input: UserInput) => Promise<string>;
   updateUserAccess: (
     id: string,
-    patch: { role: User["role"]; status: User["status"]; password?: string },
+    patch: {
+      role: User["role"];
+      status: User["status"];
+      password?: string;
+      managerId?: string;
+      permissions?: Record<string, boolean>;
+      updatedAt?: string;
+    },
   ) => Promise<string>;
+  saveRolePermissions: (value: RolePermissions) => Promise<boolean>;
+  deleteInvoice: (id: string, updatedAt?: string) => Promise<boolean>;
   addCase: (c: Case) => Promise<boolean>;
   updateCase: (id: string, patch: Partial<Case>, note?: string) => Promise<boolean>;
   deleteCase: (id: string) => Promise<boolean>;
@@ -344,6 +362,8 @@ export const useStore = create<State>((set, get) => {
         return (e as Error).message;
       }
     },
+    saveRolePermissions: (value) => mutate(`/permissions/${value.role}`, "PUT", value),
+    deleteInvoice: (id, updatedAt) => mutate(`/invoices/${id}`, "DELETE", { updatedAt }),
     addCase: saveCase,
     updateCase: async (id, patch) => {
       const old = get().cases.find((c) => c.id === id);
@@ -440,7 +460,10 @@ export function useVisibleCases() {
   const clients = useStore((s) => s.clients);
   return visibleCasesFor(me, cases, clients, "company");
 }
-export const canAccess = (role: string | undefined, section: string) => {
+export const canAccess = (subject: string | User | null | undefined, section: string) => {
+  const role = typeof subject === "string" ? subject : subject?.role;
+  if (section === "permissions") return role === "owner";
+  if (section === "invoices" && typeof subject !== "string") return canViewInvoices(subject);
   if (["ai", "ai-insights", "automations"].includes(section)) return false;
   if (section === "company-documents") return role === "owner";
   if (role === "customer")

@@ -34,6 +34,7 @@ import { useMe, useStore, uid } from "@/lib/store";
 import { useUI } from "@/lib/ui-store";
 import { PageHeader } from "./ui-bits";
 import { CASE_TYPES, PRIORITIES, STATUSES, iso, type Attachment, type Case } from "@/lib/domain";
+import { can } from "@/lib/access";
 import { fileKind } from "@/lib/documents";
 
 function F({ label, children, span }: { label: string; children: ReactNode; span?: boolean }) {
@@ -67,16 +68,18 @@ function Sel({
   onChange,
   items,
   id,
+  disabled = false,
   "aria-label": ariaLabel,
 }: {
   id?: string;
+  disabled?: boolean;
   "aria-label"?: string;
   value: string;
   onChange: (v: string) => void;
   items: { v: string; l: string }[];
 }) {
   return (
-    <Select value={value} onValueChange={onChange}>
+    <Select value={value} onValueChange={onChange} disabled={disabled}>
       <SelectTrigger id={id} aria-label={ariaLabel} className="w-full">
         <SelectValue placeholder="Select…" />
       </SelectTrigger>
@@ -234,7 +237,12 @@ export function CaseForm({
   const s = useStore();
   const me = useMe();
   const editing = editId ? s.cases.find((c) => c.id === editId) : undefined;
-  const staff = s.users.filter((u) => u.role === "staff" && u.status === "Active");
+  const staff = s.users.filter(
+    (u) =>
+      u.role === "staff" &&
+      u.status === "Active" &&
+      (me?.role === "owner" || (me?.role === "manager" ? u.managerId === me.id : u.id === me?.id)),
+  );
   const blank = (): Case => ({
     id: uid("case"),
     number: "",
@@ -251,7 +259,7 @@ export function CaseForm({
     serviceDate: iso(new Date(Date.now() + 3 * 864e5)),
     serviceTime: "10:00",
     staffId: staff[0]?.id ?? "",
-    managerId: me?.role === "manager" ? me.id : "",
+    managerId: staff[0]?.managerId ?? "",
     serviceLocation: "Residence",
     instructions: "",
     fee: 0,
@@ -288,8 +296,10 @@ export function CaseForm({
 
   const save = async () => {
     if (saving || me?.role === "customer") return;
-    if (!c.number.trim() || !c.residentName.trim() || !c.clientId)
-      return toast.error("Case number, customer and tenant are required");
+    if (!c.number.trim() || !c.residentName.trim() || !c.clientId || !c.staffId || !c.managerId)
+      return toast.error(
+        "Case number, customer, tenant, responsible staff and manager are required",
+      );
     if (
       s.cases.some((x) => x.id !== c.id && x.number.toLowerCase() === c.number.trim().toLowerCase())
     )
@@ -314,17 +324,20 @@ export function CaseForm({
     }
   };
 
-  const canEdit =
-    !!me && (editing ? me.role !== "customer" : ["owner", "manager"].includes(me.role));
+  const canEdit = can(me, editing ? "cases.edit" : "cases.create");
   if (!canEdit)
     return presentation === "page" ? (
       <PageHeader
         title="Case creation unavailable"
-        subtitle="Only owners and managers can create cases."
+        subtitle="Your owner has not enabled this case permission for your account."
       />
     ) : null;
   const fields = (
     <div className="space-y-4">
+      <p className="rounded-xl border bg-accent/40 p-3 text-xs text-muted-foreground">
+        Each case requires a customer and a responsible staff member. The manager is filled from the
+        staff member’s team. Owners can set staff managers in People &amp; access.
+      </p>
       <Section n={1} title="Case Information">
         <F label="REF">
           <Input
@@ -382,6 +395,7 @@ export function CaseForm({
       <Section n={2} title="Client Information">
         <F label="Assigned Customer" span>
           <Sel
+            disabled={!!editing && me?.role === "staff"}
             value={c.clientId}
             onChange={(v) => set("clientId", v)}
             items={s.clients.map((x) => ({
@@ -451,16 +465,24 @@ export function CaseForm({
         <F label="Assigned Staff">
           <Sel
             value={c.staffId}
-            onChange={(v) => set("staffId", v)}
+            disabled={me?.role === "staff"}
+            onChange={(v) =>
+              setC((p) => ({
+                ...p,
+                staffId: v,
+                managerId: s.users.find((u) => u.id === v)?.managerId ?? "",
+              }))
+            }
             items={staff.map((u) => ({ v: u.id, l: u.name }))}
           />
         </F>
-        <F label="Assigned Manager">
+        <F label="Assigned Manager (from staff team)">
           <Sel
+            disabled
             value={c.managerId}
             onChange={(v) => set("managerId", v)}
             items={s.users
-              .filter((u) => (u.role === "manager" || u.role === "owner") && u.status === "Active")
+              .filter((u) => u.role === "manager" && u.status === "Active")
               .map((u) => ({ v: u.id, l: u.name }))}
           />
         </F>
@@ -576,7 +598,7 @@ export function CaseForm({
           {fields}
           <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4 shadow-sm">
             <p className="text-xs text-muted-foreground">
-              Case number, customer and tenant are required.
+              Case number, customer, tenant, responsible staff and manager are required.
             </p>
             <div className="flex gap-2">{actions}</div>
           </div>

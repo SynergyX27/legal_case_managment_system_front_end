@@ -2,7 +2,18 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { Check, Clock, Download, Eye, FileText, Pencil, Plus, Receipt, Send } from "lucide-react";
+import {
+  Check,
+  Clock,
+  Download,
+  Eye,
+  FileText,
+  Pencil,
+  Plus,
+  Receipt,
+  Send,
+  Trash2,
+} from "lucide-react";
 import { PageHeader, StatusBadge } from "@/components/lf/ui-bits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,7 +42,7 @@ import {
 } from "@/lib/store";
 import { useUI } from "@/lib/ui-store";
 import { Link, useSearch } from "@tanstack/react-router";
-import { canBill } from "@/lib/access";
+import { can } from "@/lib/access";
 import { filterInvoices, invoiceSummary } from "@/lib/invoices";
 import type { Invoice } from "@/lib/domain";
 
@@ -69,7 +80,9 @@ function Page() {
   const s = useStore();
   const me = useMe();
   const cases = useVisibleCases();
-  const bill = canBill(me);
+  const bill = can(me, "invoices.edit");
+  const [deleting, setDeleting] = useState<Invoice | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
   const searchParams = useSearch({ strict: false }) as {
     caseId?: string;
     payment?: string;
@@ -206,12 +219,55 @@ function Page() {
     a.click();
     URL.revokeObjectURL(url);
   };
-  if (!canAccess(me?.role, "invoices"))
+  if (!canAccess(me, "invoices"))
     return (
-      <PageHeader title="Invoices" subtitle="Invoices are available to owners and managers." />
+      <PageHeader
+        title="Invoices"
+        subtitle="Your owner has not enabled invoice access for your account."
+      />
     );
   return (
     <>
+      <Dialog
+        open={!!deleting}
+        onOpenChange={(o) => {
+          if (!o && !deleteBusy) setDeleting(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete {deleting?.number}?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            This removes the invoice from the case and customer portal. Paid invoices and invoices
+            with an active checkout or payment processing cannot be deleted. Payment history is
+            retained.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" disabled={deleteBusy} onClick={() => setDeleting(null)}>
+              Keep invoice
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteBusy}
+              onClick={async () => {
+                if (!deleting) return;
+                setDeleteBusy(true);
+                try {
+                  if (await s.deleteInvoice(deleting.id, deleting.updatedAt)) {
+                    setDeleting(null);
+                    toast.success("Invoice deleted");
+                  }
+                } finally {
+                  setDeleteBusy(false);
+                }
+              }}
+            >
+              {deleteBusy ? "Deleting…" : "Delete invoice"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {paymentMessage && (
         <p role="status" className="mb-4 rounded-xl border bg-accent p-4 text-sm">
           {searchParams.payment === "success" &&
@@ -239,7 +295,7 @@ function Page() {
               <Download />
               Export
             </Button>
-            {bill && (
+            {can(me, "invoices.create") && (
               <Button disabled={!cases.length} onClick={() => openInvoice()}>
                 <Plus />
                 Create invoice
@@ -406,10 +462,21 @@ function Page() {
                         {payingId === i.id ? "Opening…" : "Pay online"}
                       </Button>
                     )}
+                    {can(me, "invoices.delete") && i.status !== "Paid" && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Delete ${i.number}`}
+                        title="Delete invoice"
+                        onClick={() => setDeleting(i)}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    )}
                     {bill && (
                       <>
                         <Button
-                          disabled={i.paymentMethod === "stripe"}
+                          disabled={i.paymentMethod === "stripe" || i.status === "Paid"}
                           variant="ghost"
                           size="icon"
                           aria-label={`Edit ${i.number}`}
@@ -550,7 +617,7 @@ function Page() {
                       : `Pay ${money(invoiceTotal(preview).total)} online`}
                   </Button>
                 )}
-                {bill && preview.paymentMethod !== "stripe" && (
+                {bill && preview.paymentMethod !== "stripe" && preview.status !== "Paid" && (
                   <Button
                     onClick={() => {
                       setPreviewId(null);
