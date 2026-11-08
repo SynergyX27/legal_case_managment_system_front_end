@@ -1,3 +1,4 @@
+import { EmailSettings } from "@/components/lf/email-settings";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -171,6 +172,7 @@ function Page() {
             </Panel>
           )}
         </div>
+        {me?.role === "owner" && <EmailSettings />}
         {me?.role === "owner" && (
           <Panel title="Case custom fields">
             <div className="space-y-4 p-5">
