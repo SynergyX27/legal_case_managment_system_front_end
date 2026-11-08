@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/select";
 import { useMe, useStore, uid } from "@/lib/store";
 import { useUI } from "@/lib/ui-store";
+import { PageHeader } from "./ui-bits";
 import { CASE_TYPES, PRIORITIES, STATUSES, iso, type Attachment, type Case } from "@/lib/domain";
 import { fileKind } from "@/lib/documents";
 
@@ -160,7 +161,9 @@ export function FileDrop({
         <p className="text-sm font-medium">
           {reading ? "Reading files…" : "Choose files or drop them here"}
         </p>
-        <p className="text-xs text-muted-foreground">Local uploads · 2 MB total</p>
+        <p className="text-xs text-muted-foreground">
+          Uploads are stored in the company Dropbox · up to 25 MB per file
+        </p>
         <input ref={ref} type="file" multiple hidden onChange={(e) => add(e.target.files)} />
       </div>
       {files.length > 0 && (
@@ -204,9 +207,33 @@ export function FileDrop({
 
 export function CaseFormDialog() {
   const { caseDialog, close } = useUI();
+  return (
+    <CaseForm
+      presentation="modal"
+      open={caseDialog.open}
+      editId={caseDialog.editId}
+      onCancel={close}
+      onSaved={close}
+    />
+  );
+}
+
+export function CaseForm({
+  presentation = "modal",
+  open = true,
+  editId,
+  onCancel,
+  onSaved,
+}: {
+  presentation?: "modal" | "page";
+  open?: boolean;
+  editId?: string;
+  onCancel: () => void;
+  onSaved: (caseId: string) => void;
+}) {
   const s = useStore();
   const me = useMe();
-  const editing = caseDialog.editId ? s.cases.find((c) => c.id === caseDialog.editId) : undefined;
+  const editing = editId ? s.cases.find((c) => c.id === editId) : undefined;
   const staff = s.users.filter((u) => u.role === "staff" && u.status === "Active");
   const blank = (): Case => ({
     id: uid("case"),
@@ -251,11 +278,11 @@ export function CaseFormDialog() {
   const [c, setC] = useState<Case>(blank);
   const [saving, setSaving] = useState(false);
   useEffect(() => {
-    if (caseDialog.open)
+    if (open)
       setC(
         editing ? { ...editing } : blank(),
       ); /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, [caseDialog.open, caseDialog.editId]);
+  }, [open, editId]);
   const set = <K extends keyof Case>(k: K, v: Case[K]) => setC((p) => ({ ...p, [k]: v }));
   const client = s.clients.find((x) => x.id === c.clientId);
 
@@ -281,262 +308,299 @@ export function CaseFormDialog() {
         if (!(await s.addCase({ ...c, title }))) return;
         toast.success(`Case ${c.number} created`);
       }
-      close();
+      onSaved(c.id);
     } finally {
       setSaving(false);
     }
   };
 
+  const canEdit =
+    !!me && (editing ? me.role !== "customer" : ["owner", "manager"].includes(me.role));
+  if (!canEdit)
+    return presentation === "page" ? (
+      <PageHeader
+        title="Case creation unavailable"
+        subtitle="Only owners and managers can create cases."
+      />
+    ) : null;
+  const fields = (
+    <div className="space-y-4">
+      <Section n={1} title="Case Information">
+        <F label="REF">
+          <Input
+            aria-label="REF"
+            value={c.ref ?? ""}
+            onChange={(e) => set("ref", e.target.value)}
+          />
+        </F>
+        <F label="Plaintiff">
+          <Input
+            aria-label="Plaintiff"
+            value={c.plaintiff ?? ""}
+            onChange={(e) => set("plaintiff", e.target.value)}
+          />
+        </F>
+        <F label="Case Number">
+          <Input value={c.number} onChange={(e) => set("number", e.target.value)} />
+        </F>
+        <F label="Case Type">
+          <Sel
+            value={c.type}
+            onChange={(v) => set("type", v)}
+            items={CASE_TYPES.map((t) => ({ v: t, l: t }))}
+          />
+        </F>
+        <F label="Case Title" span>
+          <Input
+            value={c.title}
+            placeholder="Auto-generated if left blank"
+            onChange={(e) => set("title", e.target.value)}
+          />
+        </F>
+        <F label="Case Description" span>
+          <Textarea
+            rows={2}
+            value={c.description}
+            onChange={(e) => set("description", e.target.value)}
+          />
+        </F>
+        <F label="Case Status">
+          <Sel
+            value={c.status}
+            onChange={(v) => set("status", v as Case["status"])}
+            items={STATUSES.map((t) => ({ v: t, l: t }))}
+          />
+        </F>
+        <F label="Priority">
+          <Sel
+            value={c.priority}
+            onChange={(v) => set("priority", v as Case["priority"])}
+            items={PRIORITIES.map((t) => ({ v: t, l: t }))}
+          />
+        </F>
+      </Section>
+      <Section n={2} title="Client Information">
+        <F label="Assigned Customer" span>
+          <Sel
+            value={c.clientId}
+            onChange={(v) => set("clientId", v)}
+            items={s.clients.map((x) => ({
+              v: x.id,
+              l: x.company && x.company !== x.name ? `${x.name} — ${x.company}` : x.name,
+            }))}
+          />
+        </F>
+        <F label="Client Email">
+          <Input value={client?.email ?? ""} readOnly className="bg-muted" />
+        </F>
+        <F label="Client Phone">
+          <Input value={client?.phone ?? ""} readOnly className="bg-muted" />
+        </F>
+        <F label="Client Address" span>
+          <Input value={client?.address ?? ""} readOnly className="bg-muted" />
+        </F>
+      </Section>
+      <Section n={3} title="Tenant & Property">
+        <F label="Tenant *">
+          <Input value={c.residentName} onChange={(e) => set("residentName", e.target.value)} />
+        </F>
+        <F label="Resident Phone">
+          <Input value={c.residentPhone} onChange={(e) => set("residentPhone", e.target.value)} />
+        </F>
+        <F label="Address" span>
+          <Input
+            value={c.residentAddress}
+            onChange={(e) => set("residentAddress", e.target.value)}
+          />
+        </F>
+        {(
+          [
+            ["county", "County"],
+            ["city", "City"],
+            ["state", "State"],
+            ["zip", "Zip"],
+          ] as const
+        ).map(([key, label]) => (
+          <F key={key} label={label}>
+            <Input
+              aria-label={label}
+              value={c[key] ?? ""}
+              onChange={(e) => set(key, e.target.value)}
+            />
+          </F>
+        ))}
+        <F label="Additional Notes" span>
+          <Textarea rows={2} value={c.notes} onChange={(e) => set("notes", e.target.value)} />
+        </F>
+      </Section>
+      <Section n={4} title="Service Information">
+        <F label="Setout Date">
+          <Input
+            type="date"
+            value={c.serviceDate}
+            onChange={(e) => set("serviceDate", e.target.value)}
+          />
+        </F>
+        <F label="Setout Time">
+          <Input
+            type="time"
+            value={c.serviceTime}
+            onChange={(e) => set("serviceTime", e.target.value)}
+          />
+        </F>
+        <F label="Assigned Staff">
+          <Sel
+            value={c.staffId}
+            onChange={(v) => set("staffId", v)}
+            items={staff.map((u) => ({ v: u.id, l: u.name }))}
+          />
+        </F>
+        <F label="Assigned Manager">
+          <Sel
+            value={c.managerId}
+            onChange={(v) => set("managerId", v)}
+            items={s.users
+              .filter((u) => (u.role === "manager" || u.role === "owner") && u.status === "Active")
+              .map((u) => ({ v: u.id, l: u.name }))}
+          />
+        </F>
+        <F label="Service Location">
+          <Input
+            value={c.serviceLocation}
+            onChange={(e) => set("serviceLocation", e.target.value)}
+          />
+        </F>
+        <F label="Service Instructions" span>
+          <Textarea
+            rows={2}
+            value={c.instructions}
+            onChange={(e) => set("instructions", e.target.value)}
+          />
+        </F>
+      </Section>
+      <Section n={5} title="Property & Visit Details">
+        {(
+          [
+            ["visLO", "VIS - LO"],
+            ["visTO", "VIS - TO"],
+            ["locs", "LOCS"],
+            ["lbx", "LBX"],
+          ] as const
+        ).map(([key, label]) => (
+          <F key={key} label={label}>
+            <Input
+              aria-label={label}
+              value={c[key] ?? ""}
+              onChange={(e) => set(key, e.target.value)}
+            />
+          </F>
+        ))}
+        <p className="text-xs text-muted-foreground sm:col-span-2">
+          Client-defined tracking fields. Invoice amounts and payments are managed separately in
+          Invoices.
+        </p>
+      </Section>
+      {s.customFields.length > 0 && (
+        <Section n={6} title="Custom Fields">
+          {s.customFields.map((f) => {
+            const v = c.custom[f.id];
+            const setV = (x: string | number | boolean) =>
+              set("custom", { ...c.custom, [f.id]: x });
+            const label = f.label + (f.required ? " *" : "");
+            if (f.type === "dropdown")
+              return (
+                <F key={f.id} label={label}>
+                  <Sel
+                    value={String(v ?? "")}
+                    onChange={setV}
+                    items={f.options.map((o) => ({ v: o, l: o }))}
+                  />
+                </F>
+              );
+            if (f.type === "checkbox")
+              return (
+                <F key={f.id} label={label}>
+                  <label className="flex h-9 items-center gap-2 text-sm">
+                    <Checkbox checked={!!v} onCheckedChange={(x) => setV(!!x)} /> Yes
+                  </label>
+                </F>
+              );
+            if (f.type === "textarea")
+              return (
+                <F key={f.id} label={label} span>
+                  <Textarea value={String(v ?? "")} onChange={(e) => setV(e.target.value)} />
+                </F>
+              );
+            const t = f.type === "phone" ? "tel" : f.type;
+            return (
+              <F key={f.id} label={label}>
+                <Input
+                  type={t}
+                  value={String(v ?? "")}
+                  onChange={(e) =>
+                    setV(f.type === "number" ? Number(e.target.value) : e.target.value)
+                  }
+                />
+              </F>
+            );
+          })}
+        </Section>
+      )}
+      <Section n={s.customFields.length ? 7 : 6} title="Attachments">
+        <FileDrop files={c.attachments} setFiles={(a) => set("attachments", a)} />
+      </Section>
+    </div>
+  );
+  const actions = (
+    <>
+      <Button type="button" disabled={saving} variant="outline" onClick={onCancel}>
+        Cancel
+      </Button>
+      <Button type="submit" disabled={saving}>
+        {saving ? "Saving…" : editing ? "Save changes" : "Create case"}
+      </Button>
+    </>
+  );
+  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    void save();
+  };
+  if (presentation === "page")
+    return (
+      <div className="mx-auto w-full max-w-6xl">
+        <PageHeader
+          title="Create new case"
+          subtitle="Add case details, assign your team and attach documents. Financial details are managed through invoices."
+        />
+        <form onSubmit={submit} className="space-y-6" aria-label="Create case on page">
+          {fields}
+          <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4 shadow-sm">
+            <p className="text-xs text-muted-foreground">
+              Case number, customer and tenant are required.
+            </p>
+            <div className="flex gap-2">{actions}</div>
+          </div>
+        </form>
+      </div>
+    );
   return (
-    <Dialog
-      open={caseDialog.open && me?.role !== "customer"}
-      onOpenChange={(o) => !o && !saving && close()}
-    >
+    <Dialog open={open} onOpenChange={(value) => !value && !saving && onCancel()}>
       <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle className="font-display text-xl">
             {editing ? `Edit ${editing.number}` : "Create new case"}
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
-          <Section n={1} title="Case Information">
-            <F label="REF">
-              <Input
-                aria-label="REF"
-                value={c.ref ?? ""}
-                onChange={(e) => set("ref", e.target.value)}
-              />
-            </F>
-            <F label="Plaintiff">
-              <Input
-                aria-label="Plaintiff"
-                value={c.plaintiff ?? ""}
-                onChange={(e) => set("plaintiff", e.target.value)}
-              />
-            </F>
-            <F label="Case Number">
-              <Input value={c.number} onChange={(e) => set("number", e.target.value)} />
-            </F>
-            <F label="Case Type">
-              <Sel
-                value={c.type}
-                onChange={(v) => set("type", v)}
-                items={CASE_TYPES.map((t) => ({ v: t, l: t }))}
-              />
-            </F>
-            <F label="Case Title" span>
-              <Input
-                value={c.title}
-                placeholder="Auto-generated if left blank"
-                onChange={(e) => set("title", e.target.value)}
-              />
-            </F>
-            <F label="Case Description" span>
-              <Textarea
-                rows={2}
-                value={c.description}
-                onChange={(e) => set("description", e.target.value)}
-              />
-            </F>
-            <F label="Case Status">
-              <Sel
-                value={c.status}
-                onChange={(v) => set("status", v as Case["status"])}
-                items={STATUSES.map((t) => ({ v: t, l: t }))}
-              />
-            </F>
-            <F label="Priority">
-              <Sel
-                value={c.priority}
-                onChange={(v) => set("priority", v as Case["priority"])}
-                items={PRIORITIES.map((t) => ({ v: t, l: t }))}
-              />
-            </F>
-          </Section>
-          <Section n={2} title="Client Information">
-            <F label="Assigned Customer" span>
-              <Sel
-                value={c.clientId}
-                onChange={(v) => set("clientId", v)}
-                items={s.clients.map((x) => ({
-                  v: x.id,
-                  l: x.company && x.company !== x.name ? `${x.name} — ${x.company}` : x.name,
-                }))}
-              />
-            </F>
-            <F label="Client Email">
-              <Input value={client?.email ?? ""} readOnly className="bg-muted" />
-            </F>
-            <F label="Client Phone">
-              <Input value={client?.phone ?? ""} readOnly className="bg-muted" />
-            </F>
-            <F label="Client Address" span>
-              <Input value={client?.address ?? ""} readOnly className="bg-muted" />
-            </F>
-          </Section>
-          <Section n={3} title="Tenant & Property">
-            <F label="Tenant *">
-              <Input value={c.residentName} onChange={(e) => set("residentName", e.target.value)} />
-            </F>
-            <F label="Resident Phone">
-              <Input
-                value={c.residentPhone}
-                onChange={(e) => set("residentPhone", e.target.value)}
-              />
-            </F>
-            <F label="Address" span>
-              <Input
-                value={c.residentAddress}
-                onChange={(e) => set("residentAddress", e.target.value)}
-              />
-            </F>
-            {(
-              [
-                ["county", "County"],
-                ["city", "City"],
-                ["state", "State"],
-                ["zip", "Zip"],
-              ] as const
-            ).map(([key, label]) => (
-              <F key={key} label={label}>
-                <Input
-                  aria-label={label}
-                  value={c[key] ?? ""}
-                  onChange={(e) => set(key, e.target.value)}
-                />
-              </F>
-            ))}
-            <F label="Additional Notes" span>
-              <Textarea rows={2} value={c.notes} onChange={(e) => set("notes", e.target.value)} />
-            </F>
-          </Section>
-          <Section n={4} title="Service Information">
-            <F label="Setout Date">
-              <Input
-                type="date"
-                value={c.serviceDate}
-                onChange={(e) => set("serviceDate", e.target.value)}
-              />
-            </F>
-            <F label="Setout Time">
-              <Input
-                type="time"
-                value={c.serviceTime}
-                onChange={(e) => set("serviceTime", e.target.value)}
-              />
-            </F>
-            <F label="Assigned Staff">
-              <Sel
-                value={c.staffId}
-                onChange={(v) => set("staffId", v)}
-                items={staff.map((u) => ({ v: u.id, l: u.name }))}
-              />
-            </F>
-            <F label="Assigned Manager">
-              <Sel
-                value={c.managerId}
-                onChange={(v) => set("managerId", v)}
-                items={s.users
-                  .filter(
-                    (u) => (u.role === "manager" || u.role === "owner") && u.status === "Active",
-                  )
-                  .map((u) => ({ v: u.id, l: u.name }))}
-              />
-            </F>
-            <F label="Service Location">
-              <Input
-                value={c.serviceLocation}
-                onChange={(e) => set("serviceLocation", e.target.value)}
-              />
-            </F>
-            <F label="Service Instructions" span>
-              <Textarea
-                rows={2}
-                value={c.instructions}
-                onChange={(e) => set("instructions", e.target.value)}
-              />
-            </F>
-          </Section>
-          <Section n={5} title="Property & Visit Details">
-            {(
-              [
-                ["visLO", "VIS - LO"],
-                ["visTO", "VIS - TO"],
-                ["locs", "LOCS"],
-                ["lbx", "LBX"],
-              ] as const
-            ).map(([key, label]) => (
-              <F key={key} label={label}>
-                <Input
-                  aria-label={label}
-                  value={c[key] ?? ""}
-                  onChange={(e) => set(key, e.target.value)}
-                />
-              </F>
-            ))}
-            <p className="text-xs text-muted-foreground sm:col-span-2">
-              Client-defined tracking fields. Invoice amounts and payments are managed separately in
-              Invoices.
-            </p>
-          </Section>
-          {s.customFields.length > 0 && (
-            <Section n={6} title="Custom Fields">
-              {s.customFields.map((f) => {
-                const v = c.custom[f.id];
-                const setV = (x: string | number | boolean) =>
-                  set("custom", { ...c.custom, [f.id]: x });
-                const label = f.label + (f.required ? " *" : "");
-                if (f.type === "dropdown")
-                  return (
-                    <F key={f.id} label={label}>
-                      <Sel
-                        value={String(v ?? "")}
-                        onChange={setV}
-                        items={f.options.map((o) => ({ v: o, l: o }))}
-                      />
-                    </F>
-                  );
-                if (f.type === "checkbox")
-                  return (
-                    <F key={f.id} label={label}>
-                      <label className="flex h-9 items-center gap-2 text-sm">
-                        <Checkbox checked={!!v} onCheckedChange={(x) => setV(!!x)} /> Yes
-                      </label>
-                    </F>
-                  );
-                if (f.type === "textarea")
-                  return (
-                    <F key={f.id} label={label} span>
-                      <Textarea value={String(v ?? "")} onChange={(e) => setV(e.target.value)} />
-                    </F>
-                  );
-                const t = f.type === "phone" ? "tel" : f.type;
-                return (
-                  <F key={f.id} label={label}>
-                    <Input
-                      type={t}
-                      value={String(v ?? "")}
-                      onChange={(e) =>
-                        setV(f.type === "number" ? Number(e.target.value) : e.target.value)
-                      }
-                    />
-                  </F>
-                );
-              })}
-            </Section>
-          )}
-          <Section n={s.customFields.length ? 7 : 6} title="Attachments">
-            <FileDrop files={c.attachments} setFiles={(a) => set("attachments", a)} />
-          </Section>
-        </div>
-        <DialogFooter className="sticky bottom-0 -mx-6 -mb-6 border-t bg-card px-6 py-3">
-          <Button disabled={saving} variant="outline" onClick={close}>
-            Cancel
-          </Button>
-          <Button disabled={saving} onClick={save}>
-            {saving ? "Saving…" : editing ? "Save changes" : "Create case"}
-          </Button>
-        </DialogFooter>
+        <form
+          onSubmit={submit}
+          className="space-y-4"
+          aria-label={editing ? "Edit case in modal" : "Create case in modal"}
+        >
+          {fields}
+          <DialogFooter className="sticky bottom-0 -mx-6 -mb-6 border-t bg-card px-6 py-3">
+            {actions}
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

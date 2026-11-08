@@ -27,6 +27,7 @@ import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
 import { Route as AuthenticatedCasesIndexRouteImport } from './routes/_authenticated/cases.index'
 import { Route as AuthenticatedCasesIdRouteImport } from './routes/_authenticated/cases.$id'
+import { Route as AuthenticatedCasesNewRouteImport } from './routes/_authenticated/cases.new'
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients.index'
 import { Route as AuthenticatedClientsIdRouteImport } from './routes/_authenticated/clients.$id'
 
@@ -123,6 +124,11 @@ const AuthenticatedCasesIdRoute = AuthenticatedCasesIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AuthenticatedCasesRoute,
 } as any)
+const AuthenticatedCasesNewRoute = AuthenticatedCasesNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AuthenticatedCasesRoute,
+} as any)
 const AuthenticatedClientsIndexRoute =
   AuthenticatedClientsIndexRouteImport.update({
     id: '/',
@@ -152,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/users': typeof AuthenticatedUsersRoute
   '/cases/$id': typeof AuthenticatedCasesIdRoute
+  '/cases/new': typeof AuthenticatedCasesNewRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/cases/': typeof AuthenticatedCasesIndexRoute
   '/clients/': typeof AuthenticatedClientsIndexRoute
@@ -171,6 +178,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/users': typeof AuthenticatedUsersRoute
   '/cases/$id': typeof AuthenticatedCasesIdRoute
+  '/cases/new': typeof AuthenticatedCasesNewRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
   '/cases': typeof AuthenticatedCasesIndexRoute
   '/clients': typeof AuthenticatedClientsIndexRoute
@@ -194,6 +202,7 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/users': typeof AuthenticatedUsersRoute
   '/_authenticated/cases/$id': typeof AuthenticatedCasesIdRoute
+  '/_authenticated/cases/new': typeof AuthenticatedCasesNewRoute
   '/_authenticated/clients/$id': typeof AuthenticatedClientsIdRoute
   '/_authenticated/cases/': typeof AuthenticatedCasesIndexRoute
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
@@ -217,6 +226,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/users'
     | '/cases/$id'
+    | '/cases/new'
     | '/clients/$id'
     | '/cases/'
     | '/clients/'
@@ -236,6 +246,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/users'
     | '/cases/$id'
+    | '/cases/new'
     | '/clients/$id'
     | '/cases'
     | '/clients'
@@ -258,6 +269,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/users'
     | '/_authenticated/cases/$id'
+    | '/_authenticated/cases/new'
     | '/_authenticated/clients/$id'
     | '/_authenticated/cases/'
     | '/_authenticated/clients/'
@@ -396,6 +408,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCasesIdRouteImport
       parentRoute: typeof AuthenticatedCasesRoute
     }
+    '/_authenticated/cases/new': {
+      id: '/_authenticated/cases/new'
+      path: '/new'
+      fullPath: '/cases/new'
+      preLoaderRoute: typeof AuthenticatedCasesNewRouteImport
+      parentRoute: typeof AuthenticatedCasesRoute
+    }
     '/_authenticated/clients/': {
       id: '/_authenticated/clients/'
       path: '/'
@@ -415,11 +434,13 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedCasesRouteChildren {
   AuthenticatedCasesIdRoute: typeof AuthenticatedCasesIdRoute
+  AuthenticatedCasesNewRoute: typeof AuthenticatedCasesNewRoute
   AuthenticatedCasesIndexRoute: typeof AuthenticatedCasesIndexRoute
 }
 
 const AuthenticatedCasesRouteChildren: AuthenticatedCasesRouteChildren = {
   AuthenticatedCasesIdRoute: AuthenticatedCasesIdRoute,
+  AuthenticatedCasesNewRoute: AuthenticatedCasesNewRoute,
   AuthenticatedCasesIndexRoute: AuthenticatedCasesIndexRoute,
 }
 

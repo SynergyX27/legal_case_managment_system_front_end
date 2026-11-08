@@ -1,3 +1,4 @@
+import { CreateCaseButton } from "./create-case-button";
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { caseBilling } from "@/lib/billing";
@@ -209,12 +210,7 @@ export function CasesTable() {
               <Download />
               Export
             </Button>
-            {["owner", "manager"].includes(me?.role ?? "") && (
-              <Button onClick={() => openCase()}>
-                <Plus />
-                New case
-              </Button>
-            )}
+            {["owner", "manager"].includes(me?.role ?? "") && <CreateCaseButton />}
           </>
         }
       />

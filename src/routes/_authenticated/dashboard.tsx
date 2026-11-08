@@ -1,3 +1,4 @@
+import { CreateCaseButton } from "@/components/lf/create-case-button";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import {
@@ -151,13 +152,10 @@ function Page() {
                 Talk to your team
               </Button>
             ) : (
-              <Button
+              <CreateCaseButton
+                label="Create a case"
                 className="bg-white text-[#193e72] hover:bg-white/90"
-                onClick={() => ui.openCase()}
-              >
-                <Plus />
-                Create a case
-              </Button>
+              />
             )}
             <Link
               to="/cases"

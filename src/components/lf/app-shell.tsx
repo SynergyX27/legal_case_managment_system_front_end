@@ -415,8 +415,14 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem disabled={me.role === "staff"} onClick={() => ui.openCase()}>
                     <FolderOpen />
-                    Case file
+                    Case file (modal)
                   </DropdownMenuItem>
+                  {["owner", "manager"].includes(me.role) && (
+                    <DropdownMenuItem onClick={() => navigate({ to: "/cases/new" })}>
+                      <FolderOpen />
+                      Case file (full page)
+                    </DropdownMenuItem>
+                  )}
                   {me.role === "owner" && (
                     <DropdownMenuItem onClick={() => ui.openClient()}>
                       <Users />
