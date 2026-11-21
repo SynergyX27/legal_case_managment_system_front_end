@@ -70,6 +70,8 @@ export interface Comment {
 }
 export interface Case {
   moneyOwed?: number;
+  paidInvoiceTotal?: number;
+  balanceOwed?: number;
   neighborhood?: string;
   community?: string;
   accountId?: string;

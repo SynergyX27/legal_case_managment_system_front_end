@@ -358,7 +358,7 @@ export function CaseForm({
             onChange={(e) => set("plaintiff", e.target.value)}
           />
         </F>
-        <F label="Money owed (USD)">
+        <F label="Original case balance (USD)">
           <Input
             aria-label="Money owed"
             type="number"
@@ -368,6 +368,9 @@ export function CaseForm({
             value={c.moneyOwed ?? 0}
             onChange={(e) => set("moneyOwed", Number(e.target.value))}
           />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Payments reduce the remaining balance automatically.
+          </p>
         </F>
         <F label="Apartment community">
           <Input

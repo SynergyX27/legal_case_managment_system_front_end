@@ -1,3 +1,4 @@
+import { caseAmounts } from "@/lib/case-portfolio";
 import { api } from "@/lib/api";
 import { CaseImportDialog } from "./case-import-dialog";
 import { CaseMoney, CaseStatusTiles, PortfolioFilters, CaseReportActions } from "./case-portfolio";
@@ -71,7 +72,7 @@ import { caseCsv, filterCases, sortCases, type SortKey } from "@/lib/case-manage
 
 const extraColumns = [
   { id: "ref", label: "REF" },
-  { id: "moneyOwed", label: "Money owed" },
+  { id: "moneyOwed", label: "Balance owed" },
   { id: "community", label: "Apartment community" },
   { id: "neighborhood", label: "Neighborhood" },
   { id: "plaintiff", label: "Plaintiff" },
@@ -82,7 +83,7 @@ const extraColumns = [
   { id: "state", label: "State" },
   { id: "zip", label: "Zip" },
   { id: "lastPayment", label: "Last payment" },
-  { id: "balance", label: "Balance owed" },
+  { id: "balance", label: "Invoice balance" },
   { id: "setoutTime", label: "Setout Time" },
   { id: "visLO", label: "VIS - LO" },
   { id: "visTO", label: "VIS - TO" },
@@ -636,7 +637,7 @@ export function CasesTable() {
                                   ? `${money(b.lastPayment)} · ${fmtDate(b.lastPaymentDate)}`
                                   : "—"
                                 : col.id === "moneyOwed"
-                                  ? money(c.moneyOwed ?? 0)
+                                  ? money(caseAmounts(c).due)
                                   : col.id === "balance"
                                     ? money(b.balance)
                                     : col.id === "setoutTime"

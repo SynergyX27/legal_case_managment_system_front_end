@@ -1,3 +1,5 @@
+import { caseAmounts } from "@/lib/case-portfolio";
+import { caseCsv } from "@/lib/case-management";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { CasesTable } from "@/components/lf/cases-table";
@@ -39,7 +41,16 @@ const cases = [
   },
 ].map((c) => ({
   ...c,
-  description: "", residentPhone: "", notes: "", serviceLocation: "", instructions: "", fee: 0, invoiceStatus: "Not Invoiced", paymentStatus: "Unpaid", court: "", jurisdiction: "",
+  description: "",
+  residentPhone: "",
+  notes: "",
+  serviceLocation: "",
+  instructions: "",
+  fee: 0,
+  invoiceStatus: "Not Invoiced",
+  paymentStatus: "Unpaid",
+  court: "",
+  jurisdiction: "",
   title: "Property case",
   clientId: "client",
   staffId: "staff",
@@ -118,4 +129,29 @@ it("makes scoped reporting available to customers while case import stays permis
   expect(canAccess("customer", "reports")).toBe(true);
   expect(screen.queryByRole("button", { name: "Import cases" })).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Email report" })).toBeInTheDocument();
+});
+
+it("shows the remaining balance after an invoice is paid and exports both amounts", () => {
+  const paidCase = {
+    ...cases[0],
+    moneyOwed: 15000,
+    paidInvoiceTotal: 2000,
+    status: "Active" as const,
+  };
+  useStore.setState({ cases: [paidCase] });
+  render(<CasesTable />);
+  expect(screen.getByRole("meter", { name: "Amount due" })).toHaveAttribute(
+    "aria-valuenow",
+    "13000",
+  );
+  expect(screen.getByRole("meter", { name: "Amount cleared" })).toHaveAttribute(
+    "aria-valuenow",
+    "2000",
+  );
+  expect(screen.getByText("$13,000.00", { selector: "td" })).toBeInTheDocument();
+  const csv = caseCsv([paidCase], [], []);
+  expect(csv).toContain('"Original balance"');
+  expect(csv).toContain('"Balance owed"');
+  expect(csv).toContain('"15000","2000","13000"');
+  expect(caseAmounts({ ...paidCase, paidInvoiceTotal: 20000 }).due).toBe(0);
 });

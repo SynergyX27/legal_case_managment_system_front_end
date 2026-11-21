@@ -1,3 +1,4 @@
+import { caseAmounts } from "./case-portfolio";
 import { caseBilling } from "./billing";
 import type { Case, Client, User, Invoice } from "./domain";
 import type { SavedView } from "./store";
@@ -112,9 +113,9 @@ export function caseCsv(
       "Customer",
       "Community",
       "Neighborhood",
-      "Money owed",
+      "Original balance",
       "Amount cleared",
-      "Amount due",
+      "Balance owed",
       "Plaintiff",
       "Tenant",
       "Address",
@@ -131,7 +132,7 @@ export function caseCsv(
       "Assigned manager",
       "Last payment",
       "Last payment date",
-      "Balance owed",
+      "Invoice balance",
       "VIS - LO",
       "VIS - TO",
       "LOCS",
@@ -139,6 +140,7 @@ export function caseCsv(
     ],
     ...cases.map((c) => {
       const b = caseBilling(invoices, c.id);
+      const amounts = caseAmounts({ ...c, paidInvoiceTotal: c.paidInvoiceTotal ?? b.totalPaid });
       return [
         c.ref ?? "",
         c.number,
@@ -147,8 +149,8 @@ export function caseCsv(
         c.community ?? "",
         c.neighborhood ?? "",
         c.moneyOwed ?? 0,
-        c.status === "Completed" ? (c.moneyOwed ?? 0) : 0,
-        c.status === "Completed" ? 0 : (c.moneyOwed ?? 0),
+        amounts.cleared,
+        amounts.due,
         c.plaintiff ?? "",
         c.residentName,
         c.residentAddress,

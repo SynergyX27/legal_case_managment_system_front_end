@@ -216,7 +216,14 @@ export const useStore = create<State>((set, get) => {
         const data = await api<Data>("/workspace");
         if (epoch !== sessionEpoch) return;
         data.savedViews = [...defaultViews(), ...data.savedViews.filter((v) => !v.builtIn)];
-        data.cases = data.cases.map((c) => ({ ...c, ...caseBilling(data.invoices, c.id) }) as Case);
+        data.cases = data.cases.map((c) => {
+          const billing = caseBilling(data.invoices, c.id);
+          return {
+            ...c,
+            ...billing,
+            paidInvoiceTotal: c.paidInvoiceTotal ?? billing.totalPaid,
+          } as Case;
+        });
         set({ ...data, connectionError: "" });
       } catch (e) {
         if (epoch !== sessionEpoch) return;

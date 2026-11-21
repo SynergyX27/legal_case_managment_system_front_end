@@ -1,3 +1,4 @@
+import { caseAmounts } from "@/lib/case-portfolio";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { PageHeader, StatusBadge } from "@/components/lf/ui-bits";
@@ -31,9 +32,9 @@ function Page() {
     ["Responsible staff", s.users.find((u) => u.id === c.staffId)?.name],
     ["Responsible manager", s.users.find((u) => u.id === c.managerId)?.name],
     ["REF", c.ref],
-    ["Money owed", money(c.moneyOwed || 0)],
-    ["Amount cleared", money(c.status === "Completed" ? c.moneyOwed || 0 : 0)],
-    ["Amount due", money(c.status === "Completed" ? 0 : c.moneyOwed || 0)],
+    ["Original balance", money(c.moneyOwed || 0)],
+    ["Amount cleared", money(caseAmounts(c).cleared)],
+    ["Balance owed", money(caseAmounts(c).due)],
     ["Apartment community", c.community],
     ["Neighborhood", c.neighborhood],
     ["Case Number", c.number],

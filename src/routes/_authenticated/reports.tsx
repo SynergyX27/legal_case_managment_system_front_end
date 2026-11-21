@@ -1,3 +1,4 @@
+import { caseAmounts } from "@/lib/case-portfolio";
 import { useState } from "react";
 import {
   CaseMoney,
@@ -118,7 +119,7 @@ function Page() {
                 "City",
                 "State",
                 "Status",
-                "Money owed",
+                "Balance owed",
               ].map((h) => (
                 <th key={h} className="p-2">
                   {h}
@@ -138,7 +139,7 @@ function Page() {
                   c.city,
                   c.state,
                   c.status,
-                  money(c.moneyOwed || 0),
+                  money(caseAmounts(c).due),
                 ].map((v, i) => (
                   <td key={i} className="p-2">
                     {v || "—"}
