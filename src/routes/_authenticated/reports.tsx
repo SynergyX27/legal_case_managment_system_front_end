@@ -1,3 +1,12 @@
+import { useState } from "react";
+import {
+  CaseMoney,
+  CaseStatusTiles,
+  PortfolioFilters,
+  CaseReportActions,
+} from "@/components/lf/case-portfolio";
+import { defaultViews, type SavedView } from "@/lib/store";
+import { filterCases } from "@/lib/case-management";
 import { createFileRoute } from "@tanstack/react-router";
 import { BarChart3, CheckCheck, Clock3, Download, FolderOpen, Receipt } from "lucide-react";
 import { PageHeader, Avatar, StatusBadge } from "@/components/lf/ui-bits";
@@ -11,7 +20,9 @@ export const Route = createFileRoute("/_authenticated/reports")({
 function Page() {
   const s = useStore(),
     me = useMe(),
-    cases = useVisibleCases();
+    allCases = useVisibleCases();
+  const [filters, setFilters] = useState<SavedView["filters"]>(() => defaultViews()[0].filters);
+  const cases = filterCases(allCases, filters, s.clients, s.users, me?.id);
   const report = buildReports(cases, s.invoices, s.users, s.clients);
   const tones: Record<string, string> = {
     Active: "#285ba7",
@@ -32,23 +43,115 @@ function Page() {
   };
   if (!canAccess(me, "reports"))
     return (
-      <PageHeader
-        title="Reports unavailable"
-        subtitle="Reports are available to owners and managers."
-      />
+      <PageHeader title="Reports unavailable" subtitle="Sign in to view reports for your cases." />
     );
   return (
     <>
       <PageHeader
-        title="Reports & insights"
-        subtitle="Basic case, team and billing reports for your current workspace."
+        title="Case reports"
+        subtitle="Filter case files and balances by community, plaintiff or location."
         actions={
-          <Button variant="outline" onClick={exportReport}>
-            <Download />
-            Export report
-          </Button>
+          <>
+            <CaseReportActions
+              cases={cases}
+              filters={filters}
+              title={
+                Object.entries(filters)
+                  .filter(([, v]) => (Array.isArray(v) ? v.length : !!v))
+                  .map(([k, v]) => k + " = " + String(v))
+                  .join(" · ") || "All accessible cases"
+              }
+            />
+            <Button variant="outline" onClick={exportReport}>
+              <Download />
+              Export report
+            </Button>
+          </>
         }
       />
+      <div className="mb-5 flex flex-wrap items-end gap-3 rounded-xl border bg-card p-4">
+        <label className="grid gap-1 text-xs">
+          Saved case view
+          <select
+            className="h-9 rounded-lg border bg-background px-3"
+            defaultValue=""
+            onChange={(e) => {
+              const view = s.savedViews.find((v) => v.id === e.target.value);
+              if (view) setFilters({ ...view.filters });
+            }}
+          >
+            <option value="">Choose a saved view</option>
+            {s.savedViews.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <PortfolioFilters
+          cases={allCases}
+          filters={filters}
+          onChange={(patch) => setFilters((f) => ({ ...f, ...patch }))}
+        />
+        <Button variant="ghost" onClick={() => setFilters(defaultViews()[0].filters)}>
+          Clear filters
+        </Button>
+      </div>
+      <CaseStatusTiles
+        cases={cases}
+        onSelect={(status) =>
+          setFilters((f) => ({ ...f, status: status === "All cases" ? [] : [status] }))
+        }
+      />
+      <CaseMoney cases={cases} />
+      <section className="overview-card mb-6 overflow-auto">
+        <h2>Matching case files</h2>
+        <table className="mt-4 w-full min-w-[700px] text-left text-xs">
+          <thead>
+            <tr>
+              {[
+                "Case number",
+                "Community",
+                "Plaintiff",
+                "Tenant",
+                "County",
+                "City",
+                "State",
+                "Status",
+                "Money owed",
+              ].map((h) => (
+                <th key={h} className="p-2">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {cases.map((c) => (
+              <tr key={c.id} className="border-t">
+                {[
+                  c.number,
+                  c.community,
+                  c.plaintiff,
+                  c.residentName,
+                  c.county,
+                  c.city,
+                  c.state,
+                  c.status,
+                  money(c.moneyOwed || 0),
+                ].map((v, i) => (
+                  <td key={i} className="p-2">
+                    {v || "—"}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {!cases.length && (
+          <p className="mt-4 text-sm text-muted-foreground">No cases match these filters.</p>
+        )}
+      </section>
       <div className="mb-6 rounded-xl border bg-card px-4 py-3 text-xs text-muted-foreground">
         All-time snapshot · {report.total} visible cases · {new Date().toLocaleDateString()} ·
         Changes to cases and invoices update these reports automatically.
@@ -119,7 +222,7 @@ function Page() {
                   <div
                     className="h-full rounded-full"
                     style={{
-                      background: tones[x.status],
+                      background: tones[x.status] || "#7a9cc2",
                       width: `${report.total ? (x.count / report.total) * 100 : 0}%`,
                     }}
                   />

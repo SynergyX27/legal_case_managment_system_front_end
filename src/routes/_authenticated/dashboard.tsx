@@ -1,3 +1,4 @@
+import { CaseMoney, CaseStatusTiles } from "@/components/lf/case-portfolio";
 import { CreateCaseButton } from "@/components/lf/create-case-button";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
@@ -184,24 +185,28 @@ function Page() {
           </div>
         </div>
       </section>
+      <CaseStatusTiles cases={cases} />
+      <CaseMoney cases={cases} />
       <div className="mb-6 grid grid-cols-2 gap-3 xl:grid-cols-4">
-        {metrics.map(({ label, value, icon: Icon, detail }, i) => (
-          <section key={label} className="metric-card">
-            <div className="flex items-center justify-between gap-2">
-              <p className="metric-label">{label}</p>
-              <span
-                className={`flex size-8 items-center justify-center rounded-xl ${i === 1 ? "bg-amber-50 text-amber-600" : i === 2 ? "bg-blue-50 text-blue-600" : "bg-primary/8 text-primary"}`}
-              >
-                <Icon className="size-4" />
-              </span>
-            </div>
-            <p className="metric-value">{value}</p>
-            <p className="metric-footer">
-              <span className="size-1 rounded-full bg-primary/50" />
-              {detail}
-            </p>
-          </section>
-        ))}
+        {metrics
+          .filter((m) => ["Invoice balance", "Services today"].includes(m.label))
+          .map(({ label, value, icon: Icon, detail }, i) => (
+            <section key={label} className="metric-card">
+              <div className="flex items-center justify-between gap-2">
+                <p className="metric-label">{label}</p>
+                <span
+                  className={`flex size-8 items-center justify-center rounded-xl ${i === 1 ? "bg-amber-50 text-amber-600" : i === 2 ? "bg-blue-50 text-blue-600" : "bg-primary/8 text-primary"}`}
+                >
+                  <Icon className="size-4" />
+                </span>
+              </div>
+              <p className="metric-value">{value}</p>
+              <p className="metric-footer">
+                <span className="size-1 rounded-full bg-primary/50" />
+                {detail}
+              </p>
+            </section>
+          ))}
       </div>
       {customer ? (
         <div className="mb-6 grid gap-6 xl:grid-cols-[1.65fr_1fr]">

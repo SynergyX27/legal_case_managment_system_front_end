@@ -25,7 +25,9 @@ export async function api<T = any>(
           : form
             ? (options.body as FormData)
             : JSON.stringify(options.body),
-      signal: AbortSignal.timeout(form ? 120000 : 30000),
+      signal: AbortSignal.timeout(
+        form || ["/cases/import/commit", "/cases/bulk"].includes(path) ? 120000 : 30000,
+      ),
     });
   } catch {
     throw new Error("Cannot reach the LegalFlow server. Check your connection and try again.");

@@ -1,3 +1,6 @@
+import { api } from "@/lib/api";
+import { CaseImportDialog } from "./case-import-dialog";
+import { CaseMoney, CaseStatusTiles, PortfolioFilters, CaseReportActions } from "./case-portfolio";
 import { can, canViewInvoices } from "@/lib/access";
 import { CreateCaseButton } from "./create-case-button";
 import { useState } from "react";
@@ -68,6 +71,9 @@ import { caseCsv, filterCases, sortCases, type SortKey } from "@/lib/case-manage
 
 const extraColumns = [
   { id: "ref", label: "REF" },
+  { id: "moneyOwed", label: "Money owed" },
+  { id: "community", label: "Apartment community" },
+  { id: "neighborhood", label: "Neighborhood" },
   { id: "plaintiff", label: "Plaintiff" },
   { id: "tenant", label: "Tenant" },
   { id: "address", label: "Address" },
@@ -135,14 +141,15 @@ export function CasesTable() {
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<string[]>([]);
   const [confirmDelete, setConfirmDelete] = useState<string[] | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [viewName, setViewName] = useState("");
   const availableColumns = columns.filter(
     (c) => canViewInvoices(me) || !["invoice", "balance", "lastPayment", "fee"].includes(c.id),
   );
-  const visible = (s.tablePrefs?.visible ?? availableColumns.map((c) => c.id)).filter((id) =>
-    availableColumns.some((c) => c.id === id),
-  );
+  const visible = (
+    s.tablePrefs?.visible?.length ? s.tablePrefs.visible : availableColumns.map((c) => c.id)
+  ).filter((id) => availableColumns.some((c) => c.id === id));
   const pageSize = s.tablePrefs?.pageSize ?? 10;
   const rows = sortCases(
     filterCases(cases, filters, s.clients, s.users, me?.id),
@@ -199,6 +206,29 @@ export function CasesTable() {
     a.click();
     URL.revokeObjectURL(url);
   };
+  const bulkUpdate = async (patch: { status?: string; staffId?: string }) => {
+    setBulkBusy(true);
+    try {
+      await api("/cases/bulk", {
+        method: "PATCH",
+        body: {
+          cases: selection.map((id) => ({
+            id,
+            updatedAt: cases.find((c) => c.id === id)!.updatedAt,
+          })),
+          patch,
+        },
+      });
+      await s.refresh();
+      toast.success("Selected cases updated");
+      setSelected([]);
+    } catch (e) {
+      toast.error((e as Error).message);
+      await s.refresh();
+    } finally {
+      setBulkBusy(false);
+    }
+  };
   const toggle = (id: string) =>
     setSelected((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
   return (
@@ -212,50 +242,47 @@ export function CasesTable() {
               <Download />
               Export
             </Button>
+            <CaseImportDialog />
             <CreateCaseButton />
           </>
         }
       />
-      <div className="mb-6 grid grid-cols-2 gap-3 xl:grid-cols-4">
-        {[
-          { label: "All cases", value: cases.length, detail: "Every file in your workspace" },
-          {
-            label: "Active",
-            value: cases.filter((c) => c.status === "Active").length,
-            detail: "Currently being handled",
-          },
-          {
-            label: "Scheduled",
-            value: cases.filter((c) => c.status === "Scheduled").length,
-            detail: "A date is on the calendar",
-          },
-          {
-            label: "Completed",
-            value: cases.filter((c) => c.status === "Completed").length,
-            detail: "Services successfully closed",
-          },
-        ].map(({ label, value, detail }) => (
-          <div key={label} className="metric-card">
-            <div className="flex items-center justify-between">
-              <p className="metric-label">{label}</p>
-              <FolderOpen className="size-4 text-primary/50" />
-            </div>
-            <p className="metric-value">{value}</p>
-            <p className="metric-footer">{detail}</p>
-          </div>
-        ))}
-      </div>
-      <div className="case-views mb-5 flex flex-wrap gap-1" aria-label="Case views">
-        {s.savedViews.map((view) => (
-          <Button
-            key={view.id}
-            variant={viewId === view.id ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => changeView(view.id)}
+      <CaseStatusTiles
+        cases={rows}
+        onSelect={(status) => updateFilters({ status: status === "All cases" ? [] : [status] })}
+      />
+      <CaseMoney cases={rows} />
+      <div className="mb-5 flex flex-wrap items-center gap-2" aria-label="Case views">
+        <label className="flex items-center gap-2 text-sm">
+          Saved view
+          <select
+            className="h-9 rounded-lg border bg-background px-3"
+            value={viewId}
+            onChange={(e) => changeView(e.target.value)}
           >
-            {view.name}
-          </Button>
-        ))}
+            {s.savedViews.map((view) => (
+              <option key={view.id} value={view.id}>
+                {view.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        {JSON.stringify(filters) !==
+          JSON.stringify(s.savedViews.find((v) => v.id === viewId)?.filters) && (
+          <span className="self-center px-2 text-xs text-muted-foreground">
+            Unsaved filter changes
+          </span>
+        )}
+        <CaseReportActions
+          cases={rows}
+          filters={filters}
+          title={
+            Object.entries(filters)
+              .filter(([, v]) => (Array.isArray(v) ? v.length : !!v))
+              .map(([k, v]) => k + " = " + String(v))
+              .join(" · ") || "All accessible cases"
+          }
+        />
       </div>
       <div className="records-toolbar mb-4 flex flex-wrap items-center gap-2">
         <div className="relative min-w-48 flex-1 sm:max-w-sm">
@@ -277,12 +304,12 @@ export function CasesTable() {
         </Button>
         <Button
           variant="outline"
-          size="icon"
           title="Save current view"
           aria-label="Save current view"
           onClick={() => setSaveOpen(true)}
         >
           <Save />
+          Save filters
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -328,12 +355,31 @@ export function CasesTable() {
       </div>
       {showFilters && (
         <div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl border bg-card p-4">
-          <Choice
-            label="Statuses"
-            value={filters.status[0] ?? ""}
-            onChange={(v) => updateFilters({ status: v ? [v] : [] })}
-            items={STATUSES.map((v) => ({ id: v, name: v }))}
-          />
+          <PortfolioFilters cases={cases} filters={filters} onChange={updateFilters} />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                Status · {filters.status.length ? filters.status.join(", ") : "All"}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              {STATUSES.map((status) => (
+                <DropdownMenuCheckboxItem
+                  key={status}
+                  checked={filters.status.includes(status)}
+                  onCheckedChange={(checked) =>
+                    updateFilters({
+                      status: checked
+                        ? [...filters.status, status]
+                        : filters.status.filter((x) => x !== status),
+                    })
+                  }
+                >
+                  {status}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Choice
             label="Clients"
             value={filters.clientId}
@@ -388,16 +434,35 @@ export function CasesTable() {
       {!customer && selection.length > 0 && (
         <div className="mb-3 flex flex-wrap items-center gap-3 bg-accent px-3 py-2 text-sm">
           <span className="font-medium">{selection.length} selected</span>
+          <Button variant="outline" size="sm" onClick={() => setSelected(rows.map((c) => c.id))}>
+            Select all {rows.length} matching cases
+          </Button>
+          {can(me, "cases.edit") && me?.role !== "staff" && (
+            <select
+              aria-label="Assign selected cases to staff"
+              className="h-9 rounded-lg border bg-card px-3"
+              value=""
+              disabled={bulkBusy}
+              onChange={(e) => void bulkUpdate({ staffId: e.target.value })}
+            >
+              <option value="">Assign staff and manager</option>
+              {s.users
+                .filter(
+                  (u) =>
+                    u.role === "staff" &&
+                    u.status === "Active" &&
+                    (me?.role === "owner" || u.managerId === me?.id),
+                )
+                .map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name}
+                  </option>
+                ))}
+            </select>
+          )}
           <Select
-            disabled={!can(me, "cases.edit")}
-            onValueChange={(v) => {
-              void Promise.all(
-                selection.map((id) => s.updateCase(id, { status: v as CaseStatus })),
-              ).then((results) => {
-                if (results.every(Boolean)) toast.success("Case statuses updated");
-              });
-              setSelected([]);
-            }}
+            disabled={bulkBusy || !can(me, "cases.edit")}
+            onValueChange={(v) => void bulkUpdate({ status: v })}
           >
             <SelectTrigger aria-label="Update selected status" className="w-44 bg-card">
               <SelectValue placeholder="Change status" />
@@ -570,11 +635,13 @@ export function CasesTable() {
                                 ? b.lastPaymentDate
                                   ? `${money(b.lastPayment)} · ${fmtDate(b.lastPaymentDate)}`
                                   : "—"
-                                : col.id === "balance"
-                                  ? money(b.balance)
-                                  : col.id === "setoutTime"
-                                    ? c.serviceTime
-                                    : c[col.id as keyof typeof c];
+                                : col.id === "moneyOwed"
+                                  ? money(c.moneyOwed ?? 0)
+                                  : col.id === "balance"
+                                    ? money(b.balance)
+                                    : col.id === "setoutTime"
+                                      ? c.serviceTime
+                                      : c[col.id as keyof typeof c];
                       return (
                         <TableCell key={col.id} className="min-w-28 whitespace-nowrap">
                           {typeof value === "string" || typeof value === "number"
@@ -726,6 +793,18 @@ export function CasesTable() {
             <Button variant="outline" onClick={() => setSaveOpen(false)}>
               Cancel
             </Button>
+            {!s.savedViews.find((v) => v.id === viewId)?.builtIn && (
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  const view = s.savedViews.find((v) => v.id === viewId);
+                  if (view && (await s.saveView({ ...view, filters: { ...filters } })))
+                    setSaveOpen(false);
+                }}
+              >
+                Update saved view
+              </Button>
+            )}
             <Button
               disabled={!viewName.trim()}
               onClick={async () => {

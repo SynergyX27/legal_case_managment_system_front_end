@@ -18,6 +18,8 @@ export function filterCases(
     return (
       (!query ||
         [
+          c.community,
+          c.neighborhood,
           c.ref,
           c.plaintiff,
           c.county,
@@ -40,6 +42,11 @@ export function filterCases(
           .join(" ")
           .toLowerCase()
           .includes(query)) &&
+      (["community", "neighborhood", "plaintiff", "county", "city", "state"] as const).every(
+        (key) =>
+          !filters[key] ||
+          (c[key] || "").trim().toLowerCase() === filters[key]!.trim().toLowerCase(),
+      ) &&
       (!filters.status.length || filters.status.includes(c.status)) &&
       (!filters.clientId || c.clientId === filters.clientId) &&
       (!filters.staffId || c.staffId === filters.staffId) &&
@@ -103,6 +110,11 @@ export function caseCsv(
       "Case number",
       "Title",
       "Customer",
+      "Community",
+      "Neighborhood",
+      "Money owed",
+      "Amount cleared",
+      "Amount due",
       "Plaintiff",
       "Tenant",
       "Address",
@@ -132,6 +144,11 @@ export function caseCsv(
         c.number,
         c.title,
         clients.find((x) => x.id === c.clientId)?.company ?? "",
+        c.community ?? "",
+        c.neighborhood ?? "",
+        c.moneyOwed ?? 0,
+        c.status === "Completed" ? (c.moneyOwed ?? 0) : 0,
+        c.status === "Completed" ? 0 : (c.moneyOwed ?? 0),
         c.plaintiff ?? "",
         c.residentName,
         c.residentAddress,

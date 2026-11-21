@@ -272,6 +272,9 @@ export function CaseForm({
     court: "",
     jurisdiction: "",
     custom: {},
+    moneyOwed: 0,
+    community: "",
+    neighborhood: "",
     ref: "",
     plaintiff: "",
     county: "",
@@ -304,6 +307,8 @@ export function CaseForm({
       s.cases.some((x) => x.id !== c.id && x.number.toLowerCase() === c.number.trim().toLowerCase())
     )
       return toast.error("Case number already exists");
+    if (!Number.isFinite(c.moneyOwed ?? 0) || (c.moneyOwed ?? 0) < 0 || (c.moneyOwed ?? 0) > 100000)
+      return toast.error("Money owed must be between 0.00 and 100,000.00");
     const missing = s.customFields.find(
       (f) => f.required && (c.custom[f.id] === undefined || c.custom[f.id] === ""),
     );
@@ -351,6 +356,31 @@ export function CaseForm({
             aria-label="Plaintiff"
             value={c.plaintiff ?? ""}
             onChange={(e) => set("plaintiff", e.target.value)}
+          />
+        </F>
+        <F label="Money owed (USD)">
+          <Input
+            aria-label="Money owed"
+            type="number"
+            min="0"
+            max="100000"
+            step="0.01"
+            value={c.moneyOwed ?? 0}
+            onChange={(e) => set("moneyOwed", Number(e.target.value))}
+          />
+        </F>
+        <F label="Apartment community">
+          <Input
+            aria-label="Apartment community"
+            value={c.community ?? ""}
+            onChange={(e) => set("community", e.target.value)}
+          />
+        </F>
+        <F label="Neighborhood">
+          <Input
+            aria-label="Neighborhood"
+            value={c.neighborhood ?? ""}
+            onChange={(e) => set("neighborhood", e.target.value)}
           />
         </F>
         <F label="Case Number">

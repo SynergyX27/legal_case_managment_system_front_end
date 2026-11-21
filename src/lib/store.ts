@@ -32,9 +32,16 @@ export interface SavedView {
     dateTo: string;
     mine?: boolean;
     search: string;
+    community?: string;
+    neighborhood?: string;
+    plaintiff?: string;
+    county?: string;
+    city?: string;
+    state?: string;
   };
 }
 export interface TablePrefs {
+  statusTiles?: string[];
   visible: string[];
   order: string[];
   widths: Record<string, number>;
@@ -472,6 +479,7 @@ export const canAccess = (subject: string | User | null | undefined, section: st
       "cases",
       "invoices",
       "communications",
+      "reports",
       "settings",
       "notifications",
     ].includes(section);

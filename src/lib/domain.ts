@@ -1,5 +1,14 @@
 export type Role = "owner" | "manager" | "staff" | "customer";
-export type CaseStatus = "Active" | "Pending" | "Scheduled" | "Completed" | "Cancelled";
+export type CaseStatus =
+  | "Active"
+  | "Pending"
+  | "Scheduled"
+  | "Completed"
+  | "Rescheduled"
+  | "Skipped"
+  | "Vacated"
+  | "Vacant"
+  | "Cancelled";
 export type Priority = "Low" | "Medium" | "High" | "Urgent";
 export type InvoiceStatus = "Draft" | "Sent" | "Paid" | "Overdue";
 
@@ -60,6 +69,9 @@ export interface Comment {
   at: string;
 }
 export interface Case {
+  moneyOwed?: number;
+  neighborhood?: string;
+  community?: string;
   accountId?: string;
   ref?: string;
   plaintiff?: string;
@@ -170,5 +182,15 @@ export const CASE_TYPES = [
   "Restraining Order",
   "Debt Collection",
 ];
-export const STATUSES: CaseStatus[] = ["Active", "Pending", "Scheduled", "Completed", "Cancelled"];
+export const STATUSES: CaseStatus[] = [
+  "Active",
+  "Pending",
+  "Scheduled",
+  "Completed",
+  "Rescheduled",
+  "Skipped",
+  "Vacated",
+  "Vacant",
+  "Cancelled",
+];
 export const PRIORITIES: Priority[] = ["Low", "Medium", "High", "Urgent"];

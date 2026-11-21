@@ -1,3 +1,4 @@
+import { caseMoney } from "./case-portfolio";
 import type { Case, Client, Invoice, User } from "./domain";
 import { STATUSES } from "./domain";
 import { totalFor } from "./billing";
@@ -7,6 +8,7 @@ export function buildReports(cases: Case[], invoices: Invoice[], users: User[], 
     related.filter((i) => statuses.includes(i.status)).reduce((n, i) => n + totalFor(i), 0);
   const completed = cases.filter((c) => c.status === "Completed").length;
   return {
+    caseBalances: caseMoney(cases),
     total: cases.length,
     completed,
     completionRate: cases.length ? Math.round((completed / cases.length) * 100) : 0,
@@ -59,6 +61,9 @@ export function buildReports(cases: Case[], invoices: Invoice[], users: User[], 
 export function reportCsv(report: ReturnType<typeof buildReports>) {
   const rows: (string | number)[][] = [
     ["Section", "Label", "Count", "Amount (USD)"],
+    ["Case balances", "Amount owed", "", report.caseBalances.owed.toFixed(2)],
+    ["Case balances", "Amount cleared", "", report.caseBalances.cleared.toFixed(2)],
+    ["Case balances", "Amount due", "", report.caseBalances.due.toFixed(2)],
     ["Summary", "Total cases", report.total, ""],
     ["Summary", "Open cases", report.open, ""],
     ["Summary", "Completed cases", report.completed, ""],
