@@ -152,6 +152,6 @@ it("shows the remaining balance after an invoice is paid and exports both amount
   const csv = caseCsv([paidCase], [], []);
   expect(csv).toContain('"Original balance"');
   expect(csv).toContain('"Balance owed"');
-  expect(csv).toContain('"15000","2000","13000"');
+  expect(csv).toContain('"15000","2000","2000","13000"');
   expect(caseAmounts({ ...paidCase, paidInvoiceTotal: 20000 }).due).toBe(0);
 });

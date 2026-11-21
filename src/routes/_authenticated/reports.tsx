@@ -119,7 +119,9 @@ function Page() {
                 "City",
                 "State",
                 "Status",
-                "Balance owed",
+                "Original amount",
+                "Paid amount",
+                "Owed amount",
               ].map((h) => (
                 <th key={h} className="p-2">
                   {h}
@@ -139,6 +141,8 @@ function Page() {
                   c.city,
                   c.state,
                   c.status,
+                  money(caseAmounts(c).original),
+                  money(caseAmounts(c).paid),
                   money(caseAmounts(c).due),
                 ].map((v, i) => (
                   <td key={i} className="p-2">
