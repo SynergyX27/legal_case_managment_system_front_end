@@ -51,6 +51,7 @@ function Workspaces() {
     [kind, setKind] = useState("all"),
     [company, setCompany] = useState("");
   const [loading, setLoading] = useState(true);
+  const [workspaceTab,setWorkspaceTab]=useState<"overview"|"access">("overview");
   const [editVersion, setEditVersion] = useState(""),
     [userVersion, setUserVersion] = useState("");
   const [selection, setSelection] = useState<string[]>([]),
@@ -143,6 +144,9 @@ function Workspaces() {
   };
   const navigateWorkspace = (id: string) => {
     setSelection([]);
+    setWorkspaceTab("overview");
+    setUser("");
+    setContact(p=>({...p,clientId:rows.find(w=>w.id===id)?.clientId||""}));
     setSelected(id);
   };
   return (
@@ -160,10 +164,7 @@ function Workspaces() {
         </div>
         {owner && (
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => setDialog("access")}>
-              <Users className="mr-2 size-4" />
-              Customer access
-            </Button>
+
             <Button onClick={openCreate}>
               <Plus className="mr-2 size-4" />
               Create workspace
@@ -235,12 +236,7 @@ function Workspaces() {
                   Choose a workspace to explore its case files.
                 </p>
               </div>
-              {owner && (
-                <Button variant="ghost" onClick={() => setDialog("contact")}>
-                  <UserPlus className="mr-2 size-4" />
-                  Add extra login
-                </Button>
-              )}
+
             </div>
             <div className="workspace-toolbar flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card p-3">
               <div className="flex rounded-xl bg-muted p-1">
@@ -378,30 +374,7 @@ function Workspaces() {
               </div>
             )}
           </section>
-          {owner && (
-            <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border bg-card px-6 py-5">
-              <div className="flex items-center gap-4">
-                <span className="flex size-10 items-center justify-center rounded-xl bg-muted text-primary">
-                  <Users className="size-5" />
-                </span>
-                <div>
-                  <h3 className="text-sm font-semibold">The right people, the right access</h3>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Manage regional and community access, or add a customer login.
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="ghost" onClick={() => setDialog("contact")}>
-                  Add login
-                </Button>
-                <Button variant="outline" onClick={() => setDialog("access")}>
-                  Customer access
-                  <ChevronRight className="ml-2 size-4" />
-                </Button>
-              </div>
-            </div>
-          )}
+
         </>
       ) : (
         <>
@@ -415,6 +388,22 @@ function Workspaces() {
               · {cases.length} cases
             </p>
           </div>
+          {owner && active && <>
+            <div role="tablist" aria-label="Workspace sections" className="inline-flex gap-1 rounded-xl bg-muted p-1">
+              <Button role="tab" aria-selected={workspaceTab==="overview"} variant={workspaceTab==="overview"?"default":"ghost"} onClick={()=>setWorkspaceTab("overview")}>Communities & cases</Button>
+              <Button role="tab" aria-selected={workspaceTab==="access"} variant={workspaceTab==="access"?"default":"ghost"} onClick={()=>setWorkspaceTab("access")}>Customer access</Button>
+            </div>
+            {workspaceTab === "access" && <section className="space-y-4 rounded-2xl border bg-card p-6">
+              <h2 className="text-lg font-semibold">Customer access · {active.name}</h2>
+              <p className="text-sm text-muted-foreground">{companyName(active.clientId)} — manage the people who can access this workspace. Main customer details stay in Customers.</p>
+              <div className="flex flex-wrap gap-2"><Button onClick={()=>{setContact({clientId:active.clientId,name:"",email:"",username:"",password:"",phone:""});setDialog("contact");}}>Add extra user</Button><Button variant="outline" onClick={()=>setDialog("access")}>Manage access</Button></div>
+              <div className="divide-y">{s.users.filter(u=>u.role==="customer" && u.clientId===active.clientId).map(u=>{
+                const granted=u.customerAccess==="all" || active.memberIds.includes(u.id) || rows.find(w=>w.id===active.parentId)?.memberIds.includes(u.id);
+                return <div key={u.id} className="flex flex-wrap items-center justify-between gap-3 py-3"><div><p className="text-sm font-medium">{u.name}{s.clients.some(c=>c.primaryUserId===u.id)?" · Main customer":""}</p><p className="text-xs text-muted-foreground">{u.status} · {granted?"Has access":"No access to this workspace"} · {u.customerAccess==="all"?"All customer workspaces":u.customerAccess==="regional"?"Regional access":"Selected communities"}</p></div><Button variant="outline" size="sm" onClick={()=>{chooseUser(u.id);setDialog("access");}}>Manage</Button></div>;
+              })}</div>
+            </section>}
+          </>}
+          <div hidden={owner && !!active && workspaceTab === "access"} className="space-y-6">
           {active?.kind === "community" && (
             <button
               className="text-sm font-medium text-primary"
@@ -625,6 +614,7 @@ function Workspaces() {
               )}
             </div>
           </section>
+          </div>
         </>
       )}
       {owner && (
@@ -752,7 +742,7 @@ function Workspaces() {
               <DialogHeader>
                 <DialogTitle>Customer workspace access</DialogTitle>
                 <DialogDescription>
-                  Choose a person and the territories or communities they can access.
+                  Choose a customer user and the territories or communities they can access. Changes apply to their access across this customer’s workspaces.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-3">
@@ -764,7 +754,7 @@ function Workspaces() {
                 >
                   <option value="">Select a user</option>
                   {s.users
-                    .filter((u) => u.status === "Active" && u.role !== "owner")
+                    .filter((u) => u.role === "customer" && u.clientId === active?.clientId)
                     .map((u) => (
                       <option key={u.id} value={u.id}>
                         {u.name} · {u.role}
@@ -855,7 +845,7 @@ function Workspaces() {
               <DialogHeader>
                 <DialogTitle>Add extra customer login</DialogTitle>
                 <DialogDescription>
-                  Connect another person to an existing customer company.
+                  Add another person to this workspace’s customer. After creating the login, use Manage access to choose their territories or communities.
                 </DialogDescription>
               </DialogHeader>{" "}
               <form
@@ -878,6 +868,7 @@ function Workspaces() {
               >
                 <ModernSelect
                   required
+                  disabled={!!active}
                   aria-label="Contact customer company"
                   className="w-full rounded border bg-background p-2"
                   value={contact.clientId}

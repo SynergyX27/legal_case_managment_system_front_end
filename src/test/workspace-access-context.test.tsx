@@ -1,0 +1,21 @@
+import {afterEach,expect,it,vi} from 'vitest';
+import {cleanup,fireEvent,render,screen} from '@testing-library/react';
+import type {ComponentType} from 'react';
+import {useStore} from '@/lib/store';
+vi.mock('@tanstack/react-router',()=>({createFileRoute:()=>(options:any)=>({options}),Link:({children}:any)=><a>{children}</a>}));
+vi.mock('@/lib/api',()=>({api:vi.fn(async()=>({workspaces:[{id:'atl',name:'Atlanta',clientId:'company-a',kind:'territory',parentId:'',state:'GA',archived:false,caseIds:[],memberIds:[],caseCount:0,openCount:0,balanceOwed:0}]}))}));
+import {Route} from '@/routes/_authenticated/workspaces';
+const Page=Route.options.component as ComponentType;
+afterEach(cleanup);
+it('keeps customer access inside the selected workspace and fixes the customer for extra users',async()=>{
+ useStore.setState({sessionUserId:'owner',users:[{id:'owner',name:'Owner',role:'owner',status:'Active'},{id:'main-a',name:'Customer A',role:'customer',clientId:'company-a',status:'Active',customerAccess:'all'},{id:'main-b',name:'Customer B',role:'customer',clientId:'company-b',status:'Active',customerAccess:'all'}] as any,clients:[{id:'company-a',name:'Company A',primaryUserId:'main-a'},{id:'company-b',name:'Company B',primaryUserId:'main-b'}] as any,cases:[],invoices:[]});
+ render(<Page/>);
+ expect(screen.queryByRole('button',{name:'Customer access'})).not.toBeInTheDocument();
+ fireEvent.click(await screen.findByRole('button',{name:/Atlanta/}));
+ fireEvent.click(screen.getByRole('tab',{name:'Customer access'}));
+ expect(screen.getByText('Customer A · Main customer')).toBeInTheDocument();
+ expect(screen.queryByText('Customer B · Main customer')).not.toBeInTheDocument();
+ fireEvent.click(screen.getByRole('button',{name:'Add extra user'}));
+ expect(screen.getByRole('combobox',{name:'Contact customer company'})).toBeDisabled();
+ expect(screen.getByRole('combobox',{name:'Contact customer company'})).toHaveTextContent('Company A');
+});
