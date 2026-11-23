@@ -152,6 +152,7 @@ export function CasesTable() {
   const [selected, setSelected] = useState<string[]>([]);
   const [confirmDelete, setConfirmDelete] = useState<string[] | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [viewName, setViewName] = useState("");
   const availableColumns = columns.filter(
@@ -759,7 +760,7 @@ export function CasesTable() {
           </div>
         </div>
       </div>
-      <Dialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
+      <Dialog open={!!confirmDelete} onOpenChange={(o) => !o && !deleteBusy && setConfirmDelete(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
@@ -767,23 +768,29 @@ export function CasesTable() {
             </DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            The selected case files will be removed from this workspace. This cannot be undone.
+            The selected cases and all linked email conversations, messages and email attachments will be permanently deleted from LegalFlow. Queued emails will be removed. Emails already delivered to external mailboxes cannot be recalled. Cases with invoices or case documents cannot be deleted. This cannot be undone.
           </p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDelete(null)}>
+            <Button variant="outline" disabled={deleteBusy} onClick={() => setConfirmDelete(null)}>
               Cancel
             </Button>
             <Button
               variant="destructive"
+              disabled={deleteBusy}
               onClick={async () => {
-                const results = await Promise.all((confirmDelete ?? []).map(s.deleteCase));
-                if (results.some((ok) => !ok)) return;
-                setConfirmDelete(null);
-                setSelected([]);
-                toast.success("Case files deleted");
+                if (deleteBusy) return;
+                setDeleteBusy(true);
+                const failed: string[] = [];
+                try {
+                  for (const id of confirmDelete ?? [])
+                    if (!(await s.deleteCase(id, true))) failed.push(id);
+                  setConfirmDelete(failed.length ? failed : null);
+                  setSelected(failed);
+                  if (!failed.length) toast.success("Cases and linked email conversations deleted");
+                } finally { setDeleteBusy(false); }
               }}
             >
-              Delete case files
+              {deleteBusy ? "Deleting…" : "Delete cases & emails"}
             </Button>
           </DialogFooter>
         </DialogContent>

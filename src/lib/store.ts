@@ -184,7 +184,7 @@ interface State extends Data {
   deleteInvoice: (id: string, updatedAt?: string) => Promise<boolean>;
   addCase: (c: Case) => Promise<boolean>;
   updateCase: (id: string, patch: Partial<Case>, note?: string) => Promise<boolean>;
-  deleteCase: (id: string) => Promise<boolean>;
+  deleteCase: (id: string, deleteEmailConversations?: boolean) => Promise<boolean>;
   addAttachments: (caseId: string, files: Attachment[]) => Promise<boolean>;
   addCompanyDocuments: (files: Attachment[]) => Promise<string>;
   deleteCompanyDocument: (id: string) => Promise<boolean>;
@@ -397,7 +397,7 @@ export const useStore = create<State>((set, get) => {
         return false;
       }
     },
-    deleteCase: (id) => mutate(`/cases/${id}`, "DELETE"),
+    deleteCase: (id, deleteEmailConversations = false) => mutate(`/cases/${id}`, "DELETE", {deleteEmailConversations}),
     addAttachments: async (id, files) => {
       try {
         await upload(files, id);
