@@ -173,6 +173,8 @@ interface State extends Data {
       role: User["role"];
       status: User["status"];
       password?: string;
+      email?: string;
+      phone?: string;
       managerId?: string;
       permissions?: Record<string, boolean>;
       updatedAt?: string;

@@ -23,6 +23,8 @@ function Page() {
     [status, setStatus] = useState<User["status"]>("Active"),
     [managerId, setManagerId] = useState(""),
     [password, setPassword] = useState(""),
+    [email, setEmail] = useState(""),
+    [phone, setPhone] = useState(""),
     [busy, setBusy] = useState(false);
   if (me?.role !== "owner") return <PageHeader title="Owner access required" />;
   const rows = s.users.filter(
@@ -124,6 +126,8 @@ function Page() {
                     variant="outline"
                     onClick={() => {
                       setEditing(u);
+                      setEmail(u.email);
+                      setPhone(u.phone ?? "");
                       setRole(u.role);
                       setStatus(u.status);
                       setPassword("");
@@ -131,7 +135,7 @@ function Page() {
                     }}
                   >
                     <ShieldCheck />
-                    Manage access
+                    Edit details & access
                   </Button>
                 </td>
               </tr>
@@ -155,7 +159,7 @@ function Page() {
       <Dialog open={!!editing} onOpenChange={(value) => !value && setEditing(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Manage access · {editing?.name}</DialogTitle>
+            <DialogTitle>Edit details & access · {editing?.name}</DialogTitle>
           </DialogHeader>
           <form
             className="space-y-4"
@@ -166,6 +170,8 @@ function Page() {
               try {
                 const error = await s.updateUserAccess(editing.id, {
                   role,
+                  email,
+                  phone,
                   status,
                   password: password || undefined,
                   managerId: role === "staff" ? managerId : undefined,
@@ -173,7 +179,7 @@ function Page() {
                 });
                 if (error) toast.error(error);
                 else {
-                  toast.success("Access updated");
+                  toast.success("User details updated");
                   setEditing(null);
                 }
               } catch {
@@ -186,6 +192,15 @@ function Page() {
             <p className="text-xs text-muted-foreground">
               Username: {editing?.username ?? editing?.email}
             </p>
+            <div className="space-y-2">
+              <Label htmlFor="user-email">Email address</Label>
+              <Input id="user-email" type="email" required maxLength={254} value={email} onChange={(e) => setEmail(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="user-phone">Phone number</Label>
+              <Input id="user-phone" type="tel" maxLength={250} value={phone} onChange={(e) => setPhone(e.target.value)} />
+              <p className="text-xs text-muted-foreground">Email is used for sign-in and account notifications. A sole customer login also updates the customer contact.</p>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="access-role">Role</Label>
               <select
@@ -257,7 +272,7 @@ function Page() {
               </p>
             </div>
             <Button type="submit" disabled={busy}>
-              {busy ? "Saving…" : "Save access"}
+              {busy ? "Saving…" : "Save changes"}
             </Button>
           </form>
         </DialogContent>
