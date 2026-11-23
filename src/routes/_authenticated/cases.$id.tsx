@@ -1,3 +1,5 @@
+import {WorkspaceAssignment} from "@/components/lf/workspace-assignment";
+import { SingleCaseReport } from "@/components/lf/single-case-report";
 import { caseAmounts } from "@/lib/case-portfolio";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
@@ -31,8 +33,17 @@ function Page() {
   const fields = [
     ["Responsible staff", s.users.find((u) => u.id === c.staffId)?.name],
     ["Responsible manager", s.users.find((u) => u.id === c.managerId)?.name],
-    ["REF", c.ref],
+    ["REF CL#", c.ref],
+    ["REF ID#", c.refId],
+    ["Attorney", c.attorney],
+    ["Property type", c.propertyType],
+    ["Suite / Unit #", c.unit],
+    ["SF", c.squareFeet == null ? "" : String(c.squareFeet)],
+    ["Monthly rent", c.monthlyRent == null ? "" : money(c.monthlyRent)],
+    ["Last rental payment date", c.lastPaymentDate],
+    ["VIS - RI", c.visRI],
     ["Original balance", money(c.moneyOwed || 0)],
+    ["Paid amount", money(caseAmounts(c).paid)],
     ["Amount cleared", money(caseAmounts(c).cleared)],
     ["Balance owed", money(caseAmounts(c).due)],
     ["Apartment community", c.community],
@@ -52,6 +63,65 @@ function Page() {
     ["LOCS", c.locs],
     ["LBX", c.lbx],
   ];
+  const detailGroups = [
+    {
+      title: "Case",
+      labels: [
+        "REF CL#",
+        "REF ID#",
+        "Case Number",
+        "Case number",
+        "Attorney",
+        "Plaintiff",
+        "Tenant",
+        "Responsible staff",
+        "Responsible manager",
+        "Status",
+        "Priority",
+        "Description",
+      ],
+    },
+    {
+      title: "Property",
+      labels: [
+        "Property type",
+        "Apartment community",
+        "Neighborhood",
+        "Address",
+        "Suite / Unit #",
+        "County",
+        "City",
+        "State",
+        "Zip",
+        "SF",
+      ],
+    },
+    {
+      title: "Financials",
+      labels: [
+        "Original balance",
+        "Paid amount",
+        "Amount cleared",
+        "Balance owed",
+        "Monthly rent",
+        "Last rental payment date",
+      ],
+    },
+    {
+      title: "Data / service",
+      labels: [
+        "Setout Date",
+        "Setout Time",
+        "Setout date",
+        "Setout time",
+        "VIS - LO",
+        "VIS - TO",
+        "VIS - RI",
+        "LOCS",
+        "LBX",
+      ],
+    },
+  ];
   return (
     <>
       <Link to="/cases" className="mb-4 inline-block text-sm text-info">
@@ -62,6 +132,7 @@ function Page() {
         subtitle={c.title}
         actions={
           <>
+            <SingleCaseReport row={c} />
             {can(me, "cases.edit") && (
               <Button variant="outline" onClick={() => ui.openCase(id)}>
                 Edit case
@@ -73,6 +144,7 @@ function Page() {
           </>
         }
       />
+      <div className="mb-4"><WorkspaceAssignment row={c}/></div>
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <StatusBadge value={c.status} />
         <StatusBadge value={c.priority} />
@@ -83,15 +155,21 @@ function Page() {
       <div className="grid gap-6 xl:grid-cols-[1fr_320px]">
         <div className="space-y-6">
           <section className="rounded-xl border bg-card p-6">
-            <h2 className="mb-5 font-semibold">Case & property details</h2>
-            <dl className="grid gap-5 sm:grid-cols-3">
-              {fields.map(([label, value]) => (
-                <div key={label}>
-                  <dt className="text-xs text-muted-foreground">{label}</dt>
-                  <dd className="mt-1 break-words text-sm font-medium">{value || "—"}</dd>
-                </div>
-              ))}
-            </dl>
+            {detailGroups.map((group) => (
+              <div className="mb-7 last:mb-0" key={group.title}>
+                <h2 className="mb-4 border-b pb-2 font-semibold">{group.title}</h2>
+                <dl className="grid gap-5 sm:grid-cols-3">
+                  {fields
+                    .filter(([label]) => group.labels.includes(String(label)))
+                    .map(([label, value]) => (
+                      <div key={label}>
+                        <dt className="text-xs text-muted-foreground">{label}</dt>
+                        <dd className="mt-1 break-words text-sm font-medium">{value || "—"}</dd>
+                      </div>
+                    ))}
+                </dl>
+              </div>
+            ))}
             {c.description && <p className="mt-6 border-t pt-4 text-sm">{c.description}</p>}
           </section>
           {canViewInvoices(me) && (

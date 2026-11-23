@@ -1,3 +1,6 @@
+import {api} from "@/lib/api";
+import { AddressSuggestions } from "./address-suggestions";
+import { TERRITORIES, PROPERTY_TYPES, normalizeState } from "@/lib/property";
 import {
   useEffect,
   useRef,
@@ -288,10 +291,12 @@ export function CaseForm({
   });
   const [c, setC] = useState<Case>(blank);
   const [saving, setSaving] = useState(false);
+  const [workspaces,setWorkspaces]=useState<any[]>([]);
+  useEffect(()=>{if(open&&me?.role==="owner")api("/workspaces").then(r=>setWorkspaces(r.workspaces)).catch(()=>{});},[open,me?.role]);
   useEffect(() => {
     if (open)
       setC(
-        editing ? { ...editing } : blank(),
+        editing ? { ...editing, state: normalizeState(editing.state || "") } : blank(),
       ); /* eslint-disable-next-line react-hooks/exhaustive-deps */
   }, [open, editId]);
   const set = <K extends keyof Case>(k: K, v: Case[K]) => setC((p) => ({ ...p, [k]: v }));
@@ -299,6 +304,7 @@ export function CaseForm({
 
   const save = async () => {
     if (saving || me?.role === "customer") return;
+    if (!c.state) return toast.error("Select the property state to generate REF ID#");
     if (!c.number.trim() || !c.residentName.trim() || !c.clientId || !c.staffId || !c.managerId)
       return toast.error(
         "Case number, customer, tenant, responsible staff and manager are required",
@@ -343,8 +349,14 @@ export function CaseForm({
         Each case requires a customer and a responsible staff member. The manager is filled from the
         staff member’s team. Owners can set staff managers in People &amp; access.
       </p>
-      <Section n={1} title="Case Information">
-        <F label="REF">
+      <Section n={1} title="Case">
+        <F label="REF ID#">
+          <Input readOnly value={c.refId || "Generated when saved — select property state"} />
+        </F>
+        <F label="Attorney">
+          <Input value={c.attorney ?? ""} onChange={(e) => set("attorney", e.target.value)} />
+        </F>
+        <F label="REF CL#">
           <Input
             aria-label="REF"
             value={c.ref ?? ""}
@@ -356,34 +368,6 @@ export function CaseForm({
             aria-label="Plaintiff"
             value={c.plaintiff ?? ""}
             onChange={(e) => set("plaintiff", e.target.value)}
-          />
-        </F>
-        <F label="Original case balance (USD)">
-          <Input
-            aria-label="Money owed"
-            type="number"
-            min="0"
-            max="100000"
-            step="0.01"
-            value={c.moneyOwed ?? 0}
-            onChange={(e) => set("moneyOwed", Number(e.target.value))}
-          />
-          <p className="mt-1 text-xs text-muted-foreground">
-            Payments reduce the remaining balance automatically.
-          </p>
-        </F>
-        <F label="Apartment community">
-          <Input
-            aria-label="Apartment community"
-            value={c.community ?? ""}
-            onChange={(e) => set("community", e.target.value)}
-          />
-        </F>
-        <F label="Neighborhood">
-          <Input
-            aria-label="Neighborhood"
-            value={c.neighborhood ?? ""}
-            onChange={(e) => set("neighborhood", e.target.value)}
           />
         </F>
         <F label="Case Number">
@@ -437,6 +421,7 @@ export function CaseForm({
             }))}
           />
         </F>
+        {me?.role==="owner"&&<F label="Community workspace"><select className="h-10 w-full rounded-xl border bg-card px-3 text-sm" value={c.workspaceId||""} onChange={e=>set("workspaceId",e.target.value)}><option value="">Assign later</option>{workspaces.filter(w=>w.kind==="community"&&w.clientId===c.clientId&&!w.archived).map(w=><option key={w.id} value={w.id}>{w.name}</option>)}</select></F>}
         <F label="Client Email">
           <Input value={client?.email ?? ""} readOnly className="bg-muted" />
         </F>
@@ -447,7 +432,42 @@ export function CaseForm({
           <Input value={client?.address ?? ""} readOnly className="bg-muted" />
         </F>
       </Section>
-      <Section n={3} title="Tenant & Property">
+      <Section n={3} title="Property">
+        {" "}
+        <F label="Apartment community">
+          <Input
+            aria-label="Apartment community"
+            value={c.community ?? ""}
+            onChange={(e) => set("community", e.target.value)}
+          />
+        </F>
+        <F label="Neighborhood">
+          <Input
+            aria-label="Neighborhood"
+            value={c.neighborhood ?? ""}
+            onChange={(e) => set("neighborhood", e.target.value)}
+          />
+        </F>
+        <F label="Property type">
+          <Sel
+            value={c.propertyType || ""}
+            onChange={(v) => set("propertyType", v as Case["propertyType"])}
+            items={PROPERTY_TYPES.map((x) => ({ v: x.value, l: x.label }))}
+          />
+        </F>
+        <F label="Suite / Unit #">
+          <Input value={c.unit || ""} onChange={(e) => set("unit", e.target.value)} />
+        </F>
+        <F label="SF (square feet)">
+          <Input
+            type="number"
+            min="0"
+            value={c.squareFeet ?? ""}
+            onChange={(e) =>
+              set("squareFeet", e.target.value === "" ? null : Number(e.target.value))
+            }
+          />
+        </F>
         <F label="Tenant *">
           <Input value={c.residentName} onChange={(e) => set("residentName", e.target.value)} />
         </F>
@@ -455,16 +475,17 @@ export function CaseForm({
           <Input value={c.residentPhone} onChange={(e) => set("residentPhone", e.target.value)} />
         </F>
         <F label="Address" span>
-          <Input
+          <AddressSuggestions
             value={c.residentAddress}
-            onChange={(e) => set("residentAddress", e.target.value)}
+            onChange={(v) => set("residentAddress", v)}
+            onSelect={(v) => setC((p) => ({ ...p, ...v, unit: v.unit || p.unit }))}
           />
         </F>
         {(
           [
             ["county", "County"],
             ["city", "City"],
-            ["state", "State"],
+
             ["zip", "Zip"],
           ] as const
         ).map(([key, label]) => (
@@ -476,11 +497,63 @@ export function CaseForm({
             />
           </F>
         ))}
+        <F label="Property state *">
+          <select
+            className="h-10 w-full rounded-xl border border-input bg-card px-3 text-sm"
+            value={c.state || ""}
+            onChange={(e) => set("state", e.target.value)}
+          >
+            <option value="">Select state…</option>
+            {TERRITORIES.map((x) => (
+              <option key={x.value} value={x.value}>
+                {x.label}
+              </option>
+            ))}
+          </select>
+        </F>
         <F label="Additional Notes" span>
           <Textarea rows={2} value={c.notes} onChange={(e) => set("notes", e.target.value)} />
         </F>
       </Section>
-      <Section n={4} title="Service Information">
+      <Section n={4} title="Financials">
+        {" "}
+        <F label="Original case balance (USD)">
+          <Input
+            aria-label="Money owed"
+            type="number"
+            min="0"
+            max="100000"
+            step="0.01"
+            value={c.moneyOwed ?? 0}
+            onChange={(e) => set("moneyOwed", Number(e.target.value))}
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Payments reduce the remaining balance automatically.
+          </p>
+        </F>
+        <F label="Monthly rent (USD)">
+          <Input
+            type="number"
+            step="0.01"
+            min="0"
+            value={c.monthlyRent ?? ""}
+            onChange={(e) =>
+              set("monthlyRent", e.target.value === "" ? null : Number(e.target.value))
+            }
+          />
+        </F>
+        <F label="Last rental payment date">
+          <Input
+            type="date"
+            value={c.lastPaymentDate || ""}
+            onChange={(e) => set("lastPaymentDate", e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            Date your client last received rental payment.
+          </p>
+        </F>
+      </Section>
+      <Section n={5} title="Data / service">
         <F label="Setout Date">
           <Input
             type="date"
@@ -533,11 +606,12 @@ export function CaseForm({
           />
         </F>
       </Section>
-      <Section n={5} title="Property & Visit Details">
+      <Section n={6} title="Visit details">
         {(
           [
             ["visLO", "VIS - LO"],
             ["visTO", "VIS - TO"],
+            ["visRI", "VIS - RI (Visual Repair Item)"],
             ["locs", "LOCS"],
             ["lbx", "LBX"],
           ] as const
@@ -556,7 +630,7 @@ export function CaseForm({
         </p>
       </Section>
       {s.customFields.length > 0 && (
-        <Section n={6} title="Custom Fields">
+        <Section n={7} title="Custom Fields">
           {s.customFields.map((f) => {
             const v = c.custom[f.id];
             const setV = (x: string | number | boolean) =>
@@ -601,7 +675,7 @@ export function CaseForm({
           })}
         </Section>
       )}
-      <Section n={s.customFields.length ? 7 : 6} title="Attachments">
+      <Section n={s.customFields.length ? 8 : 7} title="Attachments">
         <FileDrop files={c.attachments} setFiles={(a) => set("attachments", a)} />
       </Section>
     </div>
@@ -625,7 +699,7 @@ export function CaseForm({
       <div className="mx-auto w-full max-w-6xl">
         <PageHeader
           title="Create new case"
-          subtitle="Add case details, assign your team and attach documents. Financial details are managed through invoices."
+          subtitle="Add case details, assign your team and attach documents. Invoice payments are managed through invoices."
         />
         <form onSubmit={submit} className="space-y-6" aria-label="Create case on page">
           {fields}

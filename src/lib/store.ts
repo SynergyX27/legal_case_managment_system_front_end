@@ -486,6 +486,8 @@ export const canAccess = (subject: string | User | null | undefined, section: st
       "cases",
       "invoices",
       "communications",
+      "email",
+      "workspaces",
       "reports",
       "settings",
       "notifications",

@@ -1,3 +1,4 @@
+import {Mail} from "lucide-react";
 import { ThemeToggle } from "./theme-provider";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
@@ -73,6 +74,7 @@ const navigation = [
   { to: "/clients", label: "Customers", icon: Users, key: "clients", group: "Workspace" },
   { to: "/calendar", label: "Calendar", icon: CalendarDays, key: "calendar", group: "Workspace" },
   { to: "/documents", label: "Documents", icon: FileText, key: "documents", group: "Workspace" },
+  {to:"/email",label:"Email",icon:Mail,key:"email",group:"Workspace"},
   { to: "/invoices", label: "Invoices", icon: Receipt, key: "invoices", group: "Workspace" },
   {
     to: "/communications",
@@ -81,6 +83,7 @@ const navigation = [
     key: "communications",
     group: "Workspace",
   },
+  {to:"/workspaces",label:"Workspaces",icon:FolderOpen,key:"workspaces",group:"Workspace"},
   {
     to: "/reports",
     label: "Reports & insights",

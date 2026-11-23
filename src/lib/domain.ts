@@ -13,6 +13,9 @@ export type Priority = "Low" | "Medium" | "High" | "Urgent";
 export type InvoiceStatus = "Draft" | "Sent" | "Paid" | "Overdue";
 
 export interface User {
+  customerAccess?: "all" | "regional" | "community";
+  workspaceIds?: string[];
+
   username?: string;
   managerId?: string;
   permissions?: Record<string, boolean>;
@@ -69,6 +72,15 @@ export interface Comment {
   at: string;
 }
 export interface Case {
+  workspaceId?: string;
+  refId?: string;
+  attorney?: string;
+  propertyType?: "" | "SFH" | "APT" | "COM";
+  unit?: string;
+  squareFeet?: number | null;
+  monthlyRent?: number | null;
+  lastPaymentDate?: string;
+  visRI?: string;
   moneyOwed?: number;
   paidInvoiceTotal?: number;
   balanceOwed?: number;

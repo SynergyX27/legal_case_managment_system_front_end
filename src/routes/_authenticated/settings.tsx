@@ -1,3 +1,5 @@
+import {IncomingEmailSettings} from "@/components/lf/incoming-email-settings";
+import { CompanyBranding } from "@/components/lf/company-branding";
 import { EmailSettings } from "@/components/lf/email-settings";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
@@ -41,6 +43,7 @@ function Page() {
     <>
       <PageHeader title="Settings" subtitle="Your account, appearance and company connections." />
       <div className="grid gap-6 lg:grid-cols-2">
+        {me?.role === "owner" && <><CompanyBranding/><IncomingEmailSettings/></>}
         <Panel title="My account">
           <form
             className="space-y-4 p-5"

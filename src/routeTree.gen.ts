@@ -18,12 +18,14 @@ import { Route as AuthenticatedCommunicationsRouteImport } from './routes/_authe
 import { Route as AuthenticatedCompanyDocumentsRouteImport } from './routes/_authenticated/company-documents'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDocumentsRouteImport } from './routes/_authenticated/documents'
+import { Route as AuthenticatedEmailRouteImport } from './routes/_authenticated/email'
 import { Route as AuthenticatedInvoicesRouteImport } from './routes/_authenticated/invoices'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedPermissionsRouteImport } from './routes/_authenticated/permissions'
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
+import { Route as AuthenticatedWorkspacesRouteImport } from './routes/_authenticated/workspaces'
 import { Route as AuthenticatedCasesIndexRouteImport } from './routes/_authenticated/cases.index'
 import { Route as AuthenticatedCasesIdRouteImport } from './routes/_authenticated/cases.$id'
 import { Route as AuthenticatedCasesNewRouteImport } from './routes/_authenticated/cases.new'
@@ -76,6 +78,11 @@ const AuthenticatedDocumentsRoute = AuthenticatedDocumentsRouteImport.update({
   path: '/documents',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedEmailRoute = AuthenticatedEmailRouteImport.update({
+  id: '/email',
+  path: '/email',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedInvoicesRoute = AuthenticatedInvoicesRouteImport.update({
   id: '/invoices',
   path: '/invoices',
@@ -106,6 +113,11 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
 const AuthenticatedUsersRoute = AuthenticatedUsersRouteImport.update({
   id: '/users',
   path: '/users',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedWorkspacesRoute = AuthenticatedWorkspacesRouteImport.update({
+  id: '/workspaces',
+  path: '/workspaces',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedCasesIndexRoute = AuthenticatedCasesIndexRouteImport.update({
@@ -144,12 +156,14 @@ export interface FileRoutesByFullPath {
   '/company-documents': typeof AuthenticatedCompanyDocumentsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/documents': typeof AuthenticatedDocumentsRoute
+  '/email': typeof AuthenticatedEmailRoute
   '/invoices': typeof AuthenticatedInvoicesRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/permissions': typeof AuthenticatedPermissionsRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/users': typeof AuthenticatedUsersRoute
+  '/workspaces': typeof AuthenticatedWorkspacesRoute
   '/cases/$id': typeof AuthenticatedCasesIdRoute
   '/cases/new': typeof AuthenticatedCasesNewRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
@@ -163,12 +177,14 @@ export interface FileRoutesByTo {
   '/company-documents': typeof AuthenticatedCompanyDocumentsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/documents': typeof AuthenticatedDocumentsRoute
+  '/email': typeof AuthenticatedEmailRoute
   '/invoices': typeof AuthenticatedInvoicesRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/permissions': typeof AuthenticatedPermissionsRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/users': typeof AuthenticatedUsersRoute
+  '/workspaces': typeof AuthenticatedWorkspacesRoute
   '/cases/$id': typeof AuthenticatedCasesIdRoute
   '/cases/new': typeof AuthenticatedCasesNewRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
@@ -186,12 +202,14 @@ export interface FileRoutesById {
   '/_authenticated/company-documents': typeof AuthenticatedCompanyDocumentsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/documents': typeof AuthenticatedDocumentsRoute
+  '/_authenticated/email': typeof AuthenticatedEmailRoute
   '/_authenticated/invoices': typeof AuthenticatedInvoicesRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/permissions': typeof AuthenticatedPermissionsRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/users': typeof AuthenticatedUsersRoute
+  '/_authenticated/workspaces': typeof AuthenticatedWorkspacesRoute
   '/_authenticated/cases/$id': typeof AuthenticatedCasesIdRoute
   '/_authenticated/cases/new': typeof AuthenticatedCasesNewRoute
   '/_authenticated/clients/$id': typeof AuthenticatedClientsIdRoute
@@ -209,12 +227,14 @@ export interface FileRouteTypes {
     | '/company-documents'
     | '/dashboard'
     | '/documents'
+    | '/email'
     | '/invoices'
     | '/notifications'
     | '/permissions'
     | '/reports'
     | '/settings'
     | '/users'
+    | '/workspaces'
     | '/cases/$id'
     | '/cases/new'
     | '/clients/$id'
@@ -228,12 +248,14 @@ export interface FileRouteTypes {
     | '/company-documents'
     | '/dashboard'
     | '/documents'
+    | '/email'
     | '/invoices'
     | '/notifications'
     | '/permissions'
     | '/reports'
     | '/settings'
     | '/users'
+    | '/workspaces'
     | '/cases/$id'
     | '/cases/new'
     | '/clients/$id'
@@ -250,12 +272,14 @@ export interface FileRouteTypes {
     | '/_authenticated/company-documents'
     | '/_authenticated/dashboard'
     | '/_authenticated/documents'
+    | '/_authenticated/email'
     | '/_authenticated/invoices'
     | '/_authenticated/notifications'
     | '/_authenticated/permissions'
     | '/_authenticated/reports'
     | '/_authenticated/settings'
     | '/_authenticated/users'
+    | '/_authenticated/workspaces'
     | '/_authenticated/cases/$id'
     | '/_authenticated/cases/new'
     | '/_authenticated/clients/$id'
@@ -333,6 +357,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDocumentsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/email': {
+      id: '/_authenticated/email'
+      path: '/email'
+      fullPath: '/email'
+      preLoaderRoute: typeof AuthenticatedEmailRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/invoices': {
       id: '/_authenticated/invoices'
       path: '/invoices'
@@ -373,6 +404,13 @@ declare module '@tanstack/react-router' {
       path: '/users'
       fullPath: '/users'
       preLoaderRoute: typeof AuthenticatedUsersRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/workspaces': {
+      id: '/_authenticated/workspaces'
+      path: '/workspaces'
+      fullPath: '/workspaces'
+      preLoaderRoute: typeof AuthenticatedWorkspacesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/cases/': {
@@ -449,12 +487,14 @@ interface AuthenticatedRouteChildren {
   AuthenticatedCompanyDocumentsRoute: typeof AuthenticatedCompanyDocumentsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDocumentsRoute: typeof AuthenticatedDocumentsRoute
+  AuthenticatedEmailRoute: typeof AuthenticatedEmailRoute
   AuthenticatedInvoicesRoute: typeof AuthenticatedInvoicesRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
   AuthenticatedPermissionsRoute: typeof AuthenticatedPermissionsRoute
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedUsersRoute: typeof AuthenticatedUsersRoute
+  AuthenticatedWorkspacesRoute: typeof AuthenticatedWorkspacesRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -465,12 +505,14 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedCompanyDocumentsRoute: AuthenticatedCompanyDocumentsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDocumentsRoute: AuthenticatedDocumentsRoute,
+  AuthenticatedEmailRoute: AuthenticatedEmailRoute,
   AuthenticatedInvoicesRoute: AuthenticatedInvoicesRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
   AuthenticatedPermissionsRoute: AuthenticatedPermissionsRoute,
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedUsersRoute: AuthenticatedUsersRoute,
+  AuthenticatedWorkspacesRoute: AuthenticatedWorkspacesRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

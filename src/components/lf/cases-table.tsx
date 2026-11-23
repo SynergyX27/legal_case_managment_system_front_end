@@ -71,7 +71,15 @@ import { CASE_TYPES, STATUSES, type CaseStatus } from "@/lib/domain";
 import { caseCsv, filterCases, sortCases, type SortKey } from "@/lib/case-management";
 
 const extraColumns = [
-  { id: "ref", label: "REF" },
+  { id: "ref", label: "REF CL#" },
+  { id: "refId", label: "REF ID#" },
+  { id: "attorney", label: "Attorney" },
+  { id: "propertyType", label: "Property type" },
+  { id: "unit", label: "Suite / Unit #" },
+  { id: "squareFeet", label: "SF" },
+  { id: "monthlyRent", label: "Monthly rent" },
+  { id: "lastPaymentDate", label: "Last rental payment date" },
+  { id: "visRI", label: "VIS - RI" },
   { id: "moneyOwed", label: "Balance owed" },
   { id: "community", label: "Apartment community" },
   { id: "neighborhood", label: "Neighborhood" },
