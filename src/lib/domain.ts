@@ -38,6 +38,7 @@ export interface Account {
   name: string;
 }
 export interface Client {
+  primaryUserId?: string;
   id: string;
   name: string;
   company: string;

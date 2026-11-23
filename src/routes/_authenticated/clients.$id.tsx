@@ -156,7 +156,7 @@ function Page() {
           <p className="text-sm text-muted-foreground">
             {linked
               ? "Keep this client’s case history intact. You can change their status to Inactive instead."
-              : "This removes the client from the workspace and cannot be undone."}
+              : "This deletes the customer and their main login. Cases, invoices, workspaces and extra customer logins must be removed first. This cannot be undone."}
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleting(false)}>

@@ -160,7 +160,7 @@ export function OwnerUserForm({
             setDraft({ ...blankUser(e.target.value as Role), name: draft.name, email: draft.email })
           }
         >
-          {(["owner", "manager", "staff", "customer"] as Role[]).map((role) => (
+          {((defaultRole === "customer" ? ["customer"] : ["owner", "manager", "staff"]) as Role[]).map((role) => (
             <option key={role} value={role}>
               {role === "owner"
                 ? "Owner"
@@ -176,38 +176,6 @@ export function OwnerUserForm({
           Only an owner can create users or assign these roles.
         </p>
       </div>
-      {role === "customer" && (
-        <div className="space-y-2">
-          <Label htmlFor="existing-customer">Customer profile</Label>
-          <ModernSelect
-            id="existing-customer"
-            disabled={!!initialClientId}
-            className="h-10 w-full rounded-xl border bg-card px-3 text-sm"
-            value={draft.clientId ?? ""}
-            onChange={(e) => {
-              const client = s.clients.find((c) => c.id === e.target.value);
-              setDraft({
-                ...draft,
-                clientId: client?.id,
-                name: client?.name ?? "",
-                email: client?.email ?? "",
-                company: client?.company ?? "",
-                phone: client?.phone ?? "",
-                address: client?.address ?? "",
-              });
-            }}
-          >
-            <option value="">Create a new customer</option>
-            {s.clients
-              .filter((c) => !s.users.some((u) => u.clientId === c.id))
-              .map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.company} · {c.name}
-                </option>
-              ))}
-          </ModernSelect>
-        </div>
-      )}
       {role === "staff" && (
         <div className="space-y-2">
           <Label htmlFor="new-staff-manager">Responsible manager</Label>

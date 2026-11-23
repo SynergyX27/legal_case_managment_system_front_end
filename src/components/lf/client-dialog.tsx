@@ -28,9 +28,14 @@ export function ClientDialog() {
   const s = useStore();
   const me = useMe();
   const [c, setC] = useState<Client | null>(null);
+  const [username,setUsername]=useState("");
+  const [password,setPassword]=useState("");
+  const [busy,setBusy]=useState(false);
   useEffect(() => {
     if (!clientDialog.open) return;
     const e = clientDialog.editId ? s.clients.find((x) => x.id === clientDialog.editId) : undefined;
+    setUsername(s.users.find(u => u.id===e?.primaryUserId)?.username || "");
+    setPassword("");
     setC(
       e
         ? { ...e }
@@ -76,11 +81,11 @@ export function ClientDialog() {
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="font-display text-xl">
-            {clientDialog.editId ? "Edit client" : "Add client"}
+            {clientDialog.editId ? "Edit customer & access" : "Add customer"}
           </DialogTitle>
         </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
-          {f("name", "Client name")}
+          {f("name", "Customer name")}
           {f("email", "Email")}
           {f("phone", "Phone")}
           <div className="sm:col-span-2">{f("address", "Address")}</div>
@@ -103,19 +108,32 @@ export function ClientDialog() {
             </Select>
           </div>
         </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div><Label htmlFor="customer-username">Username</Label><Input id="customer-username" value={username} onChange={e=>setUsername(e.target.value)} autoComplete="off" /></div>
+          <div><Label htmlFor="customer-password">{c.primaryUserId ? "New password (optional)" : "Password (required)"}</Label><Input id="customer-password" type="password" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="new-password" /></div>
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">Customer details and main sign-in access are saved together. Extra regional/community logins are managed from Workspaces.</p>
         <DialogFooter>
+          <Button variant="destructive" disabled={busy} onClick={async()=>{
+            if(!confirm("Delete this customer and their main login? Cases, invoices, workspaces and additional logins must be removed first."))return;
+            setBusy(true);try {if(await s.deleteClient(c.id)){toast.success("Customer deleted");close();}}finally{setBusy(false);}
+          }}>Delete customer</Button>
           <Button variant="outline" onClick={close}>
             Cancel
           </Button>
-          <Button
+          <Button disabled={busy}
             onClick={async () => {
               if (!c.name) return toast.error("Name is required");
-              if (!(await s.upsertClient(c))) return;
+              if(!username.trim()) return toast.error("Username is required");
+              if(!c.primaryUserId && !password) return toast.error("Password is required to complete access");
+              setBusy(true);
+              try { if (!(await s.upsertClient({...c, username, password:password || undefined} as Client))) return; }
+              finally {setBusy(false);}
               toast.success("Client saved");
               close();
             }}
           >
-            Save client
+            Save customer
           </Button>
         </DialogFooter>
       </DialogContent>

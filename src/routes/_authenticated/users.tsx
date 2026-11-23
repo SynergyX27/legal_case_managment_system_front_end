@@ -31,7 +31,7 @@ function Page() {
   if (me?.role !== "owner") return <PageHeader title="Owner access required" />;
   const rows = s.users.filter(
     (u) =>
-      (filter === "all" || u.role === filter) &&
+      u.role !== "customer" && (filter === "all" || u.role === filter) &&
       [u.name, u.email, u.username].join(" ").toLowerCase().includes(query.toLowerCase()),
   );
   const openCreate = (r: Role) => {
@@ -42,13 +42,10 @@ function Page() {
     <>
       <PageHeader
         title="People & access"
-        subtitle="Login accounts for people who can sign in. A customer profile can have several logins or none."
+        subtitle="Internal owners, managers and staff. Manage customers from Customers; extra customer access from Workspaces."
         actions={
           <>
-            <Button variant="outline" onClick={() => openCreate("customer")}>
-              <UserPlus />
-              Add customer
-            </Button>
+
             <Button onClick={() => openCreate("staff")}>
               <Plus />
               Add user
@@ -57,7 +54,7 @@ function Page() {
         }
       />
       <div className="mb-6 grid grid-cols-2 gap-3 xl:grid-cols-4">
-        {(["owner", "manager", "staff", "customer"] as Role[]).map((r) => (
+        {(["owner", "manager", "staff"] as Role[]).map((r) => (
           <div key={r} className="metric-card">
             <p className="metric-label capitalize">{r === "customer" ? "Customer logins" : r === "staff" ? "Staff members" : r + "s"}</p>
             <p className="metric-value">{s.users.filter((u) => u.role === r).length}</p>
@@ -82,7 +79,7 @@ function Page() {
           onChange={(e) => setFilter(e.target.value)}
         >
           <option value="all">All roles</option>
-          {["owner", "manager", "staff", "customer"].map((r) => (
+          {["owner", "manager", "staff"].map((r) => (
             <option key={r} value={r}>
               {r}
             </option>

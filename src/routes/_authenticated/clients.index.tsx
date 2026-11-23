@@ -51,11 +51,11 @@ function ClientsPage() {
     <>
       <PageHeader
         title="Customers"
-        subtitle={`${scoped.length} customer profiles - login accounts are managed separately in People & access`}
+        subtitle={`${scoped.length} customers - each customer has a main sign-in account`}
         actions={
           <Button disabled={me?.role !== "owner"} onClick={() => openClient()}>
             <Plus />
-            Add customer & login
+            Add customer
           </Button>
         }
       />
@@ -84,11 +84,7 @@ function ClientsPage() {
           );
         })}
       </div>
-      {me?.role === "owner" && <div className="mb-5 rounded-xl border bg-primary/5 p-4 text-sm">
-        <p className="font-medium">Customer profile = company/contact. Login account = a person who can sign in.</p>
-        <p className="mt-1 text-muted-foreground">A profile can have no login, one login or several. Deleting a login keeps the customer profile and its history.</p>
-        <p className="mt-2">{scoped.filter(c => s.users.some(u => u.role === "customer" && u.clientId === c.id)).length} profiles with logins · {scoped.filter(c => !s.users.some(u => u.role === "customer" && u.clientId === c.id)).length} without logins</p>
-      </div>}
+      <p className="mb-5 text-sm text-muted-foreground">Create a customer with their username and password in one step. Use Edit to manage their main access. Extra users and territory/community permissions are managed from Workspaces.</p>
       <div className="records-toolbar mb-4 flex flex-wrap gap-2">
         <div className="relative min-w-0 flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
@@ -121,7 +117,7 @@ function ClientsPage() {
               <th className="px-4 py-3 font-medium">Client</th>
               <th className="px-4 py-3 font-medium">Contact</th>
               <th className="px-4 py-3 font-medium">Status</th>
-              {me?.role === "owner" && <th className="px-4 py-3 font-medium">Login accounts</th>}
+              {me?.role === "owner" && <th className="px-4 py-3 font-medium">Main access</th>}
               <th className="px-4 py-3 font-medium">Cases</th>
               <th className="px-4 py-3 font-medium">Billed</th>
               <th className="px-4 py-3 font-medium">Last service</th>
@@ -164,9 +160,9 @@ function ClientsPage() {
                     <StatusBadge value={c.status} />
                   </td>
                   {me?.role === "owner" && <td className="px-4 py-3">
-                    <p className={active ? "text-info font-medium" : "text-muted-foreground"}>{!logins.length ? "No login" : `${logins.length} login${logins.length === 1 ? "" : "s"}`}</p>
-                    {!!logins.length && <p className="mt-1 text-xs text-muted-foreground">{active} active · {logins.length-active} inactive</p>}
-                    {!logins.length ? <Button variant="link" className="h-auto px-0 py-1" onClick={() => setLoginFor(c.id)}>Add login</Button> : <Link to="/users" className="mt-1 inline-block text-xs text-info hover:underline">Manage logins</Link>}
+                    <p className="font-medium">{c.primaryUserId ? "Access ready" : "Complete access"}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{s.users.find(u=>u.id===c.primaryUserId)?.username || "Set username and password in Edit"}</p>
+                    {logins.length>1 && <Link to="/workspaces" className="text-xs text-info">{logins.length-1} extra workspace login(s)</Link>}
                   </td>}
                   <td className="px-4 py-3 tabular-nums">
                     {m.open} open · {m.total} total
@@ -194,13 +190,7 @@ function ClientsPage() {
           </div>
         )}
       </div>
-      <Dialog open={!!loginFor} onOpenChange={open => !open && setLoginFor(null)}>
-        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
-          <DialogHeader><DialogTitle>Add login to {s.clients.find(c => c.id === loginFor)?.name}</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">This creates an account linked to the existing profile, without creating a duplicate customer. Then assign its workspace access from Workspaces → Manage access. Previously deleted usernames and emails remain reserved; use unused login details.</p>
-          <OwnerUserForm key={loginFor} defaultRole="customer" initialClientId={loginFor || undefined} allowRoleSelection={false} onSaved={() => setLoginFor(null)} />
-        </DialogContent>
-      </Dialog>
+
     </>
   );
 }

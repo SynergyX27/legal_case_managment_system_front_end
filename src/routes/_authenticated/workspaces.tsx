@@ -1,3 +1,4 @@
+import { CustomerLoginEditor } from "@/components/lf/customer-login-editor";
 import { ModernSelect } from "@/components/ui/modern-select";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
@@ -46,7 +47,7 @@ export interface Portfolio {
   balanceOwed: number;
 }
 function Workspaces() {
-  const [dialog, setDialog] = useState<"create" | "access" | "contact" | null>(null),
+  const [dialog, setDialog] = useState<"create" | "access" | "contact" | "login" | null>(null),
     [kind, setKind] = useState("all"),
     [company, setCompany] = useState("");
   const [loading, setLoading] = useState(true);
@@ -161,7 +162,7 @@ function Workspaces() {
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => setDialog("access")}>
               <Users className="mr-2 size-4" />
-              Manage access
+              Customer access
             </Button>
             <Button onClick={openCreate}>
               <Plus className="mr-2 size-4" />
@@ -237,7 +238,7 @@ function Workspaces() {
               {owner && (
                 <Button variant="ghost" onClick={() => setDialog("contact")}>
                   <UserPlus className="mr-2 size-4" />
-                  Add customer login
+                  Add extra login
                 </Button>
               )}
             </div>
@@ -395,7 +396,7 @@ function Workspaces() {
                   Add login
                 </Button>
                 <Button variant="outline" onClick={() => setDialog("access")}>
-                  Manage access
+                  Customer access
                   <ChevronRight className="ml-2 size-4" />
                 </Button>
               </div>
@@ -749,7 +750,7 @@ function Workspaces() {
           >
             <DialogContent className="workspace-dialog max-h-[90vh] overflow-y-auto sm:max-w-[580px]">
               <DialogHeader>
-                <DialogTitle>Manage workspace access</DialogTitle>
+                <DialogTitle>Customer workspace access</DialogTitle>
                 <DialogDescription>
                   Choose a person and the territories or communities they can access.
                 </DialogDescription>
@@ -817,6 +818,7 @@ function Workspaces() {
                       ))}
                   </div>
                 )}
+                {user?.role === "customer" && !s.clients.some(c=>c.primaryUserId===user.id) && <Button variant="outline" onClick={()=>setDialog("login")}>Edit extra login details</Button>}
                 <p className="text-xs text-muted-foreground">
                   Regional access includes existing and future communities in selected territories.
                   Internal staff and managers retain their assigned-case permissions.
@@ -842,6 +844,7 @@ function Workspaces() {
               </div>
             </DialogContent>
           </Dialog>
+          <Dialog open={dialog === "login"} onOpenChange={open=>!open && setDialog(null)}><DialogContent><DialogHeader><DialogTitle>Extra customer login</DialogTitle></DialogHeader>{user && <CustomerLoginEditor key={user.id+user.updatedAt} user={user} onSaved={()=>setDialog(null)}/>}</DialogContent></Dialog>
           <Dialog
             open={dialog === "contact"}
             onOpenChange={(v) => {
@@ -850,7 +853,7 @@ function Workspaces() {
           >
             <DialogContent className="workspace-dialog max-h-[90vh] overflow-y-auto sm:max-w-[540px]">
               <DialogHeader>
-                <DialogTitle>Add a customer login</DialogTitle>
+                <DialogTitle>Add extra customer login</DialogTitle>
                 <DialogDescription>
                   Connect another person to an existing customer company.
                 </DialogDescription>
@@ -881,7 +884,7 @@ function Workspaces() {
                   onChange={(e) => setContact({ ...contact, clientId: e.target.value })}
                 >
                   <option value="">Select existing customer company</option>
-                  {s.clients.map((c) => (
+                  {s.clients.filter(c=>c.primaryUserId).map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.company || c.name}
                     </option>
