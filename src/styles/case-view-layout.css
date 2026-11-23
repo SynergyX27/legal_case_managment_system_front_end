@@ -1,0 +1,15 @@
+.case-detail-sections { display: grid; gap: 1.75rem; }
+/* The section order stays Case, Property, Financials, Data on small screens. */
+@media (min-width: 1024px) {
+  .case-details-panel[data-view-layout="side-by-side"] .case-detail-sections {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-areas: "case property financials" "case property data";
+    column-gap: 1.5rem;
+    align-items: start;
+  }
+  .case-details-panel[data-view-layout="side-by-side"] [data-section="case"] { grid-area: case; }
+  .case-details-panel[data-view-layout="side-by-side"] [data-section="property"] { grid-area: property; }
+  .case-details-panel[data-view-layout="side-by-side"] [data-section="financials"] { grid-area: financials; }
+  .case-details-panel[data-view-layout="side-by-side"] [data-section="data"] { grid-area: data; }
+  .case-details-panel[data-view-layout="side-by-side"] .case-detail-values { grid-template-columns: minmax(0, 1fr); }
+}

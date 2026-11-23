@@ -1,0 +1,7 @@
+.case-form-fields .case-section-fields { display: grid; grid-template-columns: minmax(0, 1fr); }
+.case-form-fields .case-section-fields > * { min-width: 0; grid-column: 1 / -1; }
+@media (min-width: 640px) {
+  .case-form-fields[data-case-layout="columns"] .case-section-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .case-form-fields[data-case-layout="columns"] .case-section-fields > * { grid-column: auto; }
+  .case-form-fields[data-case-layout="columns"] .case-section-fields > .sm\:col-span-2 { grid-column: span 2 / span 2; }
+}

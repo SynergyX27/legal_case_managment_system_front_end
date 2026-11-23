@@ -1,3 +1,5 @@
+import {useCaseFormLayout} from "@/lib/case-form-layout";
+import "@/styles/case-form-layout.css";
 import { ModernSelect } from "@/components/ui/modern-select";
 import {api} from "@/lib/api";
 import { AddressSuggestions } from "./address-suggestions";
@@ -63,7 +65,7 @@ function Section({ n, title, children }: { n: number; title: string; children: R
         <span className="mr-2 text-info">0{n}</span>
         {title}
       </legend>
-      <div className="grid gap-3 sm:grid-cols-2">{children}</div>
+      <div className="case-section-fields grid gap-3">{children}</div>
     </fieldset>
   );
 }
@@ -108,6 +110,7 @@ export function FileDrop({
   const ref = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
   const me = useMe();
+  const [layout,setLayout]=useCaseFormLayout(me?.id || "guest");
   const [reading, setReading] = useState(false);
   const storedCases = useStore((s) => s.cases);
   const companyDocuments = useStore((s) => s.companyDocuments);
@@ -240,6 +243,7 @@ export function CaseForm({
 }) {
   const s = useStore();
   const me = useMe();
+  const [layout,setLayout]=useCaseFormLayout(me?.id || "guest");
   const editing = editId ? s.cases.find((c) => c.id === editId) : undefined;
   const staff = s.users.filter(
     (u) =>
@@ -345,7 +349,14 @@ export function CaseForm({
       />
     ) : null;
   const fields = (
-    <div className="space-y-4">
+    <div className="case-form-fields space-y-4" data-case-layout={layout}>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-muted/30 p-3">
+        <div><p className="text-sm font-medium">Form layout</p><p className="text-xs text-muted-foreground">{layout === "vertical" ? "Top to bottom within each section" : "Left to right within each section"}<span className="block sm:hidden">Small screens always use a vertical layout.</span></p></div>
+        <div role="radiogroup" aria-label="Form layout" className="flex gap-1 rounded-lg bg-muted p-1">
+          <Button type="button" role="radio" aria-checked={layout === "vertical"} variant={layout === "vertical" ? "default" : "ghost"} size="sm" onClick={()=>setLayout("vertical")}>Vertical</Button>
+          <Button type="button" role="radio" aria-checked={layout === "columns"} variant={layout === "columns" ? "default" : "ghost"} size="sm" onClick={()=>setLayout("columns")}>Columns</Button>
+        </div>
+      </div>
       <p className="rounded-xl border bg-accent/40 p-3 text-xs text-muted-foreground">
         Each case requires a customer and a responsible staff member. The manager is filled from the
         staff member’s team. Owners can set staff managers in People &amp; access.

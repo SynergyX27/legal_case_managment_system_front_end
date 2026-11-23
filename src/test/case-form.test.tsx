@@ -27,6 +27,7 @@ const customer: Client = {
 };
 const addCase = vi.fn(async (_c: Case) => true);
 beforeEach(() => {
+  localStorage.clear();
   vi.stubGlobal("crypto", { randomUUID: () => "test-id" });
   useStore.setState({
     users: [
@@ -138,4 +139,22 @@ describe("one case form in two presentations", () => {
     render(<CaseForm presentation="page" onCancel={() => {}} onSaved={() => {}} />);
     expect(screen.queryByRole("button", { name: "Create case" })).not.toBeInTheDocument();
   });
+});
+
+it("switches case layout without losing input and remembers it across modal/page", () => {
+  const view=render(<CaseForm presentation="page" onCancel={()=>{}} onSaved={()=>{}}/>);
+  expect(screen.getByRole("radio",{name:"Vertical"})).toHaveAttribute("aria-checked","true");
+  fireEvent.change(screen.getByLabelText("Case Number"),{target:{value:"KEEP-MY-INPUT"}});
+  fireEvent.click(screen.getByRole("radio",{name:"Columns"}));
+  expect(screen.getByLabelText("Case Number")).toHaveValue("KEEP-MY-INPUT");
+  expect(screen.getByRole("radio",{name:"Columns"})).toHaveAttribute("aria-checked","true");
+  view.unmount();
+  render(<CaseForm presentation="modal" open onCancel={()=>{}} onSaved={()=>{}}/>);
+  expect(screen.getByRole("radio",{name:"Columns"})).toHaveAttribute("aria-checked","true");
+});
+it("keeps layout preference separate for different users", () => {
+ localStorage.setItem("legalflow.case-form-layout.test-owner","columns");
+ useStore.setState({users:[{...owner,id:"other-owner"}],sessionUserId:"other-owner"});
+ render(<CaseForm presentation="page" onCancel={()=>{}} onSaved={()=>{}}/>);
+ expect(screen.getByRole("radio",{name:"Vertical"})).toHaveAttribute("aria-checked","true");
 });

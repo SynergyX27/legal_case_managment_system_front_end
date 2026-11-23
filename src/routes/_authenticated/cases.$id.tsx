@@ -1,3 +1,5 @@
+import {useCaseViewLayout} from "@/lib/case-view-layout";
+import "@/styles/case-view-layout.css";
 import { Download, FileText, ImageIcon, Paperclip } from "lucide-react";
 import {WorkspaceAssignment} from "@/components/lf/workspace-assignment";
 import { SingleCaseReport } from "@/components/lf/single-case-report";
@@ -19,6 +21,7 @@ function Page() {
     cases = useVisibleCases(),
     ui = useUI();
   const [comment, setComment] = useState("");
+  const [viewLayout,setViewLayout]=useCaseViewLayout(me?.id || "guest");
   const c = cases.find((c) => c.id === id);
   if (!c)
     return (
@@ -109,7 +112,7 @@ function Page() {
       ],
     },
     {
-      title: "Data / service",
+      title: "Data",
       labels: [
         "Setout Date",
         "Setout Time",
@@ -155,11 +158,19 @@ function Page() {
       </div>
       <div className="grid gap-6 xl:grid-cols-[1fr_320px]">
         <div className="space-y-6">
-          <section className="rounded-xl border bg-card p-6">
+          <section className="case-details-panel rounded-xl border bg-card p-6" data-view-layout={viewLayout}>
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b pb-4">
+              <div><h2 className="text-sm font-semibold">View layout</h2><p className="text-xs text-muted-foreground">{viewLayout === "stacked" ? "Sections from top to bottom" : "Case, Property and Financials across; Data below Financials"}</p></div>
+              <div role="radiogroup" aria-label="Case view layout" className="flex gap-1 rounded-lg bg-muted p-1">
+                <Button type="button" role="radio" aria-checked={viewLayout === "stacked"} size="sm" variant={viewLayout === "stacked" ? "default" : "ghost"} onClick={()=>setViewLayout("stacked")}>Stacked</Button>
+                <Button type="button" role="radio" aria-checked={viewLayout === "side-by-side"} size="sm" variant={viewLayout === "side-by-side" ? "default" : "ghost"} onClick={()=>setViewLayout("side-by-side")}>Side-by-side</Button>
+              </div>
+            </div>
+            <div className="case-detail-sections">
             {detailGroups.map((group) => (
-              <div className="mb-7 last:mb-0" key={group.title}>
+              <div className="case-detail-section min-w-0" data-section={group.title.toLowerCase()} key={group.title}>
                 <h2 className="mb-4 border-b pb-2 font-semibold">{group.title}</h2>
-                <dl className="grid gap-5 sm:grid-cols-3">
+                <dl className="case-detail-values grid gap-5 sm:grid-cols-3">
                   {fields
                     .filter(([label]) => group.labels.includes(String(label)))
                     .map(([label, value]) => (
@@ -171,6 +182,7 @@ function Page() {
                 </dl>
               </div>
             ))}
+            </div>
             {c.description && <p className="mt-6 border-t pt-4 text-sm">{c.description}</p>}
           </section>
           <section className="rounded-xl border bg-card p-6">
