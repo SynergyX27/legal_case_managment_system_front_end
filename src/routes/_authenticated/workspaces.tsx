@@ -1,3 +1,4 @@
+import { ModernSelect } from "@/components/ui/modern-select";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
@@ -267,7 +268,7 @@ function Workspaces() {
                   />
                 </label>
                 {s.clients.length > 1 && (
-                  <select
+                  <ModernSelect
                     aria-label="Filter by customer company"
                     className="workspace-select max-w-full"
                     value={company}
@@ -279,7 +280,7 @@ function Workspaces() {
                         {c.company || c.name}
                       </option>
                     ))}
-                  </select>
+                  </ModernSelect>
                 )}
               </div>
             </div>
@@ -494,7 +495,7 @@ function Workspaces() {
               {owner && cases.length > 0 && (
                 <div className="mb-4 space-y-2 rounded-xl border bg-muted/30 p-3">
                   <p className="text-sm">Move selected cases ({selection.length}, maximum 200)</p>
-                  <select
+                  <ModernSelect
                     aria-label="Bulk destination workspace"
                     className="workspace-select"
                     value={target}
@@ -508,7 +509,7 @@ function Workspaces() {
                           {s.clients.find((c) => c.id === w.clientId)?.name} · {w.name}
                         </option>
                       ))}
-                  </select>
+                  </ModernSelect>
                   <Button
                     className="ml-2"
                     disabled={busy || selection.length === 0 || selection.length > 200}
@@ -669,7 +670,7 @@ function Workspaces() {
               >
                 <label className="block text-sm">
                   Customer company
-                  <select
+                  <ModernSelect
                     required
                     disabled={!!edit || form.kind === "community"}
                     className="mt-1 w-full rounded border bg-background p-2"
@@ -682,7 +683,7 @@ function Workspaces() {
                         {c.company || c.name}
                       </option>
                     ))}
-                  </select>
+                  </ModernSelect>
                 </label>
                 <div className="rounded-xl border bg-primary/5 p-4 text-sm">
                   <p className="font-semibold">
@@ -754,7 +755,7 @@ function Workspaces() {
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-3">
-                <select
+                <ModernSelect
                   aria-label="Workspace member"
                   className="w-full rounded border bg-background p-2"
                   value={userId}
@@ -768,9 +769,9 @@ function Workspaces() {
                         {u.name} · {u.role}
                       </option>
                     ))}
-                </select>
+                </ModernSelect>
                 {user?.role === "customer" && (
-                  <select
+                  <ModernSelect
                     aria-label="Customer workspace access level"
                     className="w-full rounded border bg-background p-2"
                     value={mode}
@@ -784,7 +785,7 @@ function Workspaces() {
                       Regional / district manager – selected territories
                     </option>
                     <option value="community">Community manager – selected communities</option>
-                  </select>
+                  </ModernSelect>
                 )}
                 {user && (
                   <div className="max-h-64 space-y-2 overflow-y-auto">
@@ -872,7 +873,7 @@ function Workspaces() {
                   });
                 }}
               >
-                <select
+                <ModernSelect
                   required
                   aria-label="Contact customer company"
                   className="w-full rounded border bg-background p-2"
@@ -885,7 +886,7 @@ function Workspaces() {
                       {c.company || c.name}
                     </option>
                   ))}
-                </select>
+                </ModernSelect>
                 {(["name", "email", "username", "password", "phone"] as const).map((k) => (
                   <label key={k} className="block text-sm">
                     {

@@ -92,7 +92,8 @@ afterEach(() => {
 });
 it("restores saved community filters for rows, status tiles and case balances", () => {
   render(<CasesTable />);
-  fireEvent.change(screen.getByLabelText("Saved view"), { target: { value: "southland" } });
+  fireEvent.keyDown(screen.getByLabelText("Saved view"), {key:"Enter"});
+  fireEvent.keyDown(screen.getByRole("option", {name:"Southland Hills only"}), {key:"Enter"});
   expect(screen.queryByText("A-003")).not.toBeInTheDocument();
   expect(screen.getByText("A-001")).toBeInTheDocument();
   expect(screen.getByRole("meter", { name: "Amount owed" })).toHaveAttribute(
@@ -118,7 +119,8 @@ it("prints the current filtered rows and escapes case content", () => {
   };
   vi.spyOn(window, "open").mockReturnValue(popup as unknown as Window);
   render(<CasesTable />);
-  fireEvent.change(screen.getByLabelText("Saved view"), { target: { value: "southland" } });
+  fireEvent.keyDown(screen.getByLabelText("Saved view"), {key:"Enter"});
+  fireEvent.keyDown(screen.getByRole("option", {name:"Southland Hills only"}), {key:"Enter"});
   fireEvent.click(screen.getByRole("button", { name: "Print / PDF" }));
   expect(write.mock.calls[0][0]).toContain("A-001");
   expect(write.mock.calls[0][0]).not.toContain("A-003");

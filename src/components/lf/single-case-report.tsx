@@ -1,3 +1,4 @@
+import { ModernSelect } from "@/components/ui/modern-select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -77,7 +78,7 @@ export function SingleCaseReport({ row }: { row: Case }) {
           </DialogHeader>
           <label className="block text-sm">
             Cover photo
-            <select
+            <ModernSelect
               className="mt-1 w-full rounded border bg-background p-2"
               value={photoId}
               onChange={(e) => setPhoto(e.target.value)}
@@ -90,7 +91,7 @@ export function SingleCaseReport({ row }: { row: Case }) {
                     {a.name}
                   </option>
                 ))}
-            </select>
+            </ModernSelect>
           </label>
           <p className="text-xs text-muted-foreground">
             Choose a PNG / JPEG up to 5 MB. Company details come from owner Settings.

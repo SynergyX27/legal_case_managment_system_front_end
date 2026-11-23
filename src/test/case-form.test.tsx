@@ -64,7 +64,8 @@ describe("one case form in two presentations", () => {
     fireEvent.change(screen.getByLabelText("Case Number"), { target: { value: "STAFF-1" } });
     fireEvent.change(screen.getByLabelText("Tenant *"), { target: { value: "Tenant" } });
     expect(screen.getByLabelText("Assigned Manager (from staff team)")).toBeDisabled();
-    fireEvent.change(screen.getByLabelText("Property state *"), { target: { value: "GA" } });
+    fireEvent.keyDown(screen.getByLabelText("Property state *"), {key:"Enter"});
+    fireEvent.keyDown(screen.getByRole("option", {name: "Georgia"}), {key:"Enter"});
     fireEvent.click(screen.getByRole("button", { name: "Create case" }));
     await waitFor(() => expect(addCase).toHaveBeenCalledTimes(1));
     expect(addCase.mock.calls[0][0]).toMatchObject({
@@ -88,7 +89,8 @@ describe("one case form in two presentations", () => {
       const fileInput = document.querySelector('input[type="file"]')!;
       fireEvent.change(fileInput, { target: { files: [file] } });
       await screen.findByText("notice.pdf");
-      fireEvent.change(screen.getByLabelText("Property state *"), { target: { value: "GA" } });
+      fireEvent.keyDown(screen.getByLabelText("Property state *"), {key:"Enter"});
+    fireEvent.keyDown(screen.getByRole("option", {name: "Georgia"}), {key:"Enter"});
       fireEvent.click(screen.getByRole("button", { name: "Create case" }));
       await waitFor(() => expect(saved).toHaveBeenCalled());
       expect(addCase).toHaveBeenCalledTimes(1);
@@ -108,7 +110,8 @@ describe("one case form in two presentations", () => {
     render(<CaseForm presentation="page" onCancel={() => {}} onSaved={saved} />);
     fireEvent.change(screen.getByLabelText("Case Number"), { target: { value: "RETRY-1" } });
     fireEvent.change(screen.getByLabelText("Tenant *"), { target: { value: "Tenant" } });
-    fireEvent.change(screen.getByLabelText("Property state *"), { target: { value: "GA" } });
+    fireEvent.keyDown(screen.getByLabelText("Property state *"), {key:"Enter"});
+    fireEvent.keyDown(screen.getByRole("option", {name: "Georgia"}), {key:"Enter"});
     fireEvent.click(screen.getByRole("button", { name: "Create case" }));
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Create case" })).not.toBeDisabled(),
@@ -118,7 +121,8 @@ describe("one case form in two presentations", () => {
   });
   it("does not save when required fields are missing", () => {
     render(<CaseForm presentation="page" onCancel={() => {}} onSaved={() => {}} />);
-    fireEvent.change(screen.getByLabelText("Property state *"), { target: { value: "GA" } });
+    fireEvent.keyDown(screen.getByLabelText("Property state *"), {key:"Enter"});
+    fireEvent.keyDown(screen.getByRole("option", {name: "Georgia"}), {key:"Enter"});
     fireEvent.click(screen.getByRole("button", { name: "Create case" }));
     expect(addCase).not.toHaveBeenCalled();
   });

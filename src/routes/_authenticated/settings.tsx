@@ -1,3 +1,4 @@
+import { ModernSelect } from "@/components/ui/modern-select";
 import {IncomingEmailSettings} from "@/components/lf/incoming-email-settings";
 import { CompanyBranding } from "@/components/lf/company-branding";
 import { EmailSettings } from "@/components/lf/email-settings";
@@ -223,7 +224,7 @@ function Page() {
                   required
                   onChange={(e) => setFieldName(e.target.value)}
                 />
-                <select
+                <ModernSelect
                   aria-label="Field type"
                   className="h-10 w-full rounded-md border bg-background px-3 text-sm"
                   value={fieldType}
@@ -232,7 +233,7 @@ function Page() {
                   {["text", "number", "date", "checkbox", "email", "phone", "textarea"].map((t) => (
                     <option key={t}>{t}</option>
                   ))}
-                </select>
+                </ModernSelect>
                 <label className="flex gap-2 text-sm">
                   <input
                     type="checkbox"

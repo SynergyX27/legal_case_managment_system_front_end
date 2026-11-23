@@ -1,3 +1,4 @@
+import { ModernSelect } from "@/components/ui/modern-select";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useMe, useStore } from "@/lib/store";
@@ -19,7 +20,7 @@ export function WorkspaceAssignment({ row, afterSave }: { row: Case; afterSave?:
   if (me?.role !== "owner") return null;
   return (
     <div className="flex flex-wrap gap-2">
-      <select
+      <ModernSelect
         aria-label={"Community workspace for " + row.number}
         className="max-w-xs rounded border bg-background px-2 py-2 text-sm"
         value={value}
@@ -33,7 +34,7 @@ export function WorkspaceAssignment({ row, afterSave }: { row: Case; afterSave?:
               {w.name}
             </option>
           ))}
-      </select>
+      </ModernSelect>
       <Button
         variant="outline"
         disabled={busy || value === (row.workspaceId || "")}

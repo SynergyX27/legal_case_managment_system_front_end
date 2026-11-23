@@ -1,3 +1,4 @@
+import { ModernSelect } from "@/components/ui/modern-select";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { ShieldCheck, Users } from "lucide-react";
@@ -89,7 +90,7 @@ function PersonCard({ user, defaults }: { user: User; defaults: Record<string, b
             <label className="text-sm" htmlFor={`${user.id}-${key}`}>
               {label}
             </label>
-            <select
+            <ModernSelect
               id={`${user.id}-${key}`}
               className="rounded-lg border bg-card p-2 text-xs"
               value={overrides[key] === undefined ? "inherit" : String(overrides[key])}
@@ -104,7 +105,7 @@ function PersonCard({ user, defaults }: { user: User; defaults: Record<string, b
               <option value="inherit">Role default ({defaults[key] ? "allowed" : "denied"})</option>
               <option value="true">Allow</option>
               <option value="false">Deny</option>
-            </select>
+            </ModernSelect>
           </div>
         ))}
       </div>
@@ -182,7 +183,7 @@ function Page() {
             take priority over role defaults.
           </p>
         </div>
-        <select
+        <ModernSelect
           aria-label="Choose team member"
           className="h-11 w-full rounded-xl border bg-card px-3 text-sm sm:max-w-md"
           value={selected}
@@ -195,7 +196,7 @@ function Page() {
               {u.status === "Inactive" ? " (inactive)" : ""}
             </option>
           ))}
-        </select>
+        </ModernSelect>
         {person && (
           <PersonCard
             key={person.id + person.updatedAt}

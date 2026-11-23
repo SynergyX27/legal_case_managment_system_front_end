@@ -1,3 +1,4 @@
+import { ModernSelect } from "@/components/ui/modern-select";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Upload } from "lucide-react";
@@ -37,7 +38,7 @@ export function CaseImportDialog() {
   ) => (
     <label className="grid gap-1 text-sm">
       {label}
-      <select
+      <ModernSelect
         disabled={busy}
         className="h-10 rounded-lg border bg-background px-3"
         value={defaults[key]}
@@ -52,7 +53,7 @@ export function CaseImportDialog() {
             {x.name}
           </option>
         ))}
-      </select>
+      </ModernSelect>
     </label>
   );
   const template = () => {

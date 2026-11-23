@@ -1,3 +1,4 @@
+import { ModernSelect } from "@/components/ui/modern-select";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Mail, Plus, Send, Paperclip } from "lucide-react";
@@ -227,7 +228,7 @@ function Email() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="text-sm">
                   Case
-                  <select
+                  <ModernSelect
                     required
                     aria-label="Email case"
                     className="mt-1 w-full rounded border bg-background p-2"
@@ -243,11 +244,11 @@ function Email() {
                         {c.number} · {c.residentName}
                       </option>
                     ))}
-                  </select>
+                  </ModernSelect>
                 </label>
                 <label className="text-sm">
                   Registered customer
-                  <select
+                  <ModernSelect
                     required
                     aria-label="Email customer"
                     className="mt-1 w-full rounded border bg-background p-2"
@@ -260,7 +261,7 @@ function Email() {
                         {u.name} · {u.email}
                       </option>
                     ))}
-                  </select>
+                  </ModernSelect>
                 </label>
                 <Input
                   className="sm:col-span-2"

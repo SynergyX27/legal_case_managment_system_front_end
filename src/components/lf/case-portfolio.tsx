@@ -1,3 +1,4 @@
+import { ModernSelect } from "@/components/ui/modern-select";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Printer, Mail, Settings2 } from "lucide-react";
@@ -35,7 +36,7 @@ export function PortfolioFilters({
       {portfolioKeys.map((key) => (
         <label key={key} className="grid gap-1 text-xs text-muted-foreground">
           {portfolioLabels[key]}
-          <select
+          <ModernSelect
             className="h-9 min-w-36 rounded-lg border bg-background px-3 text-foreground"
             value={filters[key] || ""}
             onChange={(e) => onChange({ [key]: e.target.value })}
@@ -46,7 +47,7 @@ export function PortfolioFilters({
                 {value}
               </option>
             ))}
-          </select>
+          </ModernSelect>
         </label>
       ))}
     </>

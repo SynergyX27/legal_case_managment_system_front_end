@@ -1,3 +1,4 @@
+import { ModernSelect } from "@/components/ui/modern-select";
 import { caseAmounts } from "@/lib/case-portfolio";
 import { useState } from "react";
 import {
@@ -73,7 +74,7 @@ function Page() {
       <div className="mb-5 flex flex-wrap items-end gap-3 rounded-xl border bg-card p-4">
         <label className="grid gap-1 text-xs">
           Saved case view
-          <select
+          <ModernSelect
             className="h-9 rounded-lg border bg-background px-3"
             defaultValue=""
             onChange={(e) => {
@@ -87,7 +88,7 @@ function Page() {
                 {v.name}
               </option>
             ))}
-          </select>
+          </ModernSelect>
         </label>
         <PortfolioFilters
           cases={allCases}

@@ -1,3 +1,4 @@
+import { ModernSelect } from "@/components/ui/modern-select";
 import { caseAmounts } from "@/lib/case-portfolio";
 import { api } from "@/lib/api";
 import { CaseImportDialog } from "./case-import-dialog";
@@ -264,7 +265,7 @@ export function CasesTable() {
       <div className="mb-5 flex flex-wrap items-center gap-2" aria-label="Case views">
         <label className="flex items-center gap-2 text-sm">
           Saved view
-          <select
+          <ModernSelect
             className="h-9 rounded-lg border bg-background px-3"
             value={viewId}
             onChange={(e) => changeView(e.target.value)}
@@ -274,7 +275,7 @@ export function CasesTable() {
                 {view.name}
               </option>
             ))}
-          </select>
+          </ModernSelect>
         </label>
         {JSON.stringify(filters) !==
           JSON.stringify(s.savedViews.find((v) => v.id === viewId)?.filters) && (
@@ -447,7 +448,7 @@ export function CasesTable() {
             Select all {rows.length} matching cases
           </Button>
           {can(me, "cases.edit") && me?.role !== "staff" && (
-            <select
+            <ModernSelect
               aria-label="Assign selected cases to staff"
               className="h-9 rounded-lg border bg-card px-3"
               value=""
@@ -467,7 +468,7 @@ export function CasesTable() {
                     {u.name}
                   </option>
                 ))}
-            </select>
+            </ModernSelect>
           )}
           <Select
             disabled={bulkBusy || !can(me, "cases.edit")}

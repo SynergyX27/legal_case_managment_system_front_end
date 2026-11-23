@@ -1,3 +1,4 @@
+import { ModernSelect } from "@/components/ui/modern-select";
 import {api} from "@/lib/api";
 import { AddressSuggestions } from "./address-suggestions";
 import { TERRITORIES, PROPERTY_TYPES, normalizeState } from "@/lib/property";
@@ -421,7 +422,7 @@ export function CaseForm({
             }))}
           />
         </F>
-        {me?.role==="owner"&&<F label="Community workspace"><select className="h-10 w-full rounded-xl border bg-card px-3 text-sm" value={c.workspaceId||""} onChange={e=>set("workspaceId",e.target.value)}><option value="">Assign later</option>{workspaces.filter(w=>w.kind==="community"&&w.clientId===c.clientId&&!w.archived).map(w=><option key={w.id} value={w.id}>{w.name}</option>)}</select></F>}
+        {me?.role==="owner"&&<F label="Community workspace"><ModernSelect className="h-10 w-full rounded-xl border bg-card px-3 text-sm" value={c.workspaceId||""} onChange={e=>set("workspaceId",e.target.value)}><option value="">Assign later</option>{workspaces.filter(w=>w.kind==="community"&&w.clientId===c.clientId&&!w.archived).map(w=><option key={w.id} value={w.id}>{w.name}</option>)}</ModernSelect></F>}
         <F label="Client Email">
           <Input value={client?.email ?? ""} readOnly className="bg-muted" />
         </F>
@@ -498,7 +499,7 @@ export function CaseForm({
           </F>
         ))}
         <F label="Property state *">
-          <select
+          <ModernSelect
             className="h-10 w-full rounded-xl border border-input bg-card px-3 text-sm"
             value={c.state || ""}
             onChange={(e) => set("state", e.target.value)}
@@ -509,7 +510,7 @@ export function CaseForm({
                 {x.label}
               </option>
             ))}
-          </select>
+          </ModernSelect>
         </F>
         <F label="Additional Notes" span>
           <Textarea rows={2} value={c.notes} onChange={(e) => set("notes", e.target.value)} />

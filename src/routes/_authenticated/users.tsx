@@ -1,3 +1,4 @@
+import { ModernSelect } from "@/components/ui/modern-select";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -73,7 +74,7 @@ function Page() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        <select
+        <ModernSelect
           aria-label="Filter by role"
           className="h-10 rounded-xl border px-3 text-sm"
           value={filter}
@@ -85,7 +86,7 @@ function Page() {
               {r}
             </option>
           ))}
-        </select>
+        </ModernSelect>
       </div>
       <div className="overflow-x-auto rounded-xl border bg-card">
         <table className="w-full min-w-[800px] text-left text-sm">
@@ -203,7 +204,7 @@ function Page() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="access-role">Role</Label>
-              <select
+              <ModernSelect
                 id="access-role"
                 disabled={editing?.role === "customer" || editing?.id === me.id}
                 value={role}
@@ -217,11 +218,11 @@ function Page() {
                     </option>
                   ),
                 )}
-              </select>
+              </ModernSelect>
             </div>
             <div className="space-y-2">
               <Label htmlFor="access-status">Status</Label>
-              <select
+              <ModernSelect
                 id="access-status"
                 disabled={editing?.id === me.id}
                 value={status}
@@ -230,12 +231,12 @@ function Page() {
               >
                 <option>Active</option>
                 <option>Inactive</option>
-              </select>
+              </ModernSelect>
             </div>
             {role === "staff" && (
               <div className="space-y-2">
                 <Label htmlFor="access-manager">Responsible manager</Label>
-                <select
+                <ModernSelect
                   id="access-manager"
                   required
                   value={managerId}
@@ -250,7 +251,7 @@ function Page() {
                         {u.name}
                       </option>
                     ))}
-                </select>
+                </ModernSelect>
                 <p className="text-xs text-muted-foreground">
                   Changing the manager also moves this staff member’s existing cases to that
                   manager.

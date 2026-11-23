@@ -1,3 +1,4 @@
+import { Download, FileText, ImageIcon, Paperclip } from "lucide-react";
 import {WorkspaceAssignment} from "@/components/lf/workspace-assignment";
 import { SingleCaseReport } from "@/components/lf/single-case-report";
 import { caseAmounts } from "@/lib/case-portfolio";
@@ -171,6 +172,23 @@ function Page() {
               </div>
             ))}
             {c.description && <p className="mt-6 border-t pt-4 text-sm">{c.description}</p>}
+          </section>
+          <section className="rounded-xl border bg-card p-6">
+            <div className="mb-5 flex items-center gap-3">
+              <span className="rounded-xl bg-primary/10 p-2 text-primary"><Paperclip className="size-5" /></span>
+              <div><h2 className="font-semibold">Documents & photos <span className="text-muted-foreground">({c.attachments.length})</span></h2>
+              <p className="mt-1 text-xs text-muted-foreground">Files attached to this case</p></div>
+            </div>
+            {c.attachments.length ? <div className="grid gap-3 sm:grid-cols-2">
+              {c.attachments.map(file => {
+                const available = !!file.url?.startsWith("/api/documents/");
+                return <div key={file.id} className="flex min-w-0 items-center gap-3 rounded-xl border bg-muted/20 p-3">
+                  <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">{file.type === "image" ? <ImageIcon className="size-5" /> : <FileText className="size-5" />}</span>
+                  <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium" title={file.name}>{file.name}</p><p className="mt-1 text-xs text-muted-foreground">{file.size} · {fmtDate(file.uploadedAt)}</p></div>
+                  {available ? <Button asChild size="icon" variant="outline"><a href={`${file.url}${file.url!.includes("?") ? "&" : "?"}download=1`} download={file.name} aria-label={`Download ${file.name}`}><Download className="size-4" /></a></Button> : <span className="text-xs text-muted-foreground">Unavailable</span>}
+                </div>;
+              })}
+            </div> : <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">No documents or photos attached yet.</p>}
           </section>
           {canViewInvoices(me) && (
             <section className="rounded-xl border bg-card p-6">
