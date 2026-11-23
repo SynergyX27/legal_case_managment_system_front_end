@@ -1,3 +1,4 @@
+import { api } from "@/lib/api";
 import { ModernSelect } from "@/components/ui/modern-select";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
@@ -272,6 +273,18 @@ function Page() {
                 Leave blank to keep the existing password.
               </p>
             </div>
+            {editing && editing.id !== me.id && <div className="rounded-xl border border-destructive/30 p-3">
+              <p className="mb-3 text-xs text-muted-foreground">Delete this login only after its cases have been reassigned or removed. Managers must also have no assigned staff. Historical records and the customer company are retained.</p>
+              <Button type="button" variant="destructive" disabled={busy} onClick={async () => {
+                if (!window.confirm(`Delete ${editing.name}'s login? They will lose access on every device. Historical records are retained.`)) return;
+                setBusy(true);
+                try {
+                  await api(`/users/${editing.id}`, {method:"DELETE", body:{updatedAt:editing.updatedAt}});
+                  await s.refresh(); setEditing(null); toast.success("User deleted");
+                } catch (error) { toast.error((error as Error).message); }
+                finally { setBusy(false); }
+              }}>Delete user</Button>
+            </div>}
             <Button type="submit" disabled={busy}>
               {busy ? "Saving…" : "Save changes"}
             </Button>
