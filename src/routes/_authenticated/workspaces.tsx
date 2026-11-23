@@ -119,16 +119,12 @@ function Workspaces() {
     setGrants(rows.filter((w) => w.memberIds.includes(id)).map((w) => w.id));
   };
   const live = rows.filter((w) => !w.archived);
-  const filtered = live.filter(
+  const filtered = rows.filter(
     (w) =>
-      (kind === "all" || w.kind === kind) &&
+      w.kind === "territory" &&
+      (kind === "archived" ? owner && w.archived : !w.archived) &&
       (!company || w.clientId === company) &&
-      [
-        w.name,
-        w.state,
-        s.clients.find((c) => c.id === w.clientId)?.name,
-        rows.find((p) => p.id === w.parentId)?.name,
-      ]
+      [w.name, w.state, s.clients.find((c) => c.id === w.clientId)?.name]
         .join(" ")
         .toLowerCase()
         .includes(filter.toLowerCase()),
@@ -157,7 +153,7 @@ function Workspaces() {
           </div>
           <h1 className="font-display text-3xl font-semibold tracking-tight">Workspaces</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            A clear home for every territory, community and case file.
+            Open a workspace to manage its communities and case files.
           </p>
         </div>
         {owner && (
@@ -189,18 +185,18 @@ function Workspaces() {
           <div className="grid gap-4 sm:grid-cols-3">
             {[
               {
-                label: "Territories",
+                label: "Workspaces",
                 count: live.filter((w) => w.kind === "territory").length,
                 icon: MapPin,
                 description: "Your markets and regions",
-                click: () => setKind("territory"),
+                click: () => setKind("all"),
               },
               {
                 label: "Communities",
                 count: live.filter((w) => w.kind === "community").length,
                 icon: Building2,
                 description: "Properties, connected",
-                click: () => setKind("community"),
+                click: () => setKind("all"),
               },
               {
                 label: "Unassigned cases",
@@ -247,9 +243,8 @@ function Workspaces() {
             <div className="workspace-toolbar flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card p-3">
               <div className="flex rounded-xl bg-muted p-1">
                 {[
-                  { id: "all", label: "All workspaces" },
-                  { id: "territory", label: "Territories" },
-                  { id: "community", label: "Communities" },
+                  { id: "all", label: "Active workspaces" },
+                  ...(owner ? [{ id: "archived", label: "Archived workspaces" }] : []),
                 ].map((t) => (
                   <button
                     key={t.id}
@@ -313,7 +308,7 @@ function Workspaces() {
                         )}
                       </span>
                       <span className="rounded-full border border-primary/10 bg-card/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        {w.kind}
+                        {w.kind === "territory" ? "Workspace" : "Community"}
                         {w.state ? " · " + w.state : ""}
                       </span>
                     </div>
@@ -356,13 +351,13 @@ function Workspaces() {
                   {live.length
                     ? "Try another search or customer filter."
                     : owner
-                      ? "Start with a territory, then add communities to organize your customers’ case files."
+                      ? "Create a workspace for a territory or market, then open it to add communities."
                       : "Your assigned workspaces will appear here once the owner sets up your access."}
                 </p>
                 {owner && !live.length && (
                   <Button className="mt-6" onClick={openCreate}>
                     <Plus className="mr-2 size-4" />
-                    Create your first territory
+                    Create your first workspace
                   </Button>
                 )}
                 {live.length > 0 && (
@@ -418,12 +413,80 @@ function Workspaces() {
               · {cases.length} cases
             </p>
           </div>
+          {active?.kind === "community" && (
+            <button
+              className="text-sm font-medium text-primary"
+              onClick={() => navigateWorkspace(active.parentId)}
+            >
+              ← {rows.find((w) => w.id === active.parentId)?.name || "Parent workspace"}
+            </button>
+          )}
+          {active?.kind === "territory" && (
+            <section className="rounded-2xl border bg-card p-6">
+              <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold">Communities in {active.name}</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Workspace → Community → Case files
+                  </p>
+                </div>
+                {owner && !active.archived && (
+                  <Button
+                    onClick={() => {
+                      setEdit("");
+                      setForm({
+                        name: "",
+                        clientId: active.clientId,
+                        kind: "community",
+                        parentId: active.id,
+                        state: active.state,
+                      });
+                      setDialog("create");
+                    }}
+                  >
+                    <Plus className="mr-2 size-4" />
+                    Add community
+                  </Button>
+                )}
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {rows
+                  .filter((w) => w.parentId === active.id && (!w.archived || owner))
+                  .map((w) => (
+                    <button
+                      key={w.id}
+                      onClick={() => navigateWorkspace(w.id)}
+                      className="rounded-xl border p-5 text-left transition hover:border-primary"
+                    >
+                      <Building2 className="mb-3 size-5 text-primary" />
+                      <h3 className="font-semibold">
+                        {w.name}
+                        {w.archived ? " (archived)" : ""}
+                      </h3>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {w.caseCount} cases · Open community →
+                      </p>
+                    </button>
+                  ))}
+              </div>
+              {!rows.some((w) => w.parentId === active.id) && (
+                <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+                  No communities yet.
+                  {owner
+                    ? " Use Add community to create one inside this workspace."
+                    : " Communities will appear here when assigned."}
+                </p>
+              )}
+            </section>
+          )}
           <section className="overflow-hidden rounded-2xl border bg-card">
             <div className="border-b px-6 py-5">
               <h2 className="text-lg font-semibold">{active ? active.name : "Unassigned cases"}</h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 {active
-                  ? "Case files in this workspace."
+                  ? active.kind === "territory"
+                    ? "All case files from the communities in this workspace."
+                    : "Case files assigned to this community."
                   : "Assign these case files to the right community."}
               </p>
             </div>
@@ -490,22 +553,28 @@ function Workspaces() {
                       });
                     }}
                   >
-                    Edit workspace
+                    Edit {active.kind === "community" ? "community" : "workspace"}
                   </Button>
                   <Button
                     variant="outline"
+                    className="text-destructive"
                     disabled={busy}
                     onClick={() => {
-                      if (confirm("Archive this empty workspace?"))
-                        void action(() =>
-                          api(`/workspaces/${active.id}/archive`, {
-                            method: "POST",
+                      if (
+                        confirm(
+                          `Permanently delete ${active.kind === "community" ? "community" : "workspace"} “${active.name}”? Cases and child communities must be deleted first.`,
+                        )
+                      )
+                        void action(async () => {
+                          await api(`/workspaces/${active.id}`, {
+                            method: "DELETE",
                             body: { updatedAt: active.updatedAt },
-                          }),
-                        );
+                          });
+                          navigateWorkspace(active.parentId || "");
+                        });
                     }}
                   >
-                    Archive empty workspace
+                    Delete {active.kind === "community" ? "community" : "workspace"}
                   </Button>
                 </div>
               )}
@@ -566,11 +635,21 @@ function Workspaces() {
           >
             <DialogContent className="workspace-dialog max-h-[90vh] overflow-y-auto sm:max-w-[540px]">
               <DialogHeader>
-                <DialogTitle>{edit ? "Edit workspace" : "Create a workspace"}</DialogTitle>
+                <DialogTitle>
+                  {edit
+                    ? form.kind === "community"
+                      ? "Edit community"
+                      : "Edit workspace"
+                    : form.kind === "community"
+                      ? "Add a community"
+                      : "Create a workspace"}
+                </DialogTitle>
                 <DialogDescription>
                   {edit
                     ? "Update the name and state for this workspace."
-                    : "Create a territory first, then add the communities within it."}
+                    : form.kind === "community"
+                      ? "This community belongs to the workspace you opened."
+                      : "After saving, open this workspace to add its communities."}
                 </DialogDescription>
               </DialogHeader>{" "}
               <form
@@ -592,7 +671,7 @@ function Workspaces() {
                   Customer company
                   <select
                     required
-                    disabled={!!edit}
+                    disabled={!!edit || form.kind === "community"}
                     className="mt-1 w-full rounded border bg-background p-2"
                     value={form.clientId}
                     onChange={(e) => setForm({ ...form, clientId: e.target.value, parentId: "" })}
@@ -605,44 +684,20 @@ function Workspaces() {
                     ))}
                   </select>
                 </label>
+                <div className="rounded-xl border bg-primary/5 p-4 text-sm">
+                  <p className="font-semibold">
+                    {form.kind === "community"
+                      ? "Community inside a workspace"
+                      : "Workspace for a territory / market"}
+                  </p>
+                  {form.kind === "community" && (
+                    <p className="mt-1 text-muted-foreground">
+                      Workspace: {rows.find((w) => w.id === form.parentId)?.name}
+                    </p>
+                  )}
+                </div>
                 <label className="block text-sm">
-                  Workspace type
-                  <select
-                    disabled={!!edit}
-                    className="mt-1 w-full rounded border bg-background p-2"
-                    value={form.kind}
-                    onChange={(e) => setForm({ ...form, kind: e.target.value, parentId: "" })}
-                  >
-                    <option value="territory">Territory / market</option>
-                    <option value="community">Community / property group</option>
-                  </select>
-                </label>
-                {form.kind === "community" && (
-                  <label className="block text-sm">
-                    Parent territory
-                    <select
-                      required
-                      disabled={!!edit}
-                      className="mt-1 w-full rounded border bg-background p-2"
-                      value={form.parentId}
-                      onChange={(e) => setForm({ ...form, parentId: e.target.value })}
-                    >
-                      <option value="">Select territory</option>
-                      {rows
-                        .filter(
-                          (w) =>
-                            w.clientId === form.clientId && w.kind === "territory" && !w.archived,
-                        )
-                        .map((w) => (
-                          <option key={w.id} value={w.id}>
-                            {w.name}
-                          </option>
-                        ))}
-                    </select>
-                  </label>
-                )}
-                <label className="block text-sm">
-                  Workspace name
+                  {form.kind === "community" ? "Community name" : "Workspace name"}
                   <Input
                     required
                     aria-label="Workspace name"
@@ -661,7 +716,9 @@ function Workspaces() {
                     onChange={(e) => setForm({ ...form, state: e.target.value.toUpperCase() })}
                   />
                 </label>
-                <Button disabled={busy}>Save workspace</Button>
+                <Button disabled={busy}>
+                  {form.kind === "community" ? "Save community" : "Save workspace"}
+                </Button>
                 {edit && (
                   <Button
                     type="button"
@@ -754,7 +811,7 @@ function Workspaces() {
                               )
                             }
                           />
-                          {w.name} · {w.kind}
+                          {w.name} · {w.kind === "territory" ? "Workspace" : "Community"}
                         </label>
                       ))}
                   </div>
