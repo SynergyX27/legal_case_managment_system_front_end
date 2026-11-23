@@ -1,3 +1,5 @@
+import { OwnerUserForm } from "@/components/lf/user-editor";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Building2, Mail, Phone, Plus, Search, Users } from "lucide-react";
@@ -39,6 +41,7 @@ function ClientsPage() {
   const openClient = useUI((u) => u.openClient);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
+  const [loginFor, setLoginFor] = useState<string | null>(null);
   const scoped = s.clients.filter(
     (c) => cases.some((x) => x.clientId === c.id) || me?.role === "owner",
   );
@@ -47,19 +50,19 @@ function ClientsPage() {
   return (
     <>
       <PageHeader
-        title="Clients"
-        subtitle={`${scoped.length} client relationships`}
+        title="Customers"
+        subtitle={`${scoped.length} customer profiles - login accounts are managed separately in People & access`}
         actions={
           <Button disabled={me?.role !== "owner"} onClick={() => openClient()}>
             <Plus />
-            Add client
+            Add customer & login
           </Button>
         }
       />
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
         {[
-          [Users, "Active clients", scoped.filter((c) => c.status === "Active").length],
-          [Building2, "Total customers", scoped.length],
+          [Users, "Active customer profiles", scoped.filter((c) => c.status === "Active").length],
+          [Building2, "Customer profiles", scoped.length],
           [Mail, "Open case files", openCases],
         ].map(([Icon, label, value]) => {
           const I = Icon as typeof Users;
@@ -81,6 +84,11 @@ function ClientsPage() {
           );
         })}
       </div>
+      {me?.role === "owner" && <div className="mb-5 rounded-xl border bg-primary/5 p-4 text-sm">
+        <p className="font-medium">Customer profile = company/contact. Login account = a person who can sign in.</p>
+        <p className="mt-1 text-muted-foreground">A profile can have no login, one login or several. Deleting a login keeps the customer profile and its history.</p>
+        <p className="mt-2">{scoped.filter(c => s.users.some(u => u.role === "customer" && u.clientId === c.id)).length} profiles with logins · {scoped.filter(c => !s.users.some(u => u.role === "customer" && u.clientId === c.id)).length} without logins</p>
+      </div>}
       <div className="records-toolbar mb-4 flex flex-wrap gap-2">
         <div className="relative min-w-0 flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
@@ -113,6 +121,7 @@ function ClientsPage() {
               <th className="px-4 py-3 font-medium">Client</th>
               <th className="px-4 py-3 font-medium">Contact</th>
               <th className="px-4 py-3 font-medium">Status</th>
+              {me?.role === "owner" && <th className="px-4 py-3 font-medium">Login accounts</th>}
               <th className="px-4 py-3 font-medium">Cases</th>
               <th className="px-4 py-3 font-medium">Billed</th>
               <th className="px-4 py-3 font-medium">Last service</th>
@@ -122,6 +131,8 @@ function ClientsPage() {
           <tbody className="divide-y">
             {rows.map((c) => {
               const m = clientMetrics(c, cases, s.invoices);
+              const logins = s.users.filter(u => u.role === "customer" && u.clientId === c.id);
+              const active = logins.filter(u => u.status === "Active").length;
               return (
                 <tr key={c.id}>
                   <td className="px-4 py-3">
@@ -152,6 +163,11 @@ function ClientsPage() {
                   <td className="px-4 py-3">
                     <StatusBadge value={c.status} />
                   </td>
+                  {me?.role === "owner" && <td className="px-4 py-3">
+                    <p className={active ? "text-info font-medium" : "text-muted-foreground"}>{!logins.length ? "No login" : `${logins.length} login${logins.length === 1 ? "" : "s"}`}</p>
+                    {!!logins.length && <p className="mt-1 text-xs text-muted-foreground">{active} active · {logins.length-active} inactive</p>}
+                    {!logins.length ? <Button variant="link" className="h-auto px-0 py-1" onClick={() => setLoginFor(c.id)}>Add login</Button> : <Link to="/users" className="mt-1 inline-block text-xs text-info hover:underline">Manage logins</Link>}
+                  </td>}
                   <td className="px-4 py-3 tabular-nums">
                     {m.open} open · {m.total} total
                   </td>
@@ -178,6 +194,13 @@ function ClientsPage() {
           </div>
         )}
       </div>
+      <Dialog open={!!loginFor} onOpenChange={open => !open && setLoginFor(null)}>
+        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader><DialogTitle>Add login to {s.clients.find(c => c.id === loginFor)?.name}</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">This creates an account linked to the existing profile, without creating a duplicate customer. Then assign its workspace access from Workspaces → Manage access. Previously deleted usernames and emails remain reserved; use unused login details.</p>
+          <OwnerUserForm key={loginFor} defaultRole="customer" initialClientId={loginFor || undefined} allowRoleSelection={false} onSaved={() => setLoginFor(null)} />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

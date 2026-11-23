@@ -42,7 +42,7 @@ function Page() {
     <>
       <PageHeader
         title="People & access"
-        subtitle="Create team accounts, customer profiles and their login credentials."
+        subtitle="Login accounts for people who can sign in. A customer profile can have several logins or none."
         actions={
           <>
             <Button variant="outline" onClick={() => openCreate("customer")}>
@@ -59,7 +59,7 @@ function Page() {
       <div className="mb-6 grid grid-cols-2 gap-3 xl:grid-cols-4">
         {(["owner", "manager", "staff", "customer"] as Role[]).map((r) => (
           <div key={r} className="metric-card">
-            <p className="metric-label capitalize">{r === "staff" ? "Staff members" : r + "s"}</p>
+            <p className="metric-label capitalize">{r === "customer" ? "Customer logins" : r === "staff" ? "Staff members" : r + "s"}</p>
             <p className="metric-value">{s.users.filter((u) => u.role === r).length}</p>
             <p className="metric-footer">
               {s.users.filter((u) => u.role === r && u.status === "Active").length} active

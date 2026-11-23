@@ -111,15 +111,20 @@ export function OwnerUserForm({
   defaultRole = "customer",
   onSaved,
   allowRoleSelection = true,
+  initialClientId,
 }: {
   defaultRole?: Role;
   onSaved: () => void;
   allowRoleSelection?: boolean;
+  initialClientId?: string;
 }) {
   const s = useStore();
   const [draft, setDraft] = useState(() => blankUser(defaultRole)),
     [busy, setBusy] = useState(false);
-  useEffect(() => setDraft(blankUser(defaultRole)), [defaultRole]);
+  useEffect(() => {
+    const c = s.clients.find(c => c.id === initialClientId);
+    setDraft({...blankUser(defaultRole), ...(c ? {clientId:c.id,name:c.name,email:c.email,phone:c.phone,address:c.address,company:c.company} : {})});
+  }, [defaultRole, initialClientId]);
   const role = draft.role ?? "customer";
   return (
     <form
@@ -133,7 +138,7 @@ export function OwnerUserForm({
           if (error) toast.error(error);
           else {
             toast.success(
-              `${role === "customer" ? "Customer profile and login" : "User login"} created`,
+              `${role === "customer" ? draft.clientId ? "Customer login" : "Customer profile and login" : "User login"} created`,
             );
             onSaved();
           }
@@ -176,6 +181,7 @@ export function OwnerUserForm({
           <Label htmlFor="existing-customer">Customer profile</Label>
           <ModernSelect
             id="existing-customer"
+            disabled={!!initialClientId}
             className="h-10 w-full rounded-xl border bg-card px-3 text-sm"
             value={draft.clientId ?? ""}
             onChange={(e) => {
@@ -228,7 +234,7 @@ export function OwnerUserForm({
       )}
       <UserFields value={draft} onChange={setDraft} customer={role === "customer"} />
       <Button type="submit" className="w-full" disabled={busy}>
-        {busy ? "Creating…" : role === "customer" ? "Create customer & login" : "Create user"}
+        {busy ? "Creating…" : role === "customer" ? draft.clientId ? "Create login" : "Create customer & login" : "Create user"}
       </Button>
     </form>
   );
