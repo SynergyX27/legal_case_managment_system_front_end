@@ -58,5 +58,11 @@ export function validateInvoice(i: Invoice, invoices: Invoice[]) {
     return "Each line needs a description, positive quantity and non-negative price";
   if (!Number.isFinite(i.taxRate) || i.taxRate < 0 || i.taxRate > 100)
     return "Tax rate must be between 0 and 100";
+  if (
+    !Number.isFinite(i.discount || 0) ||
+    (i.discount || 0) < 0 ||
+    (i.discount || 0) > invoiceTotal(i).sub
+  )
+    return "Discount must be between zero and the base price";
   return "";
 }

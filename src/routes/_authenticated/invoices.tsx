@@ -1,3 +1,4 @@
+import { InvoiceDelivery } from "@/components/lf/invoice-delivery";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
@@ -92,7 +93,7 @@ function Page() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
   const [clientId, setClientId] = useState("");
-  const [previewId, setPreviewId] = useState<string | null>(null);
+  const [previewId, setPreviewId] = useState<string | null>(searchParams.invoiceId || null);
   const [paidId, setPaidId] = useState<string | null>(null);
   const [paymentConfig, setPaymentConfig] = useState<{
     enabled: boolean;
@@ -174,7 +175,9 @@ function Page() {
       cases.some((c) => c.id === i.caseId) && (me?.role !== "customer" || i.status !== "Draft"),
   );
   const rows = filterInvoices(
-    searchParams.caseId ? invoices.filter((i) => i.caseId === searchParams.caseId) : invoices,
+    searchParams.caseId
+      ? invoices.filter((i) => (i.caseIds || [i.caseId]).includes(searchParams.caseId!))
+      : invoices,
     s.clients,
     query,
     status,
@@ -540,6 +543,7 @@ function Page() {
           </DialogHeader>
           {preview && (
             <>
+              <InvoiceDelivery invoice={preview} editable={bill || can(me, "invoices.create")} />
               <div className="flex flex-wrap justify-between gap-4 border-b pb-4">
                 <div>
                   <div className="font-display text-xl font-semibold">LegalFlow</div>
@@ -580,7 +584,26 @@ function Page() {
                   <tbody className="divide-y">
                     {preview.lines.map((l, n) => (
                       <tr key={n}>
-                        <td className="py-3 pr-4">{l.description}</td>
+                        <td className="py-3 pr-4">
+                          {l.description}
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {(() => {
+                              const c = preview.caseSnapshots?.find(
+                                (c) => c.id === (l.caseId || preview.caseId),
+                              );
+                              return c
+                                ? `${c.serviceDate} · CAS # ${c.refId || "-"} · Case ${c.number} · ${c.tenant} · Unit ${c.unit || "-"}`
+                                : "";
+                            })()}
+                            <p>Service outcome: {l.serviceOutcome || "Not recorded"}</p>
+                            <a
+                              className="text-primary underline"
+                              href={`/cases/${encodeURIComponent(l.caseId || preview.caseId)}`}
+                            >
+                              VIS · case visuals
+                            </a>
+                          </div>
+                        </td>
                         <td className="pr-4">{l.qty}</td>
                         <td className="pr-4">{money(l.price)}</td>
                         <td className="text-right">{money(l.qty * l.price)}</td>
@@ -591,8 +614,16 @@ function Page() {
               </div>
               <div className="ml-auto w-56 space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span>Subtotal</span>
+                  <span>Base price</span>
                   {money(invoiceTotal(preview).sub)}
+                </div>
+                <div className="flex justify-between">
+                  <span>Discount</span>
+                  {money(invoiceTotal(preview).discount)}
+                </div>
+                <div className="flex justify-between">
+                  <span>Amount</span>
+                  {money(invoiceTotal(preview).amount)}
                 </div>
                 <div className="flex justify-between">
                   <span>Tax ({preview.taxRate}%)</span>

@@ -1,3 +1,4 @@
+import { invoiceTotals } from "./invoice-math";
 import { useUI } from "./ui-store";
 import { create } from "zustand";
 import { toast } from "sonner";
@@ -397,7 +398,8 @@ export const useStore = create<State>((set, get) => {
         return false;
       }
     },
-    deleteCase: (id, deleteEmailConversations = false) => mutate(`/cases/${id}`, "DELETE", {deleteEmailConversations}),
+    deleteCase: (id, deleteEmailConversations = false) =>
+      mutate(`/cases/${id}`, "DELETE", { deleteEmailConversations }),
     addAttachments: async (id, files) => {
       try {
         await upload(files, id);
@@ -503,8 +505,14 @@ export const canAccess = (subject: string | User | null | undefined, section: st
 export const money = (n: number) =>
   n.toLocaleString("en-US", { style: "currency", currency: "USD" });
 export const invoiceTotal = (i: Invoice) => {
-  const sub = i.lines.reduce((s, l) => s + l.qty * l.price, 0);
-  return { sub, tax: (sub * i.taxRate) / 100, total: sub * (1 + i.taxRate / 100) };
+  const t = invoiceTotals(i);
+  return {
+    sub: t.base / 100,
+    discount: t.discount / 100,
+    amount: t.net / 100,
+    tax: t.tax / 100,
+    total: t.total / 100,
+  };
 };
 export const fmtDate = (d: string) =>
   d

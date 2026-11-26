@@ -1,9 +1,12 @@
 import { caseMoney } from "./case-portfolio";
 import type { Case, Client, Invoice, User } from "./domain";
 import { STATUSES } from "./domain";
-import { totalFor } from "./billing";
+import { caseInvoiceTotal } from "./billing";
 export function buildReports(cases: Case[], invoices: Invoice[], users: User[], clients: Client[]) {
-  const related = invoices.filter((i) => cases.some((c) => c.id === i.caseId));
+  const related = invoices.filter((i) =>
+    cases.some((c) => (i.caseIds || [i.caseId]).includes(c.id)),
+  );
+  const totalFor = (i: Invoice) => cases.reduce((s, c) => s + caseInvoiceTotal(i, c.id), 0);
   const sum = (statuses: string[]) =>
     related.filter((i) => statuses.includes(i.status)).reduce((n, i) => n + totalFor(i), 0);
   const completed = cases.filter((c) => c.status === "Completed").length;

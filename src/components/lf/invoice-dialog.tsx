@@ -41,12 +41,16 @@ export function InvoiceDialog() {
       number: "Assigned on save",
       clientId: c.clientId,
       caseId: c.id,
+      caseIds: [c.id],
+      discount: 0,
       date: iso(d),
       dueDate: iso(new Date(d.getTime() + 30 * 864e5)),
       taxRate: 0,
       status: "Draft",
       lines: [
         {
+          caseId: c.id,
+          serviceOutcome: "",
           description: `${c.type} – service to ${c.residentName} on ${c.serviceDate}`,
           qty: 1,
           price: 0,
@@ -59,7 +63,15 @@ export function InvoiceDialog() {
     if (!invoiceDialog.open) return;
     if (invoiceDialog.invoiceId) {
       const existing = s.invoices.find((i) => i.id === invoiceDialog.invoiceId);
-      setInv(existing ? { ...existing, lines: existing.lines.map((l) => ({ ...l })) } : null);
+      setInv(
+        existing
+          ? {
+              ...existing,
+              pricingVersion: existing.pricingVersion || (!existing.caseIds ? 1 : 2),
+              lines: existing.lines.map((l) => ({ ...l })),
+            }
+          : null,
+      );
     } else setInv(fromCase(invoiceDialog.caseId ?? visibleCases[0]?.id ?? ""));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invoiceDialog.open, invoiceDialog.invoiceId, invoiceDialog.caseId]);
@@ -103,6 +115,7 @@ export function InvoiceDialog() {
           <div className="space-y-1.5 sm:col-span-2">
             <Label className="text-xs text-muted-foreground">Related case</Label>
             <Select
+              disabled={!!invoiceDialog.invoiceId}
               value={inv.caseId}
               onValueChange={(v) => {
                 const next = fromCase(v);
@@ -110,6 +123,7 @@ export function InvoiceDialog() {
                   setInv({
                     ...inv,
                     caseId: next.caseId,
+                    caseIds: [next.caseId],
                     clientId: next.clientId,
                     lines: next.lines,
                   });
@@ -196,6 +210,64 @@ export function InvoiceDialog() {
             </Select>
           </div>
         </div>
+        {!invoiceDialog.invoiceId && c?.propertyType === "APT" && (
+          <div className="rounded-xl border bg-muted/30 p-4 space-y-2">
+            <Label>Group apartment cases (same customer, community and service date)</Label>
+            {!c.workspaceId && (
+              <p className="text-xs text-muted-foreground">
+                Assign this case to a community before grouping.
+              </p>
+            )}
+            {visibleCases
+              .filter(
+                (x) =>
+                  x.id !== c.id &&
+                  x.propertyType === "APT" &&
+                  !!c.workspaceId &&
+                  x.workspaceId === c.workspaceId &&
+                  x.clientId === c.clientId &&
+                  x.serviceDate === c.serviceDate,
+              )
+              .map((x) => (
+                <label key={x.id} className="flex items-center gap-2 text-sm py-1">
+                  <input
+                    type="checkbox"
+                    checked={inv.caseIds?.includes(x.id) || false}
+                    onChange={(e) =>
+                      setInv({
+                        ...inv,
+                        caseIds: e.target.checked
+                          ? [...(inv.caseIds || [inv.caseId]), x.id]
+                          : (inv.caseIds || []).filter((id) => id !== x.id),
+                        lines: e.target.checked
+                          ? [
+                              ...inv.lines,
+                              {
+                                caseId: x.id,
+                                description: `${x.number} - ${x.residentName}`,
+                                qty: 1,
+                                price: 0,
+                                serviceOutcome: "",
+                              },
+                            ]
+                          : inv.lines.filter((l) => l.caseId !== x.id),
+                      })
+                    }
+                  />
+                  {x.number} · {x.residentName} · Unit {x.unit || "-"}
+                </label>
+              ))}
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Template:{" "}
+          {(inv.caseIds?.length || 1) > 1
+            ? "T2B · Multiple apartments"
+            : c?.propertyType === "APT"
+              ? "T2A · Single apartment"
+              : "T1 · Home / commercial"}
+          . Case details populate automatically when saved.
+        </p>
         <div className="space-y-2">
           <div className="hidden grid-cols-[1fr_70px_100px_32px] gap-2 text-xs text-muted-foreground sm:grid">
             <span>Description</span>
@@ -204,56 +276,128 @@ export function InvoiceDialog() {
             <span />
           </div>
           {inv.lines.map((l, i) => (
-            <div
-              key={i}
-              className="grid grid-cols-[1fr_1fr_36px] gap-2 border-b pb-3 sm:grid-cols-[1fr_70px_100px_32px] sm:border-0 sm:pb-0"
-            >
-              <Input
-                aria-label={`Line ${i + 1} description`}
-                className="col-span-3 sm:col-span-1"
-                value={l.description}
-                onChange={(e) => setLine(i, "description", e.target.value)}
-              />
-              <Input
-                aria-label={`Line ${i + 1} quantity`}
-                type="number"
-                min="0.01"
-                step="any"
-                value={l.qty}
-                onChange={(e) => setLine(i, "qty", e.target.value)}
-              />
-              <Input
-                aria-label={`Line ${i + 1} price`}
-                type="number"
-                min="0"
-                step="0.01"
-                value={l.price}
-                onChange={(e) => setLine(i, "price", e.target.value)}
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={`Remove line ${i + 1}`}
-                onClick={() => setInv({ ...inv, lines: inv.lines.filter((_, j) => j !== i) })}
+            <div key={i} className="rounded-xl border p-3 space-y-2">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <Select
+                  value={l.caseId || inv.caseId}
+                  onValueChange={(caseId) =>
+                    setInv({
+                      ...inv,
+                      lines: inv.lines.map((x, n) => (n === i ? { ...x, caseId } : x)),
+                    })
+                  }
+                >
+                  <SelectTrigger aria-label={`Line ${i + 1} case`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(inv.caseIds || [inv.caseId]).map((id) => (
+                      <SelectItem key={id} value={id}>
+                        {s.cases.find((c) => c.id === id)?.number || id}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={l.serviceOutcome || "none"}
+                  onValueChange={(v) =>
+                    setInv({
+                      ...inv,
+                      lines: inv.lines.map((x, n) =>
+                        n === i
+                          ? {
+                              ...x,
+                              serviceOutcome: (v === "none" ? "" : v) as typeof l.serviceOutcome,
+                            }
+                          : x,
+                      ),
+                    })
+                  }
+                >
+                  <SelectTrigger aria-label={`Line ${i + 1} service outcome`}>
+                    <SelectValue placeholder="Service outcome" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {["none", "Cleared", "Skipped", "Vacant", "Paid"].map((v) => (
+                      <SelectItem key={v} value={v}>
+                        {v === "none" ? "Service outcome (optional)" : v}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div
+                key={i}
+                className="grid grid-cols-[1fr_1fr_36px] gap-2 border-b pb-3 sm:grid-cols-[1fr_70px_100px_32px] sm:border-0 sm:pb-0"
               >
-                <Trash2 className="size-4" />
-              </Button>
+                <Input
+                  aria-label={`Line ${i + 1} description`}
+                  className="col-span-3 sm:col-span-1"
+                  value={l.description}
+                  onChange={(e) => setLine(i, "description", e.target.value)}
+                />
+                <Input
+                  aria-label={`Line ${i + 1} quantity`}
+                  type="number"
+                  min="0.01"
+                  step="any"
+                  value={l.qty}
+                  onChange={(e) => setLine(i, "qty", e.target.value)}
+                />
+                <Input
+                  aria-label={`Line ${i + 1} price`}
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={l.price}
+                  onChange={(e) => setLine(i, "price", e.target.value)}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`Remove line ${i + 1}`}
+                  onClick={() => setInv({ ...inv, lines: inv.lines.filter((_, j) => j !== i) })}
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
             </div>
           ))}
           <Button
             variant="outline"
             size="sm"
             onClick={() =>
-              setInv({ ...inv, lines: [...inv.lines, { description: "", qty: 1, price: 0 }] })
+              setInv({
+                ...inv,
+                lines: [...inv.lines, { caseId: inv.caseId, description: "", qty: 1, price: 0 }],
+              })
             }
           >
             <Plus className="size-4" /> Add line
           </Button>
         </div>
+        <div className="space-y-1">
+          <Label>Discount ($, before tax)</Label>
+          <Input
+            type="number"
+            min="0"
+            step="0.01"
+            value={inv.discount || 0}
+            onChange={(e) => setInv({ ...inv, discount: Number(e.target.value) })}
+          />
+        </div>
         <div className="ml-auto w-56 space-y-1 text-sm">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Subtotal</span>
+            <span className="text-muted-foreground">Base price</span>
             {money(t.sub)}
+          </div>
+          <div className="flex justify-between">
+            <span>Discount</span>
+            {money(t.discount)}
+          </div>
+          <div className="flex justify-between">
+            <span>Amount</span>
+            {money(t.amount)}
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Tax ({inv.taxRate}%)</span>

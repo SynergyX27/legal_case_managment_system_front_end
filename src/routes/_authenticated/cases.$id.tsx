@@ -1,7 +1,7 @@
-import {useCaseViewLayout} from "@/lib/case-view-layout";
+import { useCaseViewLayout } from "@/lib/case-view-layout";
 import "@/styles/case-view-layout.css";
 import { Download, FileText, ImageIcon, Paperclip } from "lucide-react";
-import {WorkspaceAssignment} from "@/components/lf/workspace-assignment";
+import { WorkspaceAssignment } from "@/components/lf/workspace-assignment";
 import { SingleCaseReport } from "@/components/lf/single-case-report";
 import { caseAmounts } from "@/lib/case-portfolio";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -21,7 +21,7 @@ function Page() {
     cases = useVisibleCases(),
     ui = useUI();
   const [comment, setComment] = useState("");
-  const [viewLayout,setViewLayout]=useCaseViewLayout(me?.id || "guest");
+  const [viewLayout, setViewLayout] = useCaseViewLayout(me?.id || "guest");
   const c = cases.find((c) => c.id === id);
   if (!c)
     return (
@@ -33,7 +33,9 @@ function Page() {
   const customer = me?.role === "customer",
     b = caseBilling(s.invoices, id),
     client = s.clients.find((x) => x.id === c.clientId);
-  const invoices = s.invoices.filter((i) => i.caseId === id && (!customer || i.status !== "Draft"));
+  const invoices = s.invoices.filter(
+    (i) => (i.caseIds || [i.caseId]).includes(id) && (!customer || i.status !== "Draft"),
+  );
   const fields = [
     ["Responsible staff", s.users.find((u) => u.id === c.staffId)?.name],
     ["Responsible manager", s.users.find((u) => u.id === c.managerId)?.name],
@@ -148,7 +150,9 @@ function Page() {
           </>
         }
       />
-      <div className="mb-4"><WorkspaceAssignment row={c}/></div>
+      <div className="mb-4">
+        <WorkspaceAssignment row={c} />
+      </div>
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <StatusBadge value={c.status} />
         <StatusBadge value={c.priority} />
@@ -158,49 +162,128 @@ function Page() {
       </div>
       <div className="grid gap-6 xl:grid-cols-[1fr_320px]">
         <div className="space-y-6">
-          <section className="case-details-panel rounded-xl border bg-card p-6" data-view-layout={viewLayout}>
+          <section
+            className="case-details-panel rounded-xl border bg-card p-6"
+            data-view-layout={viewLayout}
+          >
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b pb-4">
-              <div><h2 className="text-sm font-semibold">View layout</h2><p className="text-xs text-muted-foreground">{viewLayout === "stacked" ? "Sections from top to bottom" : "Case, Property and Financials across; Data below Financials"}</p></div>
-              <div role="radiogroup" aria-label="Case view layout" className="flex gap-1 rounded-lg bg-muted p-1">
-                <Button type="button" role="radio" aria-checked={viewLayout === "stacked"} size="sm" variant={viewLayout === "stacked" ? "default" : "ghost"} onClick={()=>setViewLayout("stacked")}>Stacked</Button>
-                <Button type="button" role="radio" aria-checked={viewLayout === "side-by-side"} size="sm" variant={viewLayout === "side-by-side" ? "default" : "ghost"} onClick={()=>setViewLayout("side-by-side")}>Side-by-side</Button>
+              <div>
+                <h2 className="text-sm font-semibold">View layout</h2>
+                <p className="text-xs text-muted-foreground">
+                  {viewLayout === "stacked"
+                    ? "Sections from top to bottom"
+                    : "Case, Property and Financials across; Data below Financials"}
+                </p>
+              </div>
+              <div
+                role="radiogroup"
+                aria-label="Case view layout"
+                className="flex gap-1 rounded-lg bg-muted p-1"
+              >
+                <Button
+                  type="button"
+                  role="radio"
+                  aria-checked={viewLayout === "stacked"}
+                  size="sm"
+                  variant={viewLayout === "stacked" ? "default" : "ghost"}
+                  onClick={() => setViewLayout("stacked")}
+                >
+                  Stacked
+                </Button>
+                <Button
+                  type="button"
+                  role="radio"
+                  aria-checked={viewLayout === "side-by-side"}
+                  size="sm"
+                  variant={viewLayout === "side-by-side" ? "default" : "ghost"}
+                  onClick={() => setViewLayout("side-by-side")}
+                >
+                  Side-by-side
+                </Button>
               </div>
             </div>
             <div className="case-detail-sections">
-            {detailGroups.map((group) => (
-              <div className="case-detail-section min-w-0" data-section={group.title.toLowerCase()} key={group.title}>
-                <h2 className="mb-4 border-b pb-2 font-semibold">{group.title}</h2>
-                <dl className="case-detail-values grid gap-5 sm:grid-cols-3">
-                  {fields
-                    .filter(([label]) => group.labels.includes(String(label)))
-                    .map(([label, value]) => (
-                      <div key={label}>
-                        <dt className="text-xs text-muted-foreground">{label}</dt>
-                        <dd className="mt-1 break-words text-sm font-medium">{value || "—"}</dd>
-                      </div>
-                    ))}
-                </dl>
-              </div>
-            ))}
+              {detailGroups.map((group) => (
+                <div
+                  className="case-detail-section min-w-0"
+                  data-section={group.title.toLowerCase()}
+                  key={group.title}
+                >
+                  <h2 className="mb-4 border-b pb-2 font-semibold">{group.title}</h2>
+                  <dl className="case-detail-values grid gap-5 sm:grid-cols-3">
+                    {fields
+                      .filter(([label]) => group.labels.includes(String(label)))
+                      .map(([label, value]) => (
+                        <div key={label}>
+                          <dt className="text-xs text-muted-foreground">{label}</dt>
+                          <dd className="mt-1 break-words text-sm font-medium">{value || "—"}</dd>
+                        </div>
+                      ))}
+                  </dl>
+                </div>
+              ))}
             </div>
             {c.description && <p className="mt-6 border-t pt-4 text-sm">{c.description}</p>}
           </section>
           <section className="rounded-xl border bg-card p-6">
             <div className="mb-5 flex items-center gap-3">
-              <span className="rounded-xl bg-primary/10 p-2 text-primary"><Paperclip className="size-5" /></span>
-              <div><h2 className="font-semibold">Documents & photos <span className="text-muted-foreground">({c.attachments.length})</span></h2>
-              <p className="mt-1 text-xs text-muted-foreground">Files attached to this case</p></div>
+              <span className="rounded-xl bg-primary/10 p-2 text-primary">
+                <Paperclip className="size-5" />
+              </span>
+              <div>
+                <h2 className="font-semibold">
+                  Documents & photos{" "}
+                  <span className="text-muted-foreground">({c.attachments.length})</span>
+                </h2>
+                <p className="mt-1 text-xs text-muted-foreground">Files attached to this case</p>
+              </div>
             </div>
-            {c.attachments.length ? <div className="grid gap-3 sm:grid-cols-2">
-              {c.attachments.map(file => {
-                const available = !!file.url?.startsWith("/api/documents/");
-                return <div key={file.id} className="flex min-w-0 items-center gap-3 rounded-xl border bg-muted/20 p-3">
-                  <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">{file.type === "image" ? <ImageIcon className="size-5" /> : <FileText className="size-5" />}</span>
-                  <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium" title={file.name}>{file.name}</p><p className="mt-1 text-xs text-muted-foreground">{file.size} · {fmtDate(file.uploadedAt)}</p></div>
-                  {available ? <Button asChild size="icon" variant="outline"><a href={`${file.url}${file.url!.includes("?") ? "&" : "?"}download=1`} download={file.name} aria-label={`Download ${file.name}`}><Download className="size-4" /></a></Button> : <span className="text-xs text-muted-foreground">Unavailable</span>}
-                </div>;
-              })}
-            </div> : <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">No documents or photos attached yet.</p>}
+            {c.attachments.length ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {c.attachments.map((file) => {
+                  const available = !!file.url?.startsWith("/api/documents/");
+                  return (
+                    <div
+                      key={file.id}
+                      className="flex min-w-0 items-center gap-3 rounded-xl border bg-muted/20 p-3"
+                    >
+                      <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        {file.type === "image" ? (
+                          <ImageIcon className="size-5" />
+                        ) : (
+                          <FileText className="size-5" />
+                        )}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium" title={file.name}>
+                          {file.name}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {file.size} · {fmtDate(file.uploadedAt)}
+                        </p>
+                      </div>
+                      {available ? (
+                        <Button asChild size="icon" variant="outline">
+                          <a
+                            href={`${file.url}${file.url!.includes("?") ? "&" : "?"}download=1`}
+                            download={file.name}
+                            aria-label={`Download ${file.name}`}
+                          >
+                            <Download className="size-4" />
+                          </a>
+                        </Button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Unavailable</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
+                No documents or photos attached yet.
+              </p>
+            )}
           </section>
           {canViewInvoices(me) && (
             <section className="rounded-xl border bg-card p-6">

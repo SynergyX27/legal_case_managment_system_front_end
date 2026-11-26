@@ -1,9 +1,9 @@
 import type { Invoice } from "./domain";
-export const totalFor = (i: Invoice) =>
-  Math.round(i.lines.reduce((sum, l) => sum + l.qty * l.price, 0) * (1 + i.taxRate / 100) * 100) /
-  100;
+import { invoiceAllocations, invoiceCaseIds, invoiceTotals } from "./invoice-math";
+export const totalFor = (i: Invoice) => invoiceTotals(i).total / 100;
+export const caseInvoiceTotal = (i: Invoice, id: string) => (invoiceAllocations(i)[id] || 0) / 100;
 export function caseBilling(invoices: Invoice[], caseId: string) {
-  const related = invoices.filter((i) => i.caseId === caseId);
+  const related = invoices.filter((i) => invoiceCaseIds(i).includes(caseId));
   const issued = related.filter((i) => i.status !== "Draft");
   const paid = issued.filter((i) => i.status === "Paid");
   const latest = [...paid].sort((a, b) =>
@@ -11,10 +11,12 @@ export function caseBilling(invoices: Invoice[], caseId: string) {
   )[0];
   return {
     count: related.length,
-    balance: issued.filter((i) => i.status !== "Paid").reduce((s, i) => s + totalFor(i), 0),
-    lastPayment: latest ? totalFor(latest) : 0,
+    balance: issued
+      .filter((i) => i.status !== "Paid")
+      .reduce((s, i) => s + caseInvoiceTotal(i, caseId), 0),
+    lastPayment: latest ? caseInvoiceTotal(latest, caseId) : 0,
     lastPaymentDate: latest?.paidAt ?? latest?.date ?? "",
-    totalPaid: paid.reduce((s, i) => s + totalFor(i), 0),
+    totalPaid: paid.reduce((s, i) => s + caseInvoiceTotal(i, caseId), 0),
     invoiceStatus: !related.length
       ? "Not Invoiced"
       : issued.some((i) => i.status === "Overdue")

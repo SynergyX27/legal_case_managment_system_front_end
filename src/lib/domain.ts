@@ -128,11 +128,27 @@ export interface Case {
   custom: Record<string, string | number | boolean>;
 }
 export interface InvoiceLine {
+  caseId?: string;
+  serviceOutcome?: "" | "Cleared" | "Skipped" | "Vacant" | "Paid";
   description: string;
   qty: number;
   price: number;
 }
 export interface Invoice {
+  pricingVersion?: number;
+  caseIds?: string[];
+  template?: "T1" | "T2A" | "T2B";
+  discount?: number;
+  caseSnapshots?: {
+    id: string;
+    number: string;
+    refId?: string;
+    tenant?: string;
+    address?: string;
+    unit?: string;
+    community?: string;
+    serviceDate?: string;
+  }[];
   paymentMethod?: "stripe";
   updatedAt?: string;
   id: string;
