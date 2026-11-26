@@ -1,3 +1,4 @@
+import { InvoiceCasePicker } from "./invoice-case-picker";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
@@ -20,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { invoiceTotal, money, useMe, useStore, useVisibleCases, uid } from "@/lib/store";
 import { useUI } from "@/lib/ui-store";
-import { iso, type Invoice } from "@/lib/domain";
+import { iso, type Invoice, type Case } from "@/lib/domain";
 import { can } from "@/lib/access";
 import { validateInvoice } from "@/lib/invoices";
 
@@ -31,9 +32,11 @@ export function InvoiceDialog() {
   const visibleCases = useVisibleCases();
   const [inv, setInv] = useState<Invoice | null>(null);
   const [saving, setSaving] = useState(false);
+  const [choosing, setChoosing] = useState(false);
+  const [chosenRows, setChosenRows] = useState<Case[]>([]);
 
-  const fromCase = (caseId: string): Invoice | null => {
-    const c = visibleCases.find((x) => x.id === caseId);
+  const fromCase = (caseId: string, supplied?: Case): Invoice | null => {
+    const c = supplied || visibleCases.find((x) => x.id === caseId);
     if (!c) return null;
     const d = new Date();
     return {
@@ -61,6 +64,8 @@ export function InvoiceDialog() {
 
   useEffect(() => {
     if (!invoiceDialog.open) return;
+    setChosenRows([]);
+    setChoosing(!invoiceDialog.invoiceId && !invoiceDialog.caseId);
     if (invoiceDialog.invoiceId) {
       const existing = s.invoices.find((i) => i.id === invoiceDialog.invoiceId);
       setInv(
@@ -72,12 +77,60 @@ export function InvoiceDialog() {
             }
           : null,
       );
-    } else setInv(fromCase(invoiceDialog.caseId ?? visibleCases[0]?.id ?? ""));
+    } else {
+      const initial = fromCase(invoiceDialog.caseId ?? "");
+      setInv(initial);
+      if (!initial) setChoosing(true);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invoiceDialog.open, invoiceDialog.invoiceId, invoiceDialog.caseId]);
 
-  if (!inv || !can(me, invoiceDialog.invoiceId ? "invoices.edit" : "invoices.create")) return null;
-  const c = s.cases.find((x) => x.id === inv.caseId);
+  if (!can(me, invoiceDialog.invoiceId ? "invoices.edit" : "invoices.create")) return null;
+  if (choosing && invoiceDialog.open) {
+    const anchor =
+      chosenRows.find((c) => c.id === inv?.caseId) || s.cases.find((c) => c.id === inv?.caseId);
+    return (
+      <Dialog open onOpenChange={(o) => !o && close()}>
+        <DialogContent className="max-h-[94vh] overflow-y-auto sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Select cases for invoice</DialogTitle>
+          </DialogHeader>
+          <InvoiceCasePicker
+            initial={{
+              clientId: anchor?.clientId || invoiceDialog.clientId,
+              workspaceId: anchor?.workspaceId || invoiceDialog.workspaceId,
+              serviceDate: anchor?.serviceDate,
+              mode: anchor
+                ? anchor.propertyType === "APT" && anchor.workspaceId
+                  ? "group"
+                  : "single"
+                : "group",
+            }}
+            onCancel={() => (inv ? setChoosing(false) : close())}
+            onChoose={(rows) => {
+              const next = fromCase(rows[0].id, rows[0]);
+              if (!next) return;
+              setChosenRows(rows);
+              setInv({
+                ...next,
+                caseIds: rows.map((c) => c.id),
+                lines: rows.map((c) => ({
+                  caseId: c.id,
+                  description: `${c.number} - ${c.residentName} - ${c.serviceDate}`,
+                  qty: 1,
+                  price: 0,
+                  serviceOutcome: "",
+                })),
+              });
+              setChoosing(false);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+    );
+  }
+  if (!inv) return null;
+  const c = chosenRows.find((x) => x.id === inv.caseId) || s.cases.find((x) => x.id === inv.caseId);
   const client = s.clients.find((x) => x.id === inv.clientId);
   const t = invoiceTotal(inv);
   const setLine = (i: number, k: "description" | "qty" | "price", v: string) =>
@@ -114,32 +167,12 @@ export function InvoiceDialog() {
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
             <Label className="text-xs text-muted-foreground">Related case</Label>
-            <Select
-              disabled={!!invoiceDialog.invoiceId}
-              value={inv.caseId}
-              onValueChange={(v) => {
-                const next = fromCase(v);
-                if (next)
-                  setInv({
-                    ...inv,
-                    caseId: next.caseId,
-                    caseIds: [next.caseId],
-                    clientId: next.clientId,
-                    lines: next.lines,
-                  });
-              }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {visibleCases.map((x) => (
-                  <SelectItem key={x.id} value={x.id}>
-                    {x.number} · {x.residentName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Input readOnly value={`${c?.number || inv.caseId} · ${c?.residentName || ""}`} />
+            {!invoiceDialog.invoiceId && (
+              <Button size="sm" variant="outline" onClick={() => setChoosing(true)}>
+                Search / change selected cases
+              </Button>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">Client</Label>
@@ -210,55 +243,19 @@ export function InvoiceDialog() {
             </Select>
           </div>
         </div>
-        {!invoiceDialog.invoiceId && c?.propertyType === "APT" && (
-          <div className="rounded-xl border bg-muted/30 p-4 space-y-2">
-            <Label>Group apartment cases (same customer, community and service date)</Label>
-            {!c.workspaceId && (
-              <p className="text-xs text-muted-foreground">
-                Assign this case to a community before grouping.
-              </p>
-            )}
-            {visibleCases
-              .filter(
-                (x) =>
-                  x.id !== c.id &&
-                  x.propertyType === "APT" &&
-                  !!c.workspaceId &&
-                  x.workspaceId === c.workspaceId &&
-                  x.clientId === c.clientId &&
-                  x.serviceDate === c.serviceDate,
-              )
-              .map((x) => (
-                <label key={x.id} className="flex items-center gap-2 text-sm py-1">
-                  <input
-                    type="checkbox"
-                    checked={inv.caseIds?.includes(x.id) || false}
-                    onChange={(e) =>
-                      setInv({
-                        ...inv,
-                        caseIds: e.target.checked
-                          ? [...(inv.caseIds || [inv.caseId]), x.id]
-                          : (inv.caseIds || []).filter((id) => id !== x.id),
-                        lines: e.target.checked
-                          ? [
-                              ...inv.lines,
-                              {
-                                caseId: x.id,
-                                description: `${x.number} - ${x.residentName}`,
-                                qty: 1,
-                                price: 0,
-                                serviceOutcome: "",
-                              },
-                            ]
-                          : inv.lines.filter((l) => l.caseId !== x.id),
-                      })
-                    }
-                  />
-                  {x.number} · {x.residentName} · Unit {x.unit || "-"}
-                </label>
-              ))}
-          </div>
-        )}
+        {s.invoices.some((i) =>
+          (i.caseIds || [i.caseId]).some((id) => (inv.caseIds || [inv.caseId]).includes(id)),
+        ) &&
+          !invoiceDialog.invoiceId && (
+            <p className="rounded-xl border border-amber-400/40 p-3 text-sm">
+              Some selected cases already have invoices. Review their existing invoices before
+              adding new charges.
+            </p>
+          )}
+        <p className="rounded-xl border p-3 text-sm">
+          {(inv.caseIds || [inv.caseId]).length} case(s) included. Each line is assigned to one of
+          these cases. Changing selection resets draft charges.
+        </p>
         <p className="text-xs text-muted-foreground">
           Template:{" "}
           {(inv.caseIds?.length || 1) > 1
@@ -293,7 +290,8 @@ export function InvoiceDialog() {
                   <SelectContent>
                     {(inv.caseIds || [inv.caseId]).map((id) => (
                       <SelectItem key={id} value={id}>
-                        {s.cases.find((c) => c.id === id)?.number || id}
+                        {(chosenRows.find((c) => c.id === id) || s.cases.find((c) => c.id === id))
+                          ?.number || id}
                       </SelectItem>
                     ))}
                   </SelectContent>

@@ -11,10 +11,21 @@ interface UI {
   selectChat: (id: string) => void;
 
   caseDialog: { open: boolean; editId?: string };
-  invoiceDialog: { open: boolean; caseId?: string; invoiceId?: string };
+  invoiceDialog: {
+    open: boolean;
+    caseId?: string;
+    invoiceId?: string;
+    clientId?: string;
+    workspaceId?: string;
+  };
   clientDialog: { open: boolean; editId?: string };
   openCase: (editId?: string) => void;
-  openInvoice: (o?: { caseId?: string; invoiceId?: string }) => void;
+  openInvoice: (o?: {
+    caseId?: string;
+    invoiceId?: string;
+    clientId?: string;
+    workspaceId?: string;
+  }) => void;
   openClient: (editId?: string) => void;
   close: () => void;
 }

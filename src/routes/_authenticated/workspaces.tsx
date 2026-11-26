@@ -1,3 +1,5 @@
+import { useUI } from "@/lib/ui-store";
+import { can } from "@/lib/access";
 import { CustomerLoginEditor } from "@/components/lf/customer-login-editor";
 import { ModernSelect } from "@/components/ui/modern-select";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -51,7 +53,7 @@ function Workspaces() {
     [kind, setKind] = useState("all"),
     [company, setCompany] = useState("");
   const [loading, setLoading] = useState(true);
-  const [workspaceTab,setWorkspaceTab]=useState<"overview"|"access">("overview");
+  const [workspaceTab, setWorkspaceTab] = useState<"overview" | "access">("overview");
   const [editVersion, setEditVersion] = useState(""),
     [userVersion, setUserVersion] = useState("");
   const [selection, setSelection] = useState<string[]>([]),
@@ -146,7 +148,7 @@ function Workspaces() {
     setSelection([]);
     setWorkspaceTab("overview");
     setUser("");
-    setContact(p=>({...p,clientId:rows.find(w=>w.id===id)?.clientId||""}));
+    setContact((p) => ({ ...p, clientId: rows.find((w) => w.id === id)?.clientId || "" }));
     setSelected(id);
   };
   return (
@@ -164,7 +166,6 @@ function Workspaces() {
         </div>
         {owner && (
           <div className="flex flex-wrap gap-2">
-
             <Button onClick={openCreate}>
               <Plus className="mr-2 size-4" />
               Create workspace
@@ -236,7 +237,6 @@ function Workspaces() {
                   Choose a workspace to explore its case files.
                 </p>
               </div>
-
             </div>
             <div className="workspace-toolbar flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card p-3">
               <div className="flex rounded-xl bg-muted p-1">
@@ -374,7 +374,6 @@ function Workspaces() {
               </div>
             )}
           </section>
-
         </>
       ) : (
         <>
@@ -388,232 +387,330 @@ function Workspaces() {
               · {cases.length} cases
             </p>
           </div>
-          {owner && active && <>
-            <div role="tablist" aria-label="Workspace sections" className="inline-flex gap-1 rounded-xl bg-muted p-1">
-              <Button role="tab" aria-selected={workspaceTab==="overview"} variant={workspaceTab==="overview"?"default":"ghost"} onClick={()=>setWorkspaceTab("overview")}>Communities & cases</Button>
-              <Button role="tab" aria-selected={workspaceTab==="access"} variant={workspaceTab==="access"?"default":"ghost"} onClick={()=>setWorkspaceTab("access")}>Customer access</Button>
-            </div>
-            {workspaceTab === "access" && <section className="space-y-4 rounded-2xl border bg-card p-6">
-              <h2 className="text-lg font-semibold">Customer access · {active.name}</h2>
-              <p className="text-sm text-muted-foreground">{companyName(active.clientId)} — manage the people who can access this workspace. Main customer details stay in Customers.</p>
-              <div className="flex flex-wrap gap-2"><Button onClick={()=>{setContact({clientId:active.clientId,name:"",email:"",username:"",password:"",phone:""});setDialog("contact");}}>Add extra user</Button><Button variant="outline" onClick={()=>setDialog("access")}>Manage access</Button></div>
-              <div className="divide-y">{s.users.filter(u=>u.role==="customer" && u.clientId===active.clientId).map(u=>{
-                const granted=u.customerAccess==="all" || active.memberIds.includes(u.id) || rows.find(w=>w.id===active.parentId)?.memberIds.includes(u.id);
-                return <div key={u.id} className="flex flex-wrap items-center justify-between gap-3 py-3"><div><p className="text-sm font-medium">{u.name}{s.clients.some(c=>c.primaryUserId===u.id)?" · Main customer":""}</p><p className="text-xs text-muted-foreground">{u.status} · {granted?"Has access":"No access to this workspace"} · {u.customerAccess==="all"?"All customer workspaces":u.customerAccess==="regional"?"Regional access":"Selected communities"}</p></div><Button variant="outline" size="sm" onClick={()=>{chooseUser(u.id);setDialog("access");}}>Manage</Button></div>;
-              })}</div>
-            </section>}
-          </>}
-          <div hidden={owner && !!active && workspaceTab === "access"} className="space-y-6">
-          {active?.kind === "community" && (
-            <button
-              className="text-sm font-medium text-primary"
-              onClick={() => navigateWorkspace(active.parentId)}
-            >
-              ← {rows.find((w) => w.id === active.parentId)?.name || "Parent workspace"}
-            </button>
-          )}
-          {active?.kind === "territory" && (
-            <section className="rounded-2xl border bg-card p-6">
-              <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-lg font-semibold">Communities in {active.name}</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Workspace → Community → Case files
+          {owner && active && (
+            <>
+              <div
+                role="tablist"
+                aria-label="Workspace sections"
+                className="inline-flex gap-1 rounded-xl bg-muted p-1"
+              >
+                <Button
+                  role="tab"
+                  aria-selected={workspaceTab === "overview"}
+                  variant={workspaceTab === "overview" ? "default" : "ghost"}
+                  onClick={() => setWorkspaceTab("overview")}
+                >
+                  Communities & cases
+                </Button>
+                <Button
+                  role="tab"
+                  aria-selected={workspaceTab === "access"}
+                  variant={workspaceTab === "access" ? "default" : "ghost"}
+                  onClick={() => setWorkspaceTab("access")}
+                >
+                  Customer access
+                </Button>
+              </div>
+              {workspaceTab === "access" && (
+                <section className="space-y-4 rounded-2xl border bg-card p-6">
+                  <h2 className="text-lg font-semibold">Customer access · {active.name}</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {companyName(active.clientId)} — manage the people who can access this
+                    workspace. Main customer details stay in Customers.
                   </p>
-                </div>
-                {owner && !active.archived && (
-                  <Button
-                    onClick={() => {
-                      setEdit("");
-                      setForm({
-                        name: "",
-                        clientId: active.clientId,
-                        kind: "community",
-                        parentId: active.id,
-                        state: active.state,
-                      });
-                      setDialog("create");
-                    }}
-                  >
-                    <Plus className="mr-2 size-4" />
-                    Add community
-                  </Button>
-                )}
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {rows
-                  .filter((w) => w.parentId === active.id && (!w.archived || owner))
-                  .map((w) => (
-                    <button
-                      key={w.id}
-                      onClick={() => navigateWorkspace(w.id)}
-                      className="rounded-xl border p-5 text-left transition hover:border-primary"
-                    >
-                      <Building2 className="mb-3 size-5 text-primary" />
-                      <h3 className="font-semibold">
-                        {w.name}
-                        {w.archived ? " (archived)" : ""}
-                      </h3>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {w.caseCount} cases · Open community →
-                      </p>
-                    </button>
-                  ))}
-              </div>
-              {!rows.some((w) => w.parentId === active.id) && (
-                <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-                  No communities yet.
-                  {owner
-                    ? " Use Add community to create one inside this workspace."
-                    : " Communities will appear here when assigned."}
-                </p>
-              )}
-            </section>
-          )}
-          <section className="overflow-hidden rounded-2xl border bg-card">
-            <div className="border-b px-6 py-5">
-              <h2 className="text-lg font-semibold">{active ? active.name : "Unassigned cases"}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {active
-                  ? active.kind === "territory"
-                    ? "All case files from the communities in this workspace."
-                    : "Case files assigned to this community."
-                  : "Assign these case files to the right community."}
-              </p>
-            </div>
-            <div className="p-5 sm:p-6">
-              {owner && cases.length > 0 && (
-                <div className="mb-4 space-y-2 rounded-xl border bg-muted/30 p-3">
-                  <p className="text-sm">Move selected cases ({selection.length}, maximum 200)</p>
-                  <ModernSelect
-                    aria-label="Bulk destination workspace"
-                    className="workspace-select"
-                    value={target}
-                    onChange={(e) => setTarget(e.target.value)}
-                  >
-                    <option value="">Unassigned</option>
-                    {rows
-                      .filter((w) => w.kind === "community" && !w.archived)
-                      .map((w) => (
-                        <option key={w.id} value={w.id}>
-                          {s.clients.find((c) => c.id === w.clientId)?.name} · {w.name}
-                        </option>
-                      ))}
-                  </ModernSelect>
-                  <Button
-                    className="ml-2"
-                    disabled={busy || selection.length === 0 || selection.length > 200}
-                    onClick={() =>
-                      action(async () => {
-                        await api("/workspaces/move-cases", {
-                          method: "POST",
-                          body: {
-                            workspaceId: target,
-                            cases: selection.map((id) => {
-                              const c = s.cases.find((c) => c.id === id);
-                              return { id, updatedAt: c?.updatedAt };
-                            }),
-                          },
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      onClick={() => {
+                        setContact({
+                          clientId: active.clientId,
+                          name: "",
+                          email: "",
+                          username: "",
+                          password: "",
+                          phone: "",
                         });
-                        setSelection([]);
-                      })
+                        setDialog("contact");
+                      }}
+                    >
+                      Add extra user
+                    </Button>
+                    <Button variant="outline" onClick={() => setDialog("access")}>
+                      Manage access
+                    </Button>
+                  </div>
+                  <div className="divide-y">
+                    {s.users
+                      .filter((u) => u.role === "customer" && u.clientId === active.clientId)
+                      .map((u) => {
+                        const granted =
+                          u.customerAccess === "all" ||
+                          active.memberIds.includes(u.id) ||
+                          rows.find((w) => w.id === active.parentId)?.memberIds.includes(u.id);
+                        return (
+                          <div
+                            key={u.id}
+                            className="flex flex-wrap items-center justify-between gap-3 py-3"
+                          >
+                            <div>
+                              <p className="text-sm font-medium">
+                                {u.name}
+                                {s.clients.some((c) => c.primaryUserId === u.id)
+                                  ? " · Main customer"
+                                  : ""}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {u.status} ·{" "}
+                                {granted ? "Has access" : "No access to this workspace"} ·{" "}
+                                {u.customerAccess === "all"
+                                  ? "All customer workspaces"
+                                  : u.customerAccess === "regional"
+                                    ? "Regional access"
+                                    : "Selected communities"}
+                              </p>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                chooseUser(u.id);
+                                setDialog("access");
+                              }}
+                            >
+                              Manage
+                            </Button>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </section>
+              )}
+            </>
+          )}
+          <div hidden={owner && !!active && workspaceTab === "access"} className="space-y-6">
+            {active?.kind === "community" && (
+              <button
+                className="text-sm font-medium text-primary"
+                onClick={() => navigateWorkspace(active.parentId)}
+              >
+                ← {rows.find((w) => w.id === active.parentId)?.name || "Parent workspace"}
+              </button>
+            )}
+            {active?.kind === "territory" && (
+              <section className="rounded-2xl border bg-card p-6">
+                <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg font-semibold">Communities in {active.name}</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Workspace → Community → Case files
+                    </p>
+                  </div>
+                  {owner && !active.archived && (
+                    <Button
+                      onClick={() => {
+                        setEdit("");
+                        setForm({
+                          name: "",
+                          clientId: active.clientId,
+                          kind: "community",
+                          parentId: active.id,
+                          state: active.state,
+                        });
+                        setDialog("create");
+                      }}
+                    >
+                      <Plus className="mr-2 size-4" />
+                      Add community
+                    </Button>
+                  )}
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {rows
+                    .filter((w) => w.parentId === active.id && (!w.archived || owner))
+                    .map((w) => (
+                      <button
+                        key={w.id}
+                        onClick={() => navigateWorkspace(w.id)}
+                        className="rounded-xl border p-5 text-left transition hover:border-primary"
+                      >
+                        <Building2 className="mb-3 size-5 text-primary" />
+                        <h3 className="font-semibold">
+                          {w.name}
+                          {w.archived ? " (archived)" : ""}
+                        </h3>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {w.caseCount} cases · Open community →
+                        </p>
+                      </button>
+                    ))}
+                </div>
+                {!rows.some((w) => w.parentId === active.id) && (
+                  <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+                    No communities yet.
+                    {owner
+                      ? " Use Add community to create one inside this workspace."
+                      : " Communities will appear here when assigned."}
+                  </p>
+                )}
+              </section>
+            )}
+            <section className="overflow-hidden rounded-2xl border bg-card">
+              <div className="border-b px-6 py-5">
+                <h2 className="text-lg font-semibold">
+                  {active ? active.name : "Unassigned cases"}
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {active
+                    ? active.kind === "territory"
+                      ? "All case files from the communities in this workspace."
+                      : "Case files assigned to this community."
+                    : "Assign these case files to the right community."}
+                </p>
+              </div>
+              <div className="p-5 sm:p-6">
+                {owner && cases.length > 0 && (
+                  <div className="mb-4 space-y-2 rounded-xl border bg-muted/30 p-3">
+                    <p className="text-sm">Move selected cases ({selection.length}, maximum 200)</p>
+                    <ModernSelect
+                      aria-label="Bulk destination workspace"
+                      className="workspace-select"
+                      value={target}
+                      onChange={(e) => setTarget(e.target.value)}
+                    >
+                      <option value="">Unassigned</option>
+                      {rows
+                        .filter((w) => w.kind === "community" && !w.archived)
+                        .map((w) => (
+                          <option key={w.id} value={w.id}>
+                            {s.clients.find((c) => c.id === w.clientId)?.name} · {w.name}
+                          </option>
+                        ))}
+                    </ModernSelect>
+                    <Button
+                      className="ml-2"
+                      disabled={busy || selection.length === 0 || selection.length > 200}
+                      onClick={() =>
+                        action(async () => {
+                          await api("/workspaces/move-cases", {
+                            method: "POST",
+                            body: {
+                              workspaceId: target,
+                              cases: selection.map((id) => {
+                                const c = s.cases.find((c) => c.id === id);
+                                return { id, updatedAt: c?.updatedAt };
+                              }),
+                            },
+                          });
+                          setSelection([]);
+                        })
+                      }
+                    >
+                      Move selected
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      The destination must belong to every selected case’s customer company.
+                    </p>
+                  </div>
+                )}
+
+                {active?.kind === "community" && !active.archived && can(me, "invoices.create") && (
+                  <Button
+                    className="mb-4"
+                    onClick={() =>
+                      useUI
+                        .getState()
+                        .openInvoice({ clientId: active.clientId, workspaceId: active.id })
                     }
                   >
-                    Move selected
+                    Create grouped invoice
                   </Button>
-                  <p className="text-xs text-muted-foreground">
-                    The destination must belong to every selected case’s customer company.
-                  </p>
-                </div>
-              )}
-
-              {active && owner && (
-                <div className="mb-4 flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setDialog("create");
-                      setEdit(active.id);
-                      setEditVersion(active.updatedAt);
-                      setForm({
-                        name: active.name,
-                        clientId: active.clientId,
-                        kind: active.kind,
-                        parentId: active.parentId,
-                        state: active.state,
-                      });
-                    }}
-                  >
-                    Edit {active.kind === "community" ? "community" : "workspace"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="text-destructive"
-                    disabled={busy}
-                    onClick={() => {
-                      if (
-                        confirm(
-                          `Permanently delete ${active.kind === "community" ? "community" : "workspace"} “${active.name}”? Cases and child communities must be deleted first.`,
-                        )
-                      )
-                        void action(async () => {
-                          await api(`/workspaces/${active.id}`, {
-                            method: "DELETE",
-                            body: { updatedAt: active.updatedAt },
-                          });
-                          navigateWorkspace(active.parentId || "");
+                )}
+                {active && owner && (
+                  <div className="mb-4 flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setDialog("create");
+                        setEdit(active.id);
+                        setEditVersion(active.updatedAt);
+                        setForm({
+                          name: active.name,
+                          clientId: active.clientId,
+                          kind: active.kind,
+                          parentId: active.parentId,
+                          state: active.state,
                         });
-                    }}
-                  >
-                    Delete {active.kind === "community" ? "community" : "workspace"}
-                  </Button>
-                </div>
-              )}
-              {cases.length === 0 ? (
-                <div className="flex flex-col items-center px-5 py-14 text-center">
-                  <span className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                    <FolderOpen className="size-6" />
-                  </span>
-                  <h3 className="font-semibold">
-                    {active ? "No cases here yet" : "You’re all organized"}
-                  </h3>
-                  <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-                    {active
-                      ? "Case files assigned to this community will appear here."
-                      : "There are no case files waiting for a workspace assignment."}
-                  </p>
-                </div>
-              ) : (
-                <div className="divide-y">
-                  {cases.map((c) => (
-                    <div key={c.id} className="flex items-center gap-4 py-4">
-                      {owner && (
-                        <input
-                          aria-label={"Select case " + c.number}
-                          type="checkbox"
-                          checked={selection.includes(c.id)}
-                          onChange={(e) =>
-                            setSelection(
-                              e.target.checked
-                                ? [...selection, c.id]
-                                : selection.filter((id) => id !== c.id),
-                            )
-                          }
-                        />
-                      )}
-                      <Link to="/cases/$id" params={{ id: c.id }} className="min-w-0 flex-1">
-                        <span className="font-medium text-primary">{c.number}</span>
-                        <span className="block text-sm">
-                          {c.residentName} · {c.community || c.residentAddress}
-                        </span>
-                      </Link>
-                      <StatusBadge value={c.status} />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </section>
+                      }}
+                    >
+                      Edit {active.kind === "community" ? "community" : "workspace"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="text-destructive"
+                      disabled={busy}
+                      onClick={() => {
+                        if (
+                          confirm(
+                            `Permanently delete ${active.kind === "community" ? "community" : "workspace"} “${active.name}”? Cases and child communities must be deleted first.`,
+                          )
+                        )
+                          void action(async () => {
+                            await api(`/workspaces/${active.id}`, {
+                              method: "DELETE",
+                              body: { updatedAt: active.updatedAt },
+                            });
+                            navigateWorkspace(active.parentId || "");
+                          });
+                      }}
+                    >
+                      Delete {active.kind === "community" ? "community" : "workspace"}
+                    </Button>
+                  </div>
+                )}
+                {cases.length === 0 ? (
+                  <div className="flex flex-col items-center px-5 py-14 text-center">
+                    <span className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                      <FolderOpen className="size-6" />
+                    </span>
+                    <h3 className="font-semibold">
+                      {active ? "No cases here yet" : "You’re all organized"}
+                    </h3>
+                    <p className="mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+                      {active
+                        ? "Case files assigned to this community will appear here."
+                        : "There are no case files waiting for a workspace assignment."}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="divide-y">
+                    {cases.map((c) => (
+                      <div key={c.id} className="flex items-center gap-4 py-4">
+                        {owner && (
+                          <input
+                            aria-label={"Select case " + c.number}
+                            type="checkbox"
+                            checked={selection.includes(c.id)}
+                            onChange={(e) =>
+                              setSelection(
+                                e.target.checked
+                                  ? [...selection, c.id]
+                                  : selection.filter((id) => id !== c.id),
+                              )
+                            }
+                          />
+                        )}
+                        <Link to="/cases/$id" params={{ id: c.id }} className="min-w-0 flex-1">
+                          <span className="font-medium text-primary">{c.number}</span>
+                          <span className="block text-sm">
+                            {c.residentName} · {c.community || c.residentAddress}
+                          </span>
+                        </Link>
+                        <StatusBadge value={c.status} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </section>
           </div>
         </>
       )}
@@ -742,7 +839,8 @@ function Workspaces() {
               <DialogHeader>
                 <DialogTitle>Customer workspace access</DialogTitle>
                 <DialogDescription>
-                  Choose a customer user and the territories or communities they can access. Changes apply to their access across this customer’s workspaces.
+                  Choose a customer user and the territories or communities they can access. Changes
+                  apply to their access across this customer’s workspaces.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-3">
@@ -808,7 +906,12 @@ function Workspaces() {
                       ))}
                   </div>
                 )}
-                {user?.role === "customer" && !s.clients.some(c=>c.primaryUserId===user.id) && <Button variant="outline" onClick={()=>setDialog("login")}>Edit extra login details</Button>}
+                {user?.role === "customer" &&
+                  !s.clients.some((c) => c.primaryUserId === user.id) && (
+                    <Button variant="outline" onClick={() => setDialog("login")}>
+                      Edit extra login details
+                    </Button>
+                  )}
                 <p className="text-xs text-muted-foreground">
                   Regional access includes existing and future communities in selected territories.
                   Internal staff and managers retain their assigned-case permissions.
@@ -834,7 +937,20 @@ function Workspaces() {
               </div>
             </DialogContent>
           </Dialog>
-          <Dialog open={dialog === "login"} onOpenChange={open=>!open && setDialog(null)}><DialogContent><DialogHeader><DialogTitle>Extra customer login</DialogTitle></DialogHeader>{user && <CustomerLoginEditor key={user.id+user.updatedAt} user={user} onSaved={()=>setDialog(null)}/>}</DialogContent></Dialog>
+          <Dialog open={dialog === "login"} onOpenChange={(open) => !open && setDialog(null)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Extra customer login</DialogTitle>
+              </DialogHeader>
+              {user && (
+                <CustomerLoginEditor
+                  key={user.id + user.updatedAt}
+                  user={user}
+                  onSaved={() => setDialog(null)}
+                />
+              )}
+            </DialogContent>
+          </Dialog>
           <Dialog
             open={dialog === "contact"}
             onOpenChange={(v) => {
@@ -845,7 +961,8 @@ function Workspaces() {
               <DialogHeader>
                 <DialogTitle>Add extra customer login</DialogTitle>
                 <DialogDescription>
-                  Add another person to this workspace’s customer. After creating the login, use Manage access to choose their territories or communities.
+                  Add another person to this workspace’s customer. After creating the login, use
+                  Manage access to choose their territories or communities.
                 </DialogDescription>
               </DialogHeader>{" "}
               <form
@@ -875,11 +992,13 @@ function Workspaces() {
                   onChange={(e) => setContact({ ...contact, clientId: e.target.value })}
                 >
                   <option value="">Select existing customer company</option>
-                  {s.clients.filter(c=>c.primaryUserId).map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.company || c.name}
-                    </option>
-                  ))}
+                  {s.clients
+                    .filter((c) => c.primaryUserId)
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.company || c.name}
+                      </option>
+                    ))}
                 </ModernSelect>
                 {(["name", "email", "username", "password", "phone"] as const).map((k) => (
                   <label key={k} className="block text-sm">
