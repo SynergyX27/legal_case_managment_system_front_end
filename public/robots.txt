@@ -1,14 +1,24 @@
 User-agent: Googlebot
 Allow: /
+Disallow: /pay/
+Disallow: /api/public/
 
 User-agent: Bingbot
 Allow: /
+Disallow: /pay/
+Disallow: /api/public/
 
 User-agent: Twitterbot
 Allow: /
+Disallow: /pay/
+Disallow: /api/public/
 
 User-agent: facebookexternalhit
 Allow: /
+Disallow: /pay/
+Disallow: /api/public/
 
 User-agent: *
 Allow: /
+Disallow: /pay/
+Disallow: /api/public/

@@ -12,6 +12,19 @@ export function InvoiceDelivery({ invoice: i, editable }: { invoice: Invoice; ed
     if (tab) tab.opener = null;
     setBusy(true);
     try {
+      if (action === "share") {
+        const r = await api<{ url: string }>(`/invoices/${i.id}/public-link`, { method: "POST" });
+        await navigator.clipboard.writeText(r.url);
+        toast.success("Private invoice link copied. No sign-in required.");
+        return;
+      }
+      if (action === "revoke") {
+        await api(`/invoices/${i.id}/public-links`, { method: "DELETE" });
+        toast.success(
+          "Previous public invoice links disabled. Send or copy a new link when needed.",
+        );
+        return;
+      }
       if (["invoice", "payment", "message"].includes(action)) {
         await api(`/invoices/${i.id}/email`, { method: "POST", body: { mode: action, message } });
         toast.success("Email queued for the customer");
@@ -62,6 +75,26 @@ export function InvoiceDelivery({ invoice: i, editable }: { invoice: Invoice; ed
       </div>
       {editable && i.status !== "Draft" && (
         <>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" disabled={busy} onClick={() => run("share")}>
+              Copy private invoice link
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={busy}
+              onClick={() => {
+                if (
+                  window.confirm(
+                    "Disable all previous public links for this invoice? Send a new link afterward if the customer still needs access. This does not cancel a Stripe checkout already opened.",
+                  )
+                )
+                  void run("revoke");
+              }}
+            >
+              Disable previous links
+            </Button>
+          </div>
           <Input
             aria-label="Invoice email message"
             placeholder="Optional message to the customer"
@@ -88,7 +121,8 @@ export function InvoiceDelivery({ invoice: i, editable }: { invoice: Invoice; ed
               ))}
           </div>
           <p className="text-xs text-muted-foreground">
-            Sent to the customer’s registered email. Payment links require LegalFlow sign-in.
+            Sent to the customer’s registered email. The private invoice page opens without sign-in
+            and includes Pay, Print and Download buttons. Links expire after 90 days.
           </p>
         </>
       )}

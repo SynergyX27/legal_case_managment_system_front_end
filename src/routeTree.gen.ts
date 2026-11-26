@@ -26,6 +26,7 @@ import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
 import { Route as AuthenticatedWorkspacesRouteImport } from './routes/_authenticated/workspaces'
+import { Route as PayInvoiceRouteImport } from './routes/pay.invoice'
 import { Route as AuthenticatedCasesIndexRouteImport } from './routes/_authenticated/cases.index'
 import { Route as AuthenticatedCasesIdRouteImport } from './routes/_authenticated/cases.$id'
 import { Route as AuthenticatedCasesNewRouteImport } from './routes/_authenticated/cases.new'
@@ -120,6 +121,11 @@ const AuthenticatedWorkspacesRoute = AuthenticatedWorkspacesRouteImport.update({
   path: '/workspaces',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const PayInvoiceRoute = PayInvoiceRouteImport.update({
+  id: '/pay/invoice',
+  path: '/pay/invoice',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedCasesIndexRoute = AuthenticatedCasesIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -164,6 +170,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/users': typeof AuthenticatedUsersRoute
   '/workspaces': typeof AuthenticatedWorkspacesRoute
+  '/pay/invoice': typeof PayInvoiceRoute
   '/cases/$id': typeof AuthenticatedCasesIdRoute
   '/cases/new': typeof AuthenticatedCasesNewRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
@@ -185,6 +192,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/users': typeof AuthenticatedUsersRoute
   '/workspaces': typeof AuthenticatedWorkspacesRoute
+  '/pay/invoice': typeof PayInvoiceRoute
   '/cases/$id': typeof AuthenticatedCasesIdRoute
   '/cases/new': typeof AuthenticatedCasesNewRoute
   '/clients/$id': typeof AuthenticatedClientsIdRoute
@@ -210,6 +218,7 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/users': typeof AuthenticatedUsersRoute
   '/_authenticated/workspaces': typeof AuthenticatedWorkspacesRoute
+  '/pay/invoice': typeof PayInvoiceRoute
   '/_authenticated/cases/$id': typeof AuthenticatedCasesIdRoute
   '/_authenticated/cases/new': typeof AuthenticatedCasesNewRoute
   '/_authenticated/clients/$id': typeof AuthenticatedClientsIdRoute
@@ -235,6 +244,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/users'
     | '/workspaces'
+    | '/pay/invoice'
     | '/cases/$id'
     | '/cases/new'
     | '/clients/$id'
@@ -256,6 +266,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/users'
     | '/workspaces'
+    | '/pay/invoice'
     | '/cases/$id'
     | '/cases/new'
     | '/clients/$id'
@@ -280,6 +291,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/users'
     | '/_authenticated/workspaces'
+    | '/pay/invoice'
     | '/_authenticated/cases/$id'
     | '/_authenticated/cases/new'
     | '/_authenticated/clients/$id'
@@ -290,6 +302,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  PayInvoiceRoute: typeof PayInvoiceRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -413,6 +426,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWorkspacesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/pay/invoice': {
+      id: '/pay/invoice'
+      path: '/pay/invoice'
+      fullPath: '/pay/invoice'
+      preLoaderRoute: typeof PayInvoiceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/cases/': {
       id: '/_authenticated/cases/'
       path: '/'
@@ -522,6 +542,7 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  PayInvoiceRoute: PayInvoiceRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
