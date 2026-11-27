@@ -1,8 +1,8 @@
+import { OverviewAnalytics } from "@/components/lf/overview-analytics";
 import { PendingFileReviews } from "@/components/lf/pending-file-reviews";
 import { CaseMoney, CaseStatusTiles } from "@/components/lf/case-portfolio";
 import { CreateCaseButton } from "@/components/lf/create-case-button";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
 import {
   Activity,
   ArrowUpRight,
@@ -15,7 +15,6 @@ import {
   Plus,
   Receipt,
 } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Avatar, StatusBadge } from "@/components/lf/ui-bits";
 import { Button } from "@/components/ui/button";
 import { useMe, useStore, useVisibleCases, fmtDate, money } from "@/lib/store";
@@ -32,7 +31,6 @@ function Page() {
     cases = useVisibleCases(),
     s = useStore(),
     ui = useUI();
-  const [weeks, setWeeks] = useState(4);
   const today = iso(new Date()),
     stats = summarizeCases(cases, today),
     customer = me?.role === "customer";
@@ -47,28 +45,6 @@ function Page() {
     .sort((a, b) => b.at.localeCompare(a.at))
     .slice(0, 4);
   const balance = cases.reduce((n, c) => n + caseBilling(s.invoices, c.id).balance, 0);
-  const chart = Array.from({ length: weeks }, (_, i) => {
-    const start = new Date(today + "T00:00:00");
-    start.setDate(start.getDate() - (Math.floor(weeks / 2) - i) * 7);
-    const end = new Date(start);
-    end.setDate(end.getDate() + 6);
-    const from = iso(start),
-      to = iso(end);
-    return {
-      week: start.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      Scheduled: open.filter((c) => c.serviceDate >= from && c.serviceDate <= to).length,
-      Completed: cases.filter(
-        (c) => c.status === "Completed" && c.serviceDate >= from && c.serviceDate <= to,
-      ).length,
-    };
-  });
-  const statusColor: Record<string, string> = {
-    Active: "#285ba7",
-    Pending: "#e2b86c",
-    Scheduled: "#7a9cc2",
-    Completed: "#abd7c1",
-    Cancelled: "#d7e0dc",
-  };
   const metrics = customer
     ? [
         {
@@ -123,7 +99,7 @@ function Page() {
         },
       ];
   return (
-    <>
+    <div className="dashboard-page">
       <PendingFileReviews />
       <section className="overview-hero">
         <div>
@@ -187,6 +163,7 @@ function Page() {
           </div>
         </div>
       </section>
+      <OverviewAnalytics cases={cases} invoices={s.invoices} />
       <CaseStatusTiles cases={cases} />
       <CaseMoney cases={cases} />
       <div className="mb-6 grid grid-cols-2 gap-3 xl:grid-cols-4">
@@ -282,131 +259,7 @@ function Page() {
               ))}
           </section>
         </div>
-      ) : (
-        <div className="mb-6 grid gap-6 xl:grid-cols-[1.65fr_1fr]">
-          <section className="overview-card">
-            <div className="mb-7 flex items-center justify-between gap-3">
-              <div>
-                <h2>Service activity</h2>
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  Scheduled and completed services over time
-                </p>
-              </div>
-              <div className="flex rounded-xl border bg-background p-1">
-                {[4, 8].map((n) => (
-                  <button
-                    key={n}
-                    className={`rounded-lg px-3 py-1.5 text-[10px] font-medium ${weeks === n ? "bg-card text-primary shadow-sm" : "text-muted-foreground"}`}
-                    onClick={() => setWeeks(n)}
-                  >
-                    {n} weeks
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="h-60">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={chart}
-                  barGap={5}
-                  margin={{ top: 10, right: 4, bottom: 0, left: -20 }}
-                >
-                  <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="4 4" />
-                  <XAxis
-                    dataKey="week"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
-                    tickMargin={12}
-                  />
-                  <YAxis
-                    allowDecimals={false}
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
-                  />
-                  <Tooltip
-                    cursor={{ fill: "var(--muted)" }}
-                    contentStyle={{
-                      borderRadius: 14,
-                      borderColor: "var(--border)",
-                      background: "var(--card)",
-                      color: "var(--foreground)",
-                      fontSize: 12,
-                    }}
-                  />
-                  <Bar
-                    isAnimationActive={false}
-                    dataKey="Scheduled"
-                    fill="var(--chart-1)"
-                    radius={[5, 5, 0, 0]}
-                    maxBarSize={24}
-                  />
-                  <Bar
-                    isAnimationActive={false}
-                    dataKey="Completed"
-                    fill="var(--chart-2)"
-                    radius={[5, 5, 0, 0]}
-                    maxBarSize={24}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="mt-5 flex justify-center gap-5 text-[10px] text-muted-foreground">
-              <span className="flex items-center gap-2">
-                <span className="size-2 rounded-sm bg-primary" />
-                Scheduled
-              </span>
-              <span className="flex items-center gap-2">
-                <span className="size-2 rounded-sm bg-[#b9cfee]" />
-                Completed
-              </span>
-            </div>
-          </section>
-          <section className="overview-card">
-            <h2>Case distribution</h2>
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              A snapshot of your current workload
-            </p>
-            <div className="mb-6 mt-8 flex h-3 gap-1 overflow-hidden rounded-full">
-              {STATUSES.map((st) => (
-                <div
-                  key={st}
-                  style={{
-                    background: statusColor[st],
-                    width: `${stats.total ? (cases.filter((c) => c.status === st).length / stats.total) * 100 : 0}%`,
-                  }}
-                />
-              ))}
-            </div>
-            <div className="space-y-4">
-              {STATUSES.map((st) => {
-                const n = cases.filter((c) => c.status === st).length;
-                return (
-                  <div key={st} className="flex items-center gap-3 text-xs">
-                    <span className="size-2 rounded-full" style={{ background: statusColor[st] }} />
-                    <span className="flex-1 text-muted-foreground">{st}</span>
-                    <span className="font-semibold tabular-nums">{n}</span>
-                    <span className="w-8 text-right text-[10px] text-muted-foreground">
-                      {stats.total ? Math.round((n / stats.total) * 100) : 0}%
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-            {stats.overdue > 0 && (
-              <Link
-                to="/cases"
-                className="mt-6 flex items-center gap-2 rounded-xl bg-amber-50 px-3 py-2.5 text-[10px] text-amber-700"
-              >
-                <Clock3 className="size-3.5" />
-                {stats.overdue} overdue services to review
-                <ArrowUpRight className="ml-auto size-3" />
-              </Link>
-            )}
-          </section>
-        </div>
-      )}
+      ) : null}
       <div className="mb-6 grid gap-6 xl:grid-cols-[1.65fr_1fr]">
         <section className="overview-card">
           <div className="mb-5 flex items-center justify-between">
@@ -576,6 +429,6 @@ function Page() {
           </div>
         </section>
       )}
-    </>
+    </div>
   );
 }

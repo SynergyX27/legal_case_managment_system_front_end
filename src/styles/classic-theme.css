@@ -1,0 +1,128 @@
+/* Classic: calm navy surfaces, soft chart accents and a matching light mode. */
+:root[data-palette="classic"] {
+  --background: #f4f7fa;
+  --foreground: #1c2939;
+  --card: #fff;
+  --card-foreground: #1c2939;
+  --popover: #fff;
+  --popover-foreground: #1c2939;
+  --primary: #245c7a;
+  --primary-foreground: #fff;
+  --muted: #edf2f6;
+  --muted-foreground: #64748b;
+  --secondary: #e7f3f8;
+  --secondary-foreground: #245c7a;
+  --accent: #e7f3f8;
+  --accent-foreground: #245c7a;
+  --border: #e3e8ef;
+  --input: #d5dfe8;
+  --ring: #498ca9;
+  --sidebar: #fff;
+  --sidebar-foreground: #64748b;
+  --sidebar-primary: #245c7a;
+  --sidebar-accent: #e7f3f8;
+  --sidebar-accent-foreground: #245c7a;
+  --sidebar-border: #e3e8ef;
+  --chart-1: #347895;
+  --chart-2: #bd7a3a;
+  --chart-3: #5b8651;
+  --chart-4: #7d6ca4;
+  --chart-5: #6a8198;
+}
+:root.dark[data-palette="classic"] {
+  --background: #101625;
+  --foreground: #e4eaf2;
+  --card: #131c2c;
+  --card-foreground: #e4eaf2;
+  --popover: #192334;
+  --popover-foreground: #e4eaf2;
+  --primary: #c8e7ee;
+  --primary-foreground: #122431;
+  --muted: #1c2839;
+  --muted-foreground: #a3aebe;
+  --secondary: #243344;
+  --secondary-foreground: #d6eaf0;
+  --accent: #243344;
+  --accent-foreground: #d6eaf0;
+  --border: #2b3546;
+  --input: #354355;
+  --ring: #c8e7ee;
+  --sidebar: #1e2938;
+  --sidebar-foreground: #aebac8;
+  --sidebar-primary: #c8e7ee;
+  --sidebar-primary-foreground: #122431;
+  --sidebar-accent: #354252;
+  --sidebar-accent-foreground: #eff7fa;
+  --sidebar-border: #2b3546;
+  --chart-1: #c8e7ee;
+  --chart-2: #ffca92;
+  --chart-3: #d6eab1;
+  --chart-4: #aaa7d8;
+  --chart-5: #8da8c3;
+}
+:root.dark[data-palette="classic"] .workspace-topbar {
+  background: #101625f5;
+}
+:root.dark[data-palette="classic"] .workspace-sidebar {
+  background: var(--sidebar);
+}
+:root.dark[data-palette="classic"] .sidebar-link {
+  color: var(--sidebar-foreground);
+}
+:root.dark[data-palette="classic"] .sidebar-link:is(:hover, .is-active) {
+  background: var(--sidebar-accent);
+  color: var(--sidebar-accent-foreground);
+}
+:root.dark[data-palette="classic"] :is(.sidebar-workspace, .sidebar-note, .topbar-search) {
+  background: var(--muted);
+  border-color: var(--border);
+  color: var(--muted-foreground);
+}
+:root[data-palette="classic"] .dashboard-page .overview-hero {
+  background: linear-gradient(110deg, #1c3148, #24364a);
+  box-shadow: none;
+  border: 1px solid #ffffff12;
+  padding: 24px 28px;
+  border-radius: 20px;
+}
+:root[data-palette="classic"] .dashboard-page .overview-hero::after {
+  opacity: 0.3;
+}
+:root[data-palette="classic"] .dashboard-page .overview-hero::before {
+  display: none;
+}
+:root[data-palette="classic"] .dashboard-page .overview-hero h1 {
+  font-size: 27px;
+}
+:root[data-palette="classic"] .dashboard-page .metric-card.colorful-stat {
+  background: var(--card);
+  border: 1px solid var(--border) !important;
+  box-shadow: none;
+  min-height: 132px;
+}
+:root[data-palette="classic"] .dashboard-page .colorful-stat .metric-label {
+  color: var(--muted-foreground);
+}
+:root[data-palette="classic"] .dashboard-page .colorful-stat .metric-value {
+  color: var(--foreground);
+  font-size: 30px;
+}
+:root[data-palette="classic"] .dashboard-page .colorful-stat .status-tile-icon {
+  background: var(--muted);
+  color: var(--chart-1);
+}
+:root[data-palette="classic"] .dashboard-page .colorful-stat[data-color="1"] .status-tile-icon {
+  color: var(--chart-2);
+}
+:root[data-palette="classic"] .dashboard-page .colorful-stat[data-color="2"] .status-tile-icon {
+  color: var(--chart-4);
+}
+:root[data-palette="classic"] .dashboard-page .colorful-stat[data-color="3"] .status-tile-icon {
+  color: var(--chart-3);
+}
+:root[data-palette="classic"] .dashboard-page .colorful-stat::after {
+  display: none;
+}
+:root.dark[data-palette="classic"] .bg-primary.text-white {
+  color: var(--primary-foreground);
+}

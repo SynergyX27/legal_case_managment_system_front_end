@@ -1,3 +1,4 @@
+import "@/styles/classic-theme.css";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { Moon, Sun } from "lucide-react";
 export type ThemeMode = "light" | "dark";
