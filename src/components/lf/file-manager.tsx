@@ -1,3 +1,4 @@
+import { FileTypeBadge, fileTypeInfo } from "./file-type-badge";
 import "@/styles/file-manager.css";
 import { visualTone } from "@/lib/visual-tone";
 import { can } from "@/lib/access";
@@ -7,7 +8,6 @@ import {
   Folder,
   FileText,
   ImageIcon,
-  Film,
   Search,
   ChevronRight,
   Upload,
@@ -299,9 +299,7 @@ export function FileManager({
     setDestination(collections[0]?.id || "");
   }
   const current = collections.find((c) => c.id === collection),
-    queue = pending.filter((p) => p.caseId === folder),
-    icon = (file: Attachment) =>
-      file.type === "image" ? <ImageIcon /> : file.type === "video" ? <Film /> : <FileText />;
+    queue = pending.filter((p) => p.caseId === folder);
   return (
     <div className={`fm-page space-y-5 ${initialCase ? "is-embedded" : ""}`}>
       <div className="fm-heading flex flex-wrap items-center justify-between gap-3">
@@ -606,10 +604,12 @@ export function FileManager({
             <article key={f.id} className="overflow-hidden rounded-xl border bg-card">
               <button
                 onClick={() => setPreview(f)}
+                aria-label={`Preview ${f.name}`}
+                data-file-kind={fileTypeInfo(f).kind}
                 className={
                   grid
-                    ? "flex h-40 w-full items-center justify-center bg-muted/30 text-primary"
-                    : "flex w-full items-center gap-3 p-4 text-left"
+                    ? "fm-file-cover flex h-40 w-full items-center justify-center"
+                    : "fm-file-row flex w-full items-center gap-3 p-4 text-left"
                 }
               >
                 {f.type === "image" ? (
@@ -620,7 +620,7 @@ export function FileManager({
                     className={grid ? "h-full w-full object-cover" : "size-12 rounded object-cover"}
                   />
                 ) : (
-                  icon(f)
+                  <FileTypeBadge file={f} compact={!grid} />
                 )}
                 {!grid && <span className="truncate">{f.name}</span>}
               </button>

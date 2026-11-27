@@ -573,3 +573,13 @@
     transform: none;
   }
 }
+
+/* Large recognizable document badges instead of generic thumbnail placeholders. */
+.fm-file-cover {position:relative;overflow:hidden;background:radial-gradient(ellipse at center,#dc35450d,transparent 75%),var(--muted);}
+.fm-file-cover[data-file-kind="excel"] {background:radial-gradient(ellipse at center,#16834b16,transparent 75%),var(--muted);}
+.fm-file-cover[data-file-kind="word"] {background:radial-gradient(ellipse at center,#2867bd16,transparent 75%),var(--muted);}
+.fm-file-cover[data-file-kind="video"] {background:radial-gradient(ellipse at center,#7c3aed16,transparent 75%),var(--muted);}
+.fm-file-badge {display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;filter:drop-shadow(0 5px 8px #00000010);}
+.fm-file-badge svg {display:block;max-width:none;}
+.fm-file-row .fm-file-badge {width:48px;}
+.fm-file-cover:focus-visible,.fm-file-row:focus-visible {outline:2px solid var(--primary);outline-offset:-3px;}
