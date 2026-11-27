@@ -1,7 +1,7 @@
-import {useCaseFormLayout} from "@/lib/case-form-layout";
+import { useCaseFormLayout } from "@/lib/case-form-layout";
 import "@/styles/case-form-layout.css";
 import { ModernSelect } from "@/components/ui/modern-select";
-import {api} from "@/lib/api";
+import { api } from "@/lib/api";
 import { AddressSuggestions } from "./address-suggestions";
 import { TERRITORIES, PROPERTY_TYPES, normalizeState } from "@/lib/property";
 import {
@@ -110,7 +110,7 @@ export function FileDrop({
   const ref = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
   const me = useMe();
-  const [layout,setLayout]=useCaseFormLayout(me?.id || "guest");
+  const [layout, setLayout] = useCaseFormLayout(me?.id || "guest");
   const [reading, setReading] = useState(false);
   const storedCases = useStore((s) => s.cases);
   const companyDocuments = useStore((s) => s.companyDocuments);
@@ -243,13 +243,15 @@ export function CaseForm({
 }) {
   const s = useStore();
   const me = useMe();
-  const [layout,setLayout]=useCaseFormLayout(me?.id || "guest");
+  const [layout, setLayout] = useCaseFormLayout(me?.id || "guest");
   const editing = editId ? s.cases.find((c) => c.id === editId) : undefined;
   const staff = s.users.filter(
     (u) =>
       u.role === "staff" &&
       u.status === "Active" &&
-      (me?.role === "owner" || (me?.role === "manager" ? u.managerId === me.id : u.id === me?.id)),
+      (u.id === editing?.staffId ||
+        me?.role === "owner" ||
+        (me?.role === "manager" ? u.managerId === me.id : u.id === me?.id)),
   );
   const blank = (): Case => ({
     id: uid("case"),
@@ -296,8 +298,13 @@ export function CaseForm({
   });
   const [c, setC] = useState<Case>(blank);
   const [saving, setSaving] = useState(false);
-  const [workspaces,setWorkspaces]=useState<any[]>([]);
-  useEffect(()=>{if(open&&me?.role==="owner")api("/workspaces").then(r=>setWorkspaces(r.workspaces)).catch(()=>{});},[open,me?.role]);
+  const [workspaces, setWorkspaces] = useState<any[]>([]);
+  useEffect(() => {
+    if (open && me?.role === "owner")
+      api("/workspaces")
+        .then((r) => setWorkspaces(r.workspaces))
+        .catch(() => {});
+  }, [open, me?.role]);
   useEffect(() => {
     if (open)
       setC(
@@ -351,10 +358,40 @@ export function CaseForm({
   const fields = (
     <div className="case-form-fields space-y-4" data-case-layout={layout}>
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-muted/30 p-3">
-        <div><p className="text-sm font-medium">Form layout</p><p className="text-xs text-muted-foreground">{layout === "vertical" ? "Top to bottom within each section" : "Left to right within each section"}<span className="block sm:hidden">Small screens always use a vertical layout.</span></p></div>
-        <div role="radiogroup" aria-label="Form layout" className="flex gap-1 rounded-lg bg-muted p-1">
-          <Button type="button" role="radio" aria-checked={layout === "vertical"} variant={layout === "vertical" ? "default" : "ghost"} size="sm" onClick={()=>setLayout("vertical")}>Vertical</Button>
-          <Button type="button" role="radio" aria-checked={layout === "columns"} variant={layout === "columns" ? "default" : "ghost"} size="sm" onClick={()=>setLayout("columns")}>Columns</Button>
+        <div>
+          <p className="text-sm font-medium">Form layout</p>
+          <p className="text-xs text-muted-foreground">
+            {layout === "vertical"
+              ? "Top to bottom within each section"
+              : "Left to right within each section"}
+            <span className="block sm:hidden">Small screens always use a vertical layout.</span>
+          </p>
+        </div>
+        <div
+          role="radiogroup"
+          aria-label="Form layout"
+          className="flex gap-1 rounded-lg bg-muted p-1"
+        >
+          <Button
+            type="button"
+            role="radio"
+            aria-checked={layout === "vertical"}
+            variant={layout === "vertical" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setLayout("vertical")}
+          >
+            Vertical
+          </Button>
+          <Button
+            type="button"
+            role="radio"
+            aria-checked={layout === "columns"}
+            variant={layout === "columns" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setLayout("columns")}
+          >
+            Columns
+          </Button>
         </div>
       </div>
       <p className="rounded-xl border bg-accent/40 p-3 text-xs text-muted-foreground">
@@ -433,7 +470,24 @@ export function CaseForm({
             }))}
           />
         </F>
-        {me?.role==="owner"&&<F label="Community workspace"><ModernSelect className="h-10 w-full rounded-xl border bg-card px-3 text-sm" value={c.workspaceId||""} onChange={e=>set("workspaceId",e.target.value)}><option value="">Assign later</option>{workspaces.filter(w=>w.kind==="community"&&w.clientId===c.clientId&&!w.archived).map(w=><option key={w.id} value={w.id}>{w.name}</option>)}</ModernSelect></F>}
+        {me?.role === "owner" && (
+          <F label="Community workspace">
+            <ModernSelect
+              className="h-10 w-full rounded-xl border bg-card px-3 text-sm"
+              value={c.workspaceId || ""}
+              onChange={(e) => set("workspaceId", e.target.value)}
+            >
+              <option value="">Assign later</option>
+              {workspaces
+                .filter((w) => w.kind === "community" && w.clientId === c.clientId && !w.archived)
+                .map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.name}
+                  </option>
+                ))}
+            </ModernSelect>
+          </F>
+        )}
         <F label="Client Email">
           <Input value={client?.email ?? ""} readOnly className="bg-muted" />
         </F>
@@ -583,7 +637,7 @@ export function CaseForm({
         <F label="Assigned Staff">
           <Sel
             value={c.staffId}
-            disabled={me?.role === "staff"}
+            disabled={me?.role === "staff" || (!!editing && me?.role !== "owner")}
             onChange={(v) =>
               setC((p) => ({
                 ...p,
@@ -594,6 +648,11 @@ export function CaseForm({
             items={staff.map((u) => ({ v: u.id, l: u.name }))}
           />
         </F>
+        {!!editing && me?.role !== "owner" && (
+          <p className="text-xs text-muted-foreground sm:col-span-2">
+            Primary assignments are managed by the owner. Use Assign team for additional staff.
+          </p>
+        )}
         <F label="Assigned Manager (from staff team)">
           <Sel
             disabled
@@ -688,7 +747,10 @@ export function CaseForm({
         </Section>
       )}
       <Section n={s.customFields.length ? 8 : 7} title="Attachments">
-        <p className="text-xs text-muted-foreground">Use File Manager on the case page to view and manage all files. New uploads require office approval.</p>
+        <p className="text-xs text-muted-foreground">
+          Use File Manager on the case page to view and manage all files. New uploads require office
+          approval.
+        </p>
         <FileDrop files={c.attachments} setFiles={(a) => set("attachments", a)} />
       </Section>
     </div>

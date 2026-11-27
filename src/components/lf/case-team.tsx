@@ -1,3 +1,4 @@
+import { canEditTeamMember, assignedTeamIds } from "@/lib/team-assignment";
 import { useState } from "react";
 import { useMe, useStore } from "@/lib/store";
 import type { Case } from "@/lib/domain";
@@ -15,6 +16,8 @@ export function CaseTeam({ rows }: { rows: Case[] }) {
     [busy, setBusy] = useState(false);
   if (!["owner", "manager"].includes(me?.role || "") || !rows.length) return null;
   const single = rows.length === 1;
+  const assigned = assignedTeamIds(rows);
+  const editable = (u: (typeof s.users)[number]) => canEditTeamMember(me, u, rows);
   async function save() {
     setBusy(true);
     try {
@@ -22,7 +25,9 @@ export function CaseTeam({ rows }: { rows: Case[] }) {
         method: "PATCH",
         body: {
           cases: rows.map((c) => ({ id: c.id, updatedAt: c.updatedAt })),
-          memberIds: selected,
+          memberIds: selected.filter((id) =>
+            s.users.some((u) => u.id === id && (me?.role === "owner" || editable(u))),
+          ),
           mode: single ? "replace" : "add",
         },
       });
@@ -40,7 +45,13 @@ export function CaseTeam({ rows }: { rows: Case[] }) {
       <Button
         variant="outline"
         onClick={() => {
-          setSelected(single ? rows[0].teamMemberIds || [] : []);
+          setSelected(
+            single
+              ? (rows[0].teamMemberIds || []).filter((id) =>
+                  s.users.some((u) => u.id === id && (me?.role === "owner" || editable(u))),
+                )
+              : [],
+          );
           setQuery("");
           setOpen(true);
         }}
@@ -53,15 +64,17 @@ export function CaseTeam({ rows }: { rows: Case[] }) {
             <DialogTitle>{single ? "Assign case team" : "Add team to selected cases"}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Primary staff and manager remain responsible. Additional members gain case access; their
-            existing action permissions still apply.{" "}
+            {me?.role === "manager"
+              ? "Manage additional staff from your own team. Managers, primary responsibilities and other staff are managed by the owner. "
+              : "Primary staff and manager remain responsible. "}{" "}
+            Additional members gain case access; their existing action permissions still apply.{" "}
             {single
               ? "Uncheck a member to remove their additional access."
               : "Selected people will be added to every selected case without removing existing members."}
           </p>
           <Input
             aria-label="Search team members"
-            placeholder="Search staff or managers…"
+            placeholder={me?.role === "owner" ? "Search staff or managers…" : "Search your staff…"}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -69,16 +82,15 @@ export function CaseTeam({ rows }: { rows: Case[] }) {
             {s.users
               .filter(
                 (u) =>
-                  ["staff", "manager"].includes(u.role) &&
-                  u.status === "Active" &&
+                  (editable(u) || assigned.includes(u.id)) &&
                   u.name.toLowerCase().includes(query.toLowerCase()),
               )
               .map((u) => (
                 <label key={u.id} className="flex items-center gap-3 rounded-lg border p-3">
                   <input
                     type="checkbox"
-                    checked={selected.includes(u.id)}
-                    disabled={busy}
+                    checked={editable(u) ? selected.includes(u.id) : assigned.includes(u.id)}
+                    disabled={busy || !editable(u)}
                     onChange={() =>
                       setSelected((a) =>
                         a.includes(u.id) ? a.filter((id) => id !== u.id) : [...a, u.id],
@@ -88,6 +100,11 @@ export function CaseTeam({ rows }: { rows: Case[] }) {
                   <span>
                     {u.name}
                     <span className="ml-2 text-xs capitalize text-muted-foreground">{u.role}</span>
+                    {!editable(u) && (
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        {me?.role === "owner" ? "Primary · edit in case form" : "Managed by owner"}
+                      </span>
+                    )}
                   </span>
                 </label>
               ))}

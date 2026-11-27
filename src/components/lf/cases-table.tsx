@@ -452,7 +452,7 @@ export function CasesTable() {
           <Button variant="outline" size="sm" onClick={() => setSelected(rows.map((c) => c.id))}>
             Select all {rows.length} matching cases
           </Button>
-          {can(me, "cases.edit") && me?.role !== "staff" && (
+          {can(me, "cases.edit") && me?.role === "owner" && (
             <ModernSelect
               aria-label="Assign selected cases to staff"
               className="h-9 rounded-lg border bg-card px-3"
@@ -460,7 +460,7 @@ export function CasesTable() {
               disabled={bulkBusy}
               onChange={(e) => void bulkUpdate({ staffId: e.target.value })}
             >
-              <option value="">Assign staff and manager</option>
+              <option value="">Change primary staff + manager</option>
               {s.users
                 .filter(
                   (u) =>

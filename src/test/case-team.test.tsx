@@ -19,7 +19,7 @@ function setup(role = "owner") {
     refresh: vi.fn(async () => {}),
     users: [
       { id: "actor", name: "Actor", role, status: "Active" },
-      { id: "extra", name: "Extra staff", role: "staff", status: "Active" },
+      { id: "extra", name: "Extra staff", role: "staff", status: "Active", managerId:"actor" },
       { id: "another", name: "Another manager", role: "manager", status: "Active" },
       { id: "customer", name: "Customer", role: "customer", status: "Active" },
     ] as any,
@@ -67,4 +67,15 @@ it("does not offer assignment controls to staff", () => {
   setup("staff");
   render(<CaseTeam rows={rows} />);
   expect(screen.queryByRole("button", { name: "Assign team" })).not.toBeInTheDocument();
+});
+
+it('locks owner-assigned managers and foreign staff while sending only editable staff IDs',async()=>{
+ setup('manager');useStore.setState({users:[...useStore.getState().users,{id:'foreign',name:'Other staff',role:'staff',managerId:'another',status:'Active'}] as any});
+ render(<CaseTeam rows={[{...rows[0],teamMemberIds:['extra','another','foreign']}]}/>);
+ fireEvent.click(screen.getByRole('button',{name:'Assign team'}));
+ expect(screen.getByRole('checkbox',{name:/Another manager/})).toBeDisabled();
+ expect(screen.getByRole('checkbox',{name:/Other staff/})).toBeDisabled();
+ fireEvent.click(screen.getByRole('checkbox',{name:/Extra staff/}));
+ fireEvent.click(screen.getByRole('button',{name:'Save team'}));
+ await waitFor(()=>expect(api).toHaveBeenCalledWith('/cases/team',expect.objectContaining({body:expect.objectContaining({memberIds:[],mode:'replace'})})));
 });
