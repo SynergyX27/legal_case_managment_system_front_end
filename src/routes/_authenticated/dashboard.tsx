@@ -1,3 +1,4 @@
+import {PendingFileReviews} from "@/components/lf/pending-file-reviews";
 import { CaseMoney, CaseStatusTiles } from "@/components/lf/case-portfolio";
 import { CreateCaseButton } from "@/components/lf/create-case-button";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -123,6 +124,7 @@ function Page() {
       ];
   return (
     <>
+      <PendingFileReviews/>
       <section className="overview-hero">
         <div>
           <p className="hero-kicker">

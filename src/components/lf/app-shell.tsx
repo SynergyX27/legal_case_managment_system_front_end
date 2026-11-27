@@ -1,5 +1,5 @@
-import {FileUploadWorker} from "./file-upload-worker";
-import {Mail} from "lucide-react";
+import { FileUploadWorker } from "./file-upload-worker";
+import { Mail } from "lucide-react";
 import { ThemeToggle } from "./theme-provider";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
@@ -75,7 +75,7 @@ const navigation = [
   { to: "/clients", label: "Customers", icon: Users, key: "clients", group: "Workspace" },
   { to: "/calendar", label: "Calendar", icon: CalendarDays, key: "calendar", group: "Workspace" },
   { to: "/documents", label: "File Manager", icon: FileText, key: "documents", group: "Workspace" },
-  {to:"/email",label:"Email",icon:Mail,key:"email",group:"Workspace"},
+  { to: "/email", label: "Email", icon: Mail, key: "email", group: "Workspace" },
   { to: "/invoices", label: "Invoices", icon: Receipt, key: "invoices", group: "Workspace" },
   {
     to: "/communications",
@@ -84,7 +84,13 @@ const navigation = [
     key: "communications",
     group: "Workspace",
   },
-  {to:"/workspaces",label:"Workspaces",icon:FolderOpen,key:"workspaces",group:"Workspace"},
+  {
+    to: "/workspaces",
+    label: "Workspaces",
+    icon: FolderOpen,
+    key: "workspaces",
+    group: "Workspace",
+  },
   {
     to: "/reports",
     label: "Reports & insights",
@@ -284,246 +290,265 @@ export function AppShell({ children }: { children: ReactNode }) {
     ui.selectChat("");
   }, [me?.id]);
   if (!me) return null;
-  return (<> <FileUploadWorker/>
-    <div className="workspace-app">
-      <aside className={cn("desktop-sidebar", collapsed && "is-collapsed")}>
-        <Sidebar collapsed={collapsed} />
-      </aside>
-      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="w-[280px] border-0 p-0">
-          <Sidebar collapsed={false} onNavigate={() => setMobileOpen(false)} />
-        </SheetContent>
-      </Sheet>
-      <div className="min-w-0 flex-1">
-        <header className="workspace-topbar">
-          <div className="flex min-w-0 items-center gap-3">
-            <Button
-              className="md:hidden"
-              variant="ghost"
-              size="icon"
-              aria-label="Open navigation"
-              onClick={() => setMobileOpen(true)}
-            >
-              <Menu />
-            </Button>
-            <Button
-              className="hidden md:inline-flex"
-              variant="ghost"
-              size="icon"
-              aria-label="Toggle sidebar"
-              onClick={() => setCollapsed(!collapsed)}
-            >
-              {collapsed ? <PanelLeft /> : <PanelLeftClose />}
-            </Button>
-            <div className="hidden items-center gap-2 text-xs sm:flex">
-              <span className="text-muted-foreground">Workspace</span>
-              <ChevronRight className="size-3 text-muted-foreground/60" />
-              <span className="font-semibold">{section?.label ?? "Overview"}</span>
+  return (
+    <>
+      {" "}
+      <FileUploadWorker />
+      <div className="workspace-app">
+        <aside className={cn("desktop-sidebar", collapsed && "is-collapsed")}>
+          <Sidebar collapsed={collapsed} />
+        </aside>
+        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+          <SheetContent side="left" className="w-[280px] border-0 p-0">
+            <Sidebar collapsed={false} onNavigate={() => setMobileOpen(false)} />
+          </SheetContent>
+        </Sheet>
+        <div className="min-w-0 flex-1">
+          <header className="workspace-topbar">
+            <div className="flex min-w-0 items-center gap-3">
+              <Button
+                className="md:hidden"
+                variant="ghost"
+                size="icon"
+                aria-label="Open navigation"
+                onClick={() => setMobileOpen(true)}
+              >
+                <Menu />
+              </Button>
+              <Button
+                className="hidden md:inline-flex"
+                variant="ghost"
+                size="icon"
+                aria-label="Toggle sidebar"
+                onClick={() => setCollapsed(!collapsed)}
+              >
+                {collapsed ? <PanelLeft /> : <PanelLeftClose />}
+              </Button>
+              <div className="hidden items-center gap-2 text-xs sm:flex">
+                <span className="text-muted-foreground">Workspace</span>
+                <ChevronRight className="size-3 text-muted-foreground/60" />
+                <span className="font-semibold">{section?.label ?? "Overview"}</span>
+              </div>
             </div>
-          </div>
-          <div className="ml-auto flex items-center gap-2 sm:gap-3">
-            <ThemeToggle />
-            <button
-              className="topbar-search"
-              onClick={() => setSearchOpen(true)}
-              aria-label="Search workspace"
-            >
-              <Search className="size-4" />
-              <span className="hidden lg:inline">Search anything…</span>
-              <kbd className="hidden rounded border bg-card px-1.5 py-0.5 text-[9px] lg:inline">
-                Ctrl K
-              </kbd>
-            </button>
+            <div className="ml-auto flex items-center gap-2 sm:gap-3">
+              <ThemeToggle />
+              <button
+                className="topbar-search"
+                onClick={() => setSearchOpen(true)}
+                aria-label="Search workspace"
+              >
+                <Search className="size-4" />
+                <span className="hidden lg:inline">Search anything…</span>
+                <kbd className="hidden rounded border bg-card px-1.5 py-0.5 text-[9px] lg:inline">
+                  Ctrl K
+                </kbd>
+              </button>
 
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Notifications" className="relative">
-                  <Bell className="size-[18px]" />
-                  {notifications.some((n) => !n.read) && (
-                    <span className="absolute right-2 top-2 size-1.5 rounded-full bg-primary ring-2 ring-white" />
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="end" className="w-80 p-0">
-                <div className="flex items-center justify-between border-b p-4">
-                  <h2 className="text-sm font-semibold">Notifications</h2>
-                  <button className="text-xs text-primary" onClick={s.markAllRead}>
-                    Mark all read
-                  </button>
-                </div>
-                <div className="max-h-80 overflow-y-auto">
-                  {notifications.slice(0, 8).map((n) => (
-                    <button
-                      key={n.id}
-                      className="flex w-full gap-3 border-b p-4 text-left text-xs leading-relaxed hover:bg-muted"
-                      onClick={() => {
-                        s.markRead(n.id);
-                        if (n.link) navigate({ to: n.link });
-                      }}
-                    >
-                      <span
-                        className={cn(
-                          "mt-1 size-1.5 shrink-0 rounded-full",
-                          n.read ? "bg-border" : "bg-primary",
-                        )}
-                      />
-                      <span>
-                        {n.text}
-                        <span className="mt-1 block text-[10px] text-muted-foreground">
-                          {new Date(n.at).toLocaleString()}
-                        </span>
-                      </span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Notifications"
+                    className="relative"
+                  >
+                    <Bell className="size-[18px]" />
+                    {notifications.some((n) => !n.read) && (
+                      <span className="absolute right-2 top-2 size-1.5 rounded-full bg-primary ring-2 ring-white" />
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-80 p-0">
+                  <div className="flex items-center justify-between border-b p-4">
+                    <h2 className="text-sm font-semibold">Notifications</h2>
+                    <button className="text-xs text-primary" onClick={s.markAllRead}>
+                      Mark all read
                     </button>
-                  ))}
-                  {!notifications.length && (
-                    <p className="px-5 py-10 text-center text-sm text-muted-foreground">
-                      You're all caught up.
-                    </p>
-                  )}
-                </div>
-              </PopoverContent>
-            </Popover>
-            <div className="hidden h-6 border-l sm:block" />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  className="flex items-center gap-2 rounded-full p-1"
-                  aria-label="Profile menu"
-                >
-                  <Avatar name={me.name} className="size-8" />
-                  <ChevronDown className="hidden size-3 text-muted-foreground sm:block" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-60">
-                <DropdownMenuLabel>
-                  {me.name}
-                  <p className="mt-1 text-xs font-normal text-muted-foreground">{me.email}</p>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => ui.openChat()}>
-                  <MessagesSquare />
-                  Messages
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={async () => {
-                    await s.logout();
-                    navigate({ to: "/" });
-                  }}
-                >
-                  <LogOut />
-                  Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            {me.role !== "customer" && (
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifications.slice(0, 8).map((n) => (
+                      <button
+                        key={n.id}
+                        className="flex w-full gap-3 border-b p-4 text-left text-xs leading-relaxed hover:bg-muted"
+                        onClick={() => {
+                          s.markRead(n.id);
+                          if (n.kind === "file-review" && n.link) {
+                            const p = new URL(n.link, window.location.origin).searchParams;
+                            navigate({
+                              to: "/documents",
+                              search: {
+                                caseId: p.get("caseId") || undefined,
+                                collectionId: p.get("collectionId") || undefined,
+                                approval: "pending",
+                              },
+                            });
+                          } else if (n.link) navigate({ to: n.link });
+                        }}
+                      >
+                        <span
+                          className={cn(
+                            "mt-1 size-1.5 shrink-0 rounded-full",
+                            n.read ? "bg-border" : "bg-primary",
+                          )}
+                        />
+                        <span>
+                          {n.text}
+                          <span className="mt-1 block text-[10px] text-muted-foreground">
+                            {new Date(n.at).toLocaleString()}
+                          </span>
+                        </span>
+                      </button>
+                    ))}
+                    {!notifications.length && (
+                      <p className="px-5 py-10 text-center text-sm text-muted-foreground">
+                        You're all caught up.
+                      </p>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              <div className="hidden h-6 border-l sm:block" />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="sm" className="ml-1">
-                    <Plus />
-                    <span className="hidden sm:inline">Create new</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem
-                    disabled={!can(me, "cases.create")}
-                    onClick={() => ui.openCase()}
+                  <button
+                    className="flex items-center gap-2 rounded-full p-1"
+                    aria-label="Profile menu"
                   >
-                    <FolderOpen />
-                    Case file (modal)
+                    <Avatar name={me.name} className="size-8" />
+                    <ChevronDown className="hidden size-3 text-muted-foreground sm:block" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-60">
+                  <DropdownMenuLabel>
+                    {me.name}
+                    <p className="mt-1 text-xs font-normal text-muted-foreground">{me.email}</p>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => ui.openChat()}>
+                    <MessagesSquare />
+                    Messages
                   </DropdownMenuItem>
-                  {can(me, "cases.create") && (
-                    <DropdownMenuItem onClick={() => navigate({ to: "/cases/new" })}>
-                      <FolderOpen />
-                      Case file (full page)
-                    </DropdownMenuItem>
-                  )}
-                  {me.role === "owner" && (
-                    <DropdownMenuItem onClick={() => ui.openClient()}>
-                      <Users />
-                      Customer
-                    </DropdownMenuItem>
-                  )}
-                  {can(me, "invoices.create") && (
-                    <DropdownMenuItem onClick={() => ui.openInvoice()}>
-                      <Receipt />
-                      Invoice
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem onClick={() => navigate({ to: "/calendar" })}>
-                    <CalendarDays />
-                    Calendar event
+                  <DropdownMenuItem
+                    onClick={async () => {
+                      await s.logout();
+                      navigate({ to: "/" });
+                    }}
+                  >
+                    <LogOut />
+                    Sign out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            )}
-          </div>
-        </header>
-        {s.connectionError && (
-          <div
-            role="alert"
-            className="border-b border-destructive/20 bg-destructive/10 p-3 text-center text-sm text-destructive"
-          >
-            {s.connectionError}{" "}
-            <button className="underline" onClick={() => s.refresh()}>
-              Retry
-            </button>
-          </div>
-        )}
-        <main className="app-main">
-          <div className="workspace-content">{children}</div>
-          <footer className="workspace-footer">
-            <span>
-              LegalFlow <span className="mx-2 text-border">/</span> Built around your cases.
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="size-1.5 rounded-full bg-primary/60" />
-              Your workspace
-            </span>
-          </footer>
-        </main>
-      </div>
-      <CommandDialog open={searchOpen} onOpenChange={setSearchOpen}>
-        <CommandInput placeholder="Search cases, customers or tenants…" />
-        <CommandList>
-          <CommandEmpty>No matching records.</CommandEmpty>
-          <CommandGroup heading="Case files">
-            {cases.slice(0, 40).map((c) => (
-              <CommandItem
-                key={c.id}
-                value={`${c.number} ${c.ref} ${c.residentName} ${c.title}`}
-                onSelect={() => {
-                  setSearchOpen(false);
-                  navigate({ to: "/cases/$id", params: { id: c.id } });
-                }}
-              >
-                <FolderOpen />
-                {c.number} · {c.residentName}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-          {me.role !== "customer" && (
-            <CommandGroup heading="Customers">
-              {clients.map((c) => (
+              {me.role !== "customer" && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" className="ml-1">
+                      <Plus />
+                      <span className="hidden sm:inline">Create new</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      disabled={!can(me, "cases.create")}
+                      onClick={() => ui.openCase()}
+                    >
+                      <FolderOpen />
+                      Case file (modal)
+                    </DropdownMenuItem>
+                    {can(me, "cases.create") && (
+                      <DropdownMenuItem onClick={() => navigate({ to: "/cases/new" })}>
+                        <FolderOpen />
+                        Case file (full page)
+                      </DropdownMenuItem>
+                    )}
+                    {me.role === "owner" && (
+                      <DropdownMenuItem onClick={() => ui.openClient()}>
+                        <Users />
+                        Customer
+                      </DropdownMenuItem>
+                    )}
+                    {can(me, "invoices.create") && (
+                      <DropdownMenuItem onClick={() => ui.openInvoice()}>
+                        <Receipt />
+                        Invoice
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem onClick={() => navigate({ to: "/calendar" })}>
+                      <CalendarDays />
+                      Calendar event
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
+          </header>
+          {s.connectionError && (
+            <div
+              role="alert"
+              className="border-b border-destructive/20 bg-destructive/10 p-3 text-center text-sm text-destructive"
+            >
+              {s.connectionError}{" "}
+              <button className="underline" onClick={() => s.refresh()}>
+                Retry
+              </button>
+            </div>
+          )}
+          <main className="app-main">
+            <div className="workspace-content">{children}</div>
+            <footer className="workspace-footer">
+              <span>
+                LegalFlow <span className="mx-2 text-border">/</span> Built around your cases.
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="size-1.5 rounded-full bg-primary/60" />
+                Your workspace
+              </span>
+            </footer>
+          </main>
+        </div>
+        <CommandDialog open={searchOpen} onOpenChange={setSearchOpen}>
+          <CommandInput placeholder="Search cases, customers or tenants…" />
+          <CommandList>
+            <CommandEmpty>No matching records.</CommandEmpty>
+            <CommandGroup heading="Case files">
+              {cases.slice(0, 40).map((c) => (
                 <CommandItem
                   key={c.id}
-                  value={`${c.name} ${c.company}`}
+                  value={`${c.number} ${c.ref} ${c.residentName} ${c.title}`}
                   onSelect={() => {
                     setSearchOpen(false);
-                    navigate({ to: "/clients/$id", params: { id: c.id } });
+                    navigate({ to: "/cases/$id", params: { id: c.id } });
                   }}
                 >
-                  <Users />
-                  {c.name} · {c.company}
+                  <FolderOpen />
+                  {c.number} · {c.residentName}
                 </CommandItem>
               ))}
             </CommandGroup>
-          )}
-        </CommandList>
-      </CommandDialog>
-      <CaseFormDialog />
-      <InvoiceDialog />
-      <ClientDialog />
-      <FloatingMessenger key={me.id} />
-    </div>
-  </>);
+            {me.role !== "customer" && (
+              <CommandGroup heading="Customers">
+                {clients.map((c) => (
+                  <CommandItem
+                    key={c.id}
+                    value={`${c.name} ${c.company}`}
+                    onSelect={() => {
+                      setSearchOpen(false);
+                      navigate({ to: "/clients/$id", params: { id: c.id } });
+                    }}
+                  >
+                    <Users />
+                    {c.name} · {c.company}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+          </CommandList>
+        </CommandDialog>
+        <CaseFormDialog />
+        <InvoiceDialog />
+        <ClientDialog />
+        <FloatingMessenger key={me.id} />
+      </div>
+    </>
+  );
 }

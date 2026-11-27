@@ -1,0 +1,10 @@
+import {afterEach,expect,it,vi} from 'vitest';
+import {cleanup,render,screen} from '@testing-library/react';
+import {useStore} from '@/lib/store';
+import {api} from '@/lib/api';
+vi.mock('@/lib/api',()=>({api:vi.fn()}));
+vi.mock('@tanstack/react-router',()=>({Link:({to,search,children}:any)=><a href={to+'?'+new URLSearchParams(search)}>{children}</a>}));
+import {PendingFileReviews} from '@/components/lf/pending-file-reviews';
+afterEach(()=>{cleanup();vi.clearAllMocks();});
+it('shows live pending counts independently of read notifications and links to the exact review collection',async()=>{useStore.setState({sessionUserId:'owner',users:[{id:'owner',name:'Owner',role:'owner',status:'Active'}] as any,notifications:[{id:'n',kind:'file-review',read:true}] as any});vi.mocked(api).mockResolvedValue({totalFiles:3,totalGroups:1,hasMore:false,groups:[{caseId:'case-a',caseNumber:'LF-001',collectionId:'writ',collectionName:'Writ',files:3}]});render(<PendingFileReviews/>);expect(await screen.findByText('3 files awaiting approval')).toBeInTheDocument();expect(screen.getByRole('link',{name:'Review files'})).toHaveAttribute('href','/documents?caseId=case-a&collectionId=writ&approval=pending');});
+it('does not fetch or show the approval queue for staff',()=>{useStore.setState({sessionUserId:'staff',users:[{id:'staff',name:'Staff',role:'staff',status:'Active'}] as any});render(<PendingFileReviews/>);expect(api).not.toHaveBeenCalled();expect(screen.queryByRole('region',{name:'Files awaiting approval'})).not.toBeInTheDocument();});

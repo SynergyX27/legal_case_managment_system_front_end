@@ -51,10 +51,12 @@ export function FileManager({
   caseId: initialCase,
   initialCollection,
   capture = false,
+  initialApproval = "",
 }: {
   caseId?: string;
   initialCollection?: string;
   capture?: boolean;
+  initialApproval?: string;
 }) {
   const me = useMe(),
     refresh = useStore((s) => s.refresh),
@@ -73,7 +75,7 @@ export function FileManager({
     [revision, setRevision] = useState(0),
     [selected, setSelected] = useState<string[]>([]),
     [grid, setGrid] = useState(true),
-    [approval, setApproval] = useState(""),
+    [approval, setApproval] = useState(initialApproval),
     [preview, setPreview] = useState<Attachment | null>(null),
     [pending, setPending] = useState<PendingUpload[]>([]),
     [busy, setBusy] = useState(false);
@@ -98,7 +100,8 @@ export function FileManager({
   useEffect(() => {
     setFolder(initialCase || "");
     setCollection(initialCollection || "");
-  }, [initialCase, initialCollection]);
+    setApproval(initialApproval);
+  }, [initialCase, initialCollection, initialApproval]);
   useEffect(() => {
     if (!me?.id) return;
     let alive = true;
