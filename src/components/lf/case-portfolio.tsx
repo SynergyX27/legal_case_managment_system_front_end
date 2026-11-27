@@ -70,9 +70,9 @@ export function CaseMoney({ cases }: { cases: Case[] }) {
   return (
     <div className="mb-5 grid gap-3 sm:grid-cols-3">
       {[
-        { label: "Amount owed", value: totals.owed, color: "#dc4444" },
-        { label: "Amount cleared", value: totals.cleared, color: "#16986b" },
-        { label: "Amount due", value: totals.due, color: "#d9a022" },
+        { label: "Amount owed", value: totals.owed, color: "var(--case-owed, #dc4444)" },
+        { label: "Amount cleared", value: totals.cleared, color: "var(--case-cleared, #16986b)" },
+        { label: "Amount due", value: totals.due, color: "var(--case-due, #d9a022)" },
       ].map((x) => (
         <section key={x.label} className="metric-card">
           <p className="metric-label">{x.label}</p>
@@ -186,7 +186,7 @@ export function CaseStatusTiles({
           </Button>
         </DialogContent>
       </Dialog>
-      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="case-status-grid mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {selected.map((status, index) => {
           const TileIcon = [FolderOpen, Clock3, CalendarClock, CircleCheck, Activity][index % 5];
           const content = (

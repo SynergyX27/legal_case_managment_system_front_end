@@ -94,35 +94,84 @@
 :root[data-palette="classic"] .dashboard-page .overview-hero h1 {
   font-size: 27px;
 }
-:root[data-palette="classic"] .dashboard-page .metric-card.colorful-stat {
+:root[data-palette="classic"] .metric-card.colorful-stat {
   background: var(--card);
   border: 1px solid var(--border) !important;
   box-shadow: none;
   min-height: 132px;
 }
-:root[data-palette="classic"] .dashboard-page .colorful-stat .metric-label {
+:root[data-palette="classic"] .colorful-stat .metric-label {
   color: var(--muted-foreground);
 }
-:root[data-palette="classic"] .dashboard-page .colorful-stat .metric-value {
+:root[data-palette="classic"] .colorful-stat .metric-value {
   color: var(--foreground);
   font-size: 30px;
 }
-:root[data-palette="classic"] .dashboard-page .colorful-stat .status-tile-icon {
+:root[data-palette="classic"] .colorful-stat .status-tile-icon {
   background: var(--muted);
   color: var(--chart-1);
 }
-:root[data-palette="classic"] .dashboard-page .colorful-stat[data-color="1"] .status-tile-icon {
+:root[data-palette="classic"] .colorful-stat[data-color="1"] .status-tile-icon {
   color: var(--chart-2);
 }
-:root[data-palette="classic"] .dashboard-page .colorful-stat[data-color="2"] .status-tile-icon {
+:root[data-palette="classic"] .colorful-stat[data-color="2"] .status-tile-icon {
   color: var(--chart-4);
 }
-:root[data-palette="classic"] .dashboard-page .colorful-stat[data-color="3"] .status-tile-icon {
+:root[data-palette="classic"] .colorful-stat[data-color="3"] .status-tile-icon {
   color: var(--chart-3);
 }
-:root[data-palette="classic"] .dashboard-page .colorful-stat::after {
+:root[data-palette="classic"] .colorful-stat::after {
   display: none;
 }
 :root.dark[data-palette="classic"] .bg-primary.text-white {
   color: var(--primary-foreground);
+}
+
+.case-status-grid .metric-card {
+  min-height: 118px;
+  padding: 20px;
+}
+@media (min-width: 1400px) {
+  .case-status-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+:root[data-palette="classic"] .case-status-grid .metric-card {
+  min-height: 118px;
+}
+:root[data-palette="classic"] {
+  --case-owed: #b54e59;
+  --case-cleared: #348260;
+  --case-due: #a77528;
+}
+:root.dark[data-palette="classic"] {
+  --case-owed: #e8a2a9;
+  --case-cleared: #b9d9b1;
+  --case-due: #ffca92;
+}
+.company-library .company-folder {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--card);
+  padding: 22px;
+}
+.company-library .company-folder:hover {
+  border-color: var(--primary);
+}
+.company-library .company-folder-icon {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  background: var(--muted);
+  color: var(--chart-1);
+  margin-bottom: 18px;
+}
+.company-library .company-folder:nth-child(3n + 2) .company-folder-icon {
+  color: var(--chart-2);
+}
+.company-library .company-folder:nth-child(3n) .company-folder-icon {
+  color: var(--chart-4);
 }

@@ -50,6 +50,7 @@ export interface Client {
   accountId: string;
 }
 export interface Attachment {
+  companyFolderId?: string;
   mime?: string;
   bytes?: number;
   collectionId?: string;
