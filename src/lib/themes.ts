@@ -1,8 +1,9 @@
 export const palettes = [
+  { id: "grey", name: "Grey", description: "Original corporate grey and white · Default" },
   {
     id: "classic",
     name: "LegalFlow Classic",
-    description: "Navy, soft cyan and warm accents · Default",
+    description: "Navy, soft cyan and warm accents",
   },
   { id: "violet", name: "Royal Violet", description: "Violet with teal and gold" },
   { id: "emerald", name: "Emerald", description: "Forest green with indigo" },
@@ -11,9 +12,36 @@ export const palettes = [
 ] as const;
 export type PaletteId = (typeof palettes)[number]["id"];
 export function paletteId(value: unknown): PaletteId {
-  return palettes.some((p) => p.id === value) ? (value as PaletteId) : "classic";
+  return palettes.some((p) => p.id === value) ? (value as PaletteId) : "grey";
 }
 const values = {
+  grey: [
+    [
+      "#f5f6f8",
+      "#ffffff",
+      "#243041",
+      "#647080",
+      "#dfe3e8",
+      "#345f91",
+      "#345f91",
+      "#edf0f4",
+      "#596579",
+      "#657589",
+    ],
+    [
+      "#191d24",
+      "#232832",
+      "#edf0f5",
+      "#aab3c0",
+      "#3b424e",
+      "#c1cedf",
+      "#42638e",
+      "#303743",
+      "#b8c1ce",
+      "#a3afbf",
+    ],
+  ],
+
   classic: [
     [
       "#f4f7fa",

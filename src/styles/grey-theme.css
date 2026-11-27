@@ -1,0 +1,98 @@
+/* Original corporate presentation; selected independently of light/dark mode. */
+:root[data-palette="grey"] {
+  --chart-4: #9eabba;
+  --chart-5: #bbc3ce;
+  --case-owed: #a64550;
+  --case-cleared: #477360;
+  --case-due: #957126;
+}
+:root.dark[data-palette="grey"] {
+  --chart-4: #d1d7e0;
+  --chart-5: #7f8ea2;
+  --case-owed: #e0a5ad;
+  --case-cleared: #afcbbd;
+  --case-due: #dac399;
+}
+:root[data-palette="grey"] :is(.app-main, .workspace-topbar, .workspace-sidebar) {
+  background-image: none;
+}
+:root[data-palette="grey"]
+  :is(.fm-page, .workspace-page, .fm-page [data-tone], .workspace-page [data-tone]) {
+  --fm-accent: var(--primary);
+  --fm-tint: var(--muted);
+  --fm-deep: var(--muted-foreground);
+}
+:root[data-palette="grey"]
+  :is(
+    .nav-color-icon,
+    .folder-color-icon,
+    .status-tile-icon,
+    .fm-section-symbol,
+    .fm-folder-art,
+    .fm-collection-icon,
+    .company-folder-icon
+  ) {
+  color: var(--primary);
+  background: var(--muted);
+  box-shadow: none;
+}
+:root[data-palette="grey"] .metric-card.colorful-stat {
+  background: var(--card);
+  border: 1px solid var(--border) !important;
+  box-shadow: none;
+  min-height: 118px;
+  color: var(--foreground);
+}
+:root[data-palette="grey"] .colorful-stat .metric-label {
+  color: var(--muted-foreground);
+}
+:root[data-palette="grey"] .colorful-stat .metric-value {
+  color: var(--foreground);
+  font-size: 30px;
+}
+:root[data-palette="grey"]
+  :is(.colorful-stat, .case-folder-card, .workspace-card-cover, .overview-hero)::after,
+:root[data-palette="grey"] :is(.workspace-card-cover, .overview-hero)::before {
+  display: none;
+}
+:root[data-palette="grey"]
+  :is(
+    .fm-heading,
+    .ws-page-heading,
+    .fm-file-cover,
+    .ws-community-card,
+    .fm-collection-card,
+    .visual-panel > header
+  ) {
+  background: var(--card);
+  box-shadow: none;
+}
+:root[data-palette="grey"] .workspace-card-cover {
+  background: var(--muted);
+  color: var(--foreground);
+  border-bottom: 1px solid var(--border);
+}
+:root[data-palette="grey"] :is(.ws-type-badge, .workspace-card-cover .ws-cover-icon) {
+  background: var(--card);
+  color: var(--primary);
+  border-color: var(--border);
+  box-shadow: none;
+}
+:root[data-palette="grey"] .overview-hero {
+  background: var(--muted);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+:root[data-palette="grey"] .overview-hero :is(h1, p, .hero-kicker, .text-white) {
+  color: var(--foreground);
+}
+:root[data-palette="grey"] .overview-hero .hero-action {
+  background: var(--card);
+  border-color: var(--border);
+  color: var(--primary);
+  backdrop-filter: none;
+}
+:root[data-palette="grey"] .overview-hero :is(a, svg, span) {
+  color: var(--primary);
+}

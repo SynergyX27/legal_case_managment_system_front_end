@@ -17,22 +17,22 @@ beforeEach(() => {
   });
 });
 afterEach(cleanup);
-it("previews without changing the live theme, applies, cancels and restores Classic", () => {
+it("previews without changing the live theme, applies, cancels and restores Grey", () => {
   render(
     <ThemeProvider>
       <ThemePicker />
     </ThemeProvider>,
   );
   fireEvent.click(screen.getByRole("button", { name: /Royal Violet/ }));
-  expect(document.documentElement.dataset["palette"]).toBe("classic");
+  expect(document.documentElement.dataset["palette"]).toBe("grey");
   fireEvent.click(screen.getByRole("button", { name: "Apply theme" }));
   expect(document.documentElement.dataset["palette"]).toBe("violet");
   fireEvent.click(screen.getByRole("button", { name: /Sunset/ }));
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
   expect(document.documentElement.dataset["palette"]).toBe("violet");
   fireEvent.click(screen.getByRole("button", { name: "Restore default" }));
-  expect(document.documentElement.dataset["palette"]).toBe("classic");
-  expect(document.documentElement.style.getPropertyValue("--primary")).toBe("");
+  expect(document.documentElement.dataset["palette"]).toBe("grey");
+  expect(document.documentElement.style.getPropertyValue("--primary")).toBe("#345f91");
 });
 it("restores a saved palette and isolates the preference by account", () => {
   localStorage.setItem(
@@ -53,6 +53,32 @@ it("restores a saved palette and isolates the preference by account", () => {
       <ThemePicker />
     </ThemeProvider>,
   );
-  expect(document.documentElement.dataset["palette"]).toBe("classic");
+  expect(document.documentElement.dataset["palette"]).toBe("grey");
   expect(document.documentElement.classList.contains("dark")).toBe(false);
+});
+it("previews Grey, saves it, and keeps an explicitly saved Classic selection", () => {
+  localStorage.setItem(
+    "legalflow-appearance:theme-user-a",
+    JSON.stringify({ palette: "classic", mode: "light" }),
+  );
+  const view = render(
+    <ThemeProvider>
+      <ThemePicker />
+    </ThemeProvider>,
+  );
+  expect(document.documentElement.dataset["palette"]).toBe("classic");
+  fireEvent.click(screen.getByRole("button", { name: /^Grey/ }));
+  expect(document.documentElement.dataset["palette"]).toBe("classic");
+  fireEvent.click(screen.getByRole("button", { name: "Apply theme" }));
+  expect(document.documentElement.dataset["palette"]).toBe("grey");
+  expect(JSON.parse(localStorage.getItem("legalflow-appearance:theme-user-a")!).palette).toBe(
+    "grey",
+  );
+  view.unmount();
+  render(
+    <ThemeProvider>
+      <ThemePicker />
+    </ThemeProvider>,
+  );
+  expect(document.documentElement.dataset["palette"]).toBe("grey");
 });

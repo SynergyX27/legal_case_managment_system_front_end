@@ -1,4 +1,5 @@
 import "@/styles/classic-theme.css";
+import "@/styles/grey-theme.css";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { Moon, Sun } from "lucide-react";
 export type ThemeMode = "light" | "dark";
@@ -10,7 +11,7 @@ const ThemeContext = createContext<{
   ready: boolean;
   setTheme: (v: ThemeMode) => void;
   setPalette: (v: PaletteId) => void;
-}>({ theme: "light", palette: "classic", ready: false, setTheme: () => {}, setPalette: () => {} });
+}>({ theme: "light", palette: "grey", ready: false, setTheme: () => {}, setPalette: () => {} });
 const tokenNames = [
   "background",
   "foreground",
@@ -85,7 +86,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const user = useStore((s) => s.sessionUserId),
     key = `legalflow-appearance:${user ?? "guest"}`;
   const [theme, setMode] = useState<ThemeMode>("light"),
-    [palette, setPaletteState] = useState<PaletteId>("classic"),
+    [palette, setPaletteState] = useState<PaletteId>("grey"),
     [ready, setReady] = useState(false);
   useEffect(() => {
     const update = () => {

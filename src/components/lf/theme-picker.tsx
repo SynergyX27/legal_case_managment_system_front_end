@@ -74,7 +74,7 @@ export function ThemePicker() {
           type="button"
           className="rounded-full border px-4 py-2 text-sm font-semibold"
           onClick={() => {
-            setPalette("classic");
+            setPalette("grey");
             setDraft(null);
             setNotice("Default theme restored.");
           }}
@@ -120,7 +120,8 @@ function ThemeSample({ id, dark }: { id: PaletteId; dark: boolean }) {
               <div
                 key={color}
                 style={{
-                  background: i === 0 ? c.button : i === 1 ? "#0e7490" : "#047857",
+                  background:
+                    id === "grey" ? c.card : i === 0 ? c.button : i === 1 ? "#0e7490" : "#047857",
                   border: `1px solid ${c.border}`,
                   borderTop: `3px solid ${color}`,
                   borderRadius: 7,
@@ -128,8 +129,8 @@ function ThemeSample({ id, dark }: { id: PaletteId; dark: boolean }) {
                   flex: 1,
                 }}
               >
-                <b style={{ color: "white" }}>{[24, 8, 12][i]}</b>
-                <div style={{ color: "#ffffffcc" }}>Sample</div>
+                <b style={{ color: id === "grey" ? c.text : "white" }}>{[24, 8, 12][i]}</b>
+                <div style={{ color: id === "grey" ? c.muted : "#ffffffcc" }}>Sample</div>
               </div>
             ))}
           </div>
