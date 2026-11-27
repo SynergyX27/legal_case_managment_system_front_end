@@ -1,3 +1,4 @@
+import { can } from "@/lib/access";
 import { ModernSelect } from "@/components/ui/modern-select";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -63,7 +64,9 @@ export function PortfolioFilters({
   );
 }
 export function CaseMoney({ cases }: { cases: Case[] }) {
+  const me = useMe();
   const totals = caseMoney(cases);
+  if (me?.roleProfile && !can(me, "cases.financials")) return null;
   return (
     <div className="mb-5 grid gap-3 sm:grid-cols-3">
       {[

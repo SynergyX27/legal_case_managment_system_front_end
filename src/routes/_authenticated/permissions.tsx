@@ -1,210 +1,163 @@
-import { ModernSelect } from "@/components/ui/modern-select";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { ShieldCheck, Users } from "lucide-react";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/lf/ui-bits";
-import { Button } from "@/components/ui/button";
 import { useMe, useStore, type RolePermissions } from "@/lib/store";
+import { can } from "@/lib/access";
+import {
+  roleProfiles,
+  roleLabel,
+  permissionActions,
+  permissionDefaults,
+} from "@/lib/role-profiles";
+import { PermissionChecklist } from "@/components/lf/permission-checklist";
+import { PageHeader, Panel } from "@/components/lf/ui-bits";
+import { Button } from "@/components/ui/button";
+import { ModernSelect } from "@/components/ui/modern-select";
 import type { User } from "@/lib/domain";
 export const Route = createFileRoute("/_authenticated/permissions")({ component: Page });
-const actions = [
-  ["cases.create", "Create cases", "Create a case in a modal or on the full page."],
-  ["cases.edit", "Edit cases", "Update assigned case details and status."],
-  ["cases.delete", "Delete cases", "Delete assigned cases without documents or invoices."],
-  ["invoices.view", "View invoices", "Read invoices for assigned cases."],
-  ["invoices.create", "Create invoices", "Create additional invoices for assigned cases."],
-  [
-    "invoices.edit",
-    "Edit invoices",
-    "Edit, publish or record manual payment on assigned invoices.",
-  ],
-  [
-    "invoices.delete",
-    "Delete unpaid invoices",
-    "Remove an unpaid invoice when no active payment exists.",
-  ],
-] as const;
-function RoleCard({ value }: { value: RolePermissions }) {
-  const save = useStore((s) => s.saveRolePermissions);
-  const [draft, setDraft] = useState({ ...value.permissions });
-  const [busy, setBusy] = useState(false);
-  const changed = actions.some(([key]) => !!draft[key] !== !!value.permissions[key]);
+function Defaults({ value }: { value: RolePermissions }) {
+  const s = useStore();
+  const [draft, setDraft] = useState({ ...value.permissions }),
+    [busy, setBusy] = useState(false);
   return (
-    <section className="rounded-2xl border bg-card p-5 sm:p-6">
-      <h2 className="text-lg font-semibold capitalize">
-        {value.role === "staff" ? "Staff members" : "Managers"}
-      </h2>
-      <p className="mt-1 mb-5 text-sm text-muted-foreground">
-        Default permissions for this role. Individual exceptions appear below.
-      </p>
-      <div className="divide-y">
-        {actions.map(([key, label, description]) => (
-          <label key={key} className="flex cursor-pointer items-start gap-3 py-4">
-            <input
-              className="mt-1 size-4 accent-primary"
-              type="checkbox"
-              checked={!!draft[key]}
-              onChange={(e) => setDraft({ ...draft, [key]: e.target.checked })}
-              disabled={busy}
-            />
-            <span>
-              <span className="block text-sm font-medium">{label}</span>
-              <span className="mt-1 block text-xs text-muted-foreground">{description}</span>
-            </span>
-          </label>
-        ))}
-      </div>
-      <Button
-        className="mt-5 w-full"
-        disabled={busy || !changed}
-        onClick={async () => {
-          setBusy(true);
-          try {
-            if (await save({ ...value, permissions: draft }))
-              toast.success("Role permissions saved");
-          } finally {
-            setBusy(false);
+    <Panel
+      title={
+        roleProfiles.find((p) => "profile_" + p.id === value.role)?.label ||
+        value.role + " (legacy)"
+      }
+    >
+      <div className="p-5 space-y-4">
+        <PermissionChecklist
+          baseRole={
+            roleProfiles.find((p) => "profile_" + p.id === value.role)?.baseRole || value.role
           }
-        }}
-      >
-        {busy ? "Saving…" : "Save role permissions"}
-      </Button>
-    </section>
-  );
-}
-function PersonCard({ user, defaults }: { user: User; defaults: Record<string, boolean> }) {
-  const save = useStore((s) => s.updateUserAccess);
-  const [overrides, setOverrides] = useState({ ...user.permissionOverrides });
-  const [busy, setBusy] = useState(false);
-  const changed = JSON.stringify(overrides) !== JSON.stringify(user.permissionOverrides ?? {});
-  return (
-    <section className="rounded-2xl border bg-card p-5">
-      <h3 className="font-semibold">{user.name}</h3>
-      <p className="mb-4 mt-1 text-xs text-muted-foreground capitalize">
-        {user.role} · {user.username}
-      </p>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {actions.map(([key, label]) => (
-          <div key={key} className="flex items-center justify-between gap-3 rounded-xl border p-3">
-            <label className="text-sm" htmlFor={`${user.id}-${key}`}>
-              {label}
-            </label>
-            <ModernSelect
-              id={`${user.id}-${key}`}
-              className="rounded-lg border bg-card p-2 text-xs"
-              value={overrides[key] === undefined ? "inherit" : String(overrides[key])}
-              disabled={busy}
-              onChange={(e) => {
-                const v = { ...overrides };
-                if (e.target.value === "inherit") delete v[key];
-                else v[key] = e.target.value === "true";
-                setOverrides(v);
-              }}
-            >
-              <option value="inherit">Role default ({defaults[key] ? "allowed" : "denied"})</option>
-              <option value="true">Allow</option>
-              <option value="false">Deny</option>
-            </ModernSelect>
-          </div>
-        ))}
-      </div>
-      <div className="mt-4 flex gap-3">
-        <Button variant="outline" disabled={busy} onClick={() => setOverrides({})}>
-          Use role defaults
-        </Button>
+          defaults={value.permissions}
+          overrides={draft}
+          onChange={(v) => setDraft({ ...value.permissions, ...v })}
+          disabled={busy}
+        />
         <Button
-          disabled={!changed || busy}
+          disabled={busy}
           onClick={async () => {
             setBusy(true);
             try {
-              const error = await save(user.id, {
+              if (await s.saveRolePermissions({ ...value, permissions: draft }))
+                toast.success("Role defaults saved. Personal exceptions remain unchanged.");
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          Save role defaults
+        </Button>
+      </div>
+    </Panel>
+  );
+}
+function Person({ user }: { user: User }) {
+  const s = useStore();
+  const [overrides, setOverrides] = useState(user.permissionOverrides || {}),
+    [busy, setBusy] = useState(false);
+  return (
+    <Panel title={user.name + " · " + roleLabel(user)}>
+      <div className="p-5 space-y-4">
+        <PermissionChecklist
+          baseRole={user.role}
+          defaults={permissionDefaults(user.roleProfile, s.rolePermissions, user.role)}
+          overrides={overrides}
+          onChange={setOverrides}
+          disabled={busy}
+        />
+        <Button
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            try {
+              const error = await s.updateUserAccess(user.id, {
                 role: user.role,
+                roleProfile: user.roleProfile,
                 status: user.status,
                 managerId: user.managerId,
                 permissions: overrides,
                 updatedAt: user.updatedAt,
               });
               if (error) toast.error(error);
-              else toast.success("Individual permissions saved");
+              else toast.success("Personal permissions saved");
             } finally {
               setBusy(false);
             }
           }}
         >
-          {busy ? "Saving…" : "Save exceptions"}
+          Save personal permissions
         </Button>
       </div>
-    </section>
+    </Panel>
   );
 }
 function Page() {
-  const me = useMe(),
-    s = useStore();
-  const [selected, setSelected] = useState("");
-  if (me?.role !== "owner") return <PageHeader title="Owner access required" />;
-  const people = s.users.filter((u) => ["manager", "staff"].includes(u.role));
-  const person = people.find((u) => u.id === selected);
+  const s = useStore(),
+    me = useMe();
+  const [role, setRole] = useState("profile_manager"),
+    [person, setPerson] = useState("");
+  if (!can(me, "permissions.manage")) return <PageHeader title="Super Admin permission required" />;
+  const value = s.rolePermissions.find((r) => r.role === role),
+    user = s.users.find((u) => u.id === person);
   return (
     <>
       <PageHeader
-        title="Permissions"
-        subtitle="Choose what managers and staff can do. Access is checked by the server on every request."
+        title="Roles & permissions"
+        subtitle="Role defaults provide the starting permissions. Personal checkbox exceptions take priority."
         actions={
           <Button asChild variant="outline">
-            <Link to="/users">
-              <Users />
-              Manage people & teams
-            </Link>
+            <Link to="/users">People & access</Link>
           </Button>
         }
       />
-      <div className="mb-6 flex gap-3 rounded-2xl border bg-accent/40 p-5">
-        <ShieldCheck className="size-5 shrink-0 text-primary" />
-        <div className="text-sm">
-          <p className="font-medium">Owner access is always enabled</p>
-          <p className="mt-1 text-muted-foreground">
-            Permissions apply only to assigned cases. Only owners create team accounts, assign staff
-            to managers, and change access. Invoice creation, editing or deletion also enables
-            invoice viewing.
-          </p>
+      <p className="mb-5 rounded-xl border bg-card p-4 text-sm">
+        Super Admin is protected. Changing a role default updates people who inherit it; explicit
+        personal exceptions remain. Permissions never override case assignment or customer workspace
+        boundaries. Full case reports also require legal-detail and financial-view access.
+      </p>
+      <div className="grid gap-6 xl:grid-cols-2">
+        <div className="space-y-4">
+          <h2 className="font-semibold">Role defaults</h2>
+          <ModernSelect
+            aria-label="Choose role defaults"
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+          >
+            {s.rolePermissions.map((r) => (
+              <option key={r.role} value={r.role}>
+                {roleProfiles.find((p) => "profile_" + p.id === r.role)?.label ||
+                  r.role + " (legacy)"}
+              </option>
+            ))}
+          </ModernSelect>
+          {value && <Defaults key={value.role + value.updatedAt} value={value} />}
+        </div>
+        <div className="space-y-4">
+          <h2 className="font-semibold">Individual permissions</h2>
+          <ModernSelect
+            aria-label="Choose person"
+            value={person}
+            onChange={(e) => setPerson(e.target.value)}
+          >
+            <option value="">Select a person</option>
+            {s.users
+              .filter(
+                (u) =>
+                  u.role !== "customer" &&
+                  !(u.role === "owner" && (!u.roleProfile || u.roleProfile === "super_admin")),
+              )
+              .map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name} · {roleLabel(u)}
+                </option>
+              ))}
+          </ModernSelect>
+          {user && <Person key={user.id + user.updatedAt} user={user} />}
         </div>
       </div>
-      <div className="grid gap-5 xl:grid-cols-2">
-        {s.rolePermissions.map((value) => (
-          <RoleCard key={value.role + value.updatedAt} value={value} />
-        ))}
-      </div>
-      <section className="mt-8 space-y-4">
-        <div>
-          <h2 className="text-lg font-semibold">Individual exceptions</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Keep role defaults or override specific permissions for one person. Saved exceptions
-            take priority over role defaults.
-          </p>
-        </div>
-        <ModernSelect
-          aria-label="Choose team member"
-          className="h-11 w-full rounded-xl border bg-card px-3 text-sm sm:max-w-md"
-          value={selected}
-          onChange={(e) => setSelected(e.target.value)}
-        >
-          <option value="">Select manager or staff member</option>
-          {people.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.name} · {u.role}
-              {u.status === "Inactive" ? " (inactive)" : ""}
-            </option>
-          ))}
-        </ModernSelect>
-        {person && (
-          <PersonCard
-            key={person.id + person.updatedAt}
-            user={person}
-            defaults={s.rolePermissions.find((r) => r.role === person.role)?.permissions ?? {}}
-          />
-        )}
-      </section>
     </>
   );
 }

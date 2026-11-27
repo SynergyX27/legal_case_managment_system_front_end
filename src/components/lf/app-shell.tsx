@@ -1,3 +1,4 @@
+import { roleLabel } from "@/lib/role-profiles";
 import { FileUploadWorker } from "./file-upload-worker";
 import { Mail } from "lucide-react";
 import { ThemeToggle } from "./theme-provider";
@@ -144,7 +145,7 @@ function Sidebar({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: (
             <p className="truncate text-xs font-semibold">
               {me.role === "customer" ? "My workspace" : "LegalFlow workspace"}
             </p>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">{roles[me.role]}</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">{roleLabel(me)}</p>
           </div>
         </div>
       )}
@@ -156,6 +157,8 @@ function Sidebar({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: (
               <div key={group} className="mb-5">
                 {!collapsed && <p className="sidebar-section-label">{group}</p>}
                 {items.map((n) => {
+                  if (n.key === "users" && !can(me, "users.manage")) return null;
+                  if (n.key === "permissions" && !can(me, "permissions.manage")) return null;
                   const active = path === n.to || path.startsWith(n.to + "/");
                   return (
                     <Link
@@ -236,7 +239,7 @@ function Sidebar({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: (
           )}
         </DropdownMenuTrigger>
         <DropdownMenuContent side="top" align="start" className="w-64">
-          <DropdownMenuLabel>{roles[me.role]}</DropdownMenuLabel>
+          <DropdownMenuLabel>{roleLabel(me)}</DropdownMenuLabel>
           {canAccess(me, "settings") && (
             <DropdownMenuItem onClick={() => navigate({ to: "/settings" })}>
               <Settings />
@@ -549,7 +552,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <CaseFormDialog />
         <InvoiceDialog />
         <ClientDialog />
-        <FloatingMessenger key={me.id} />
+        {(!me.roleProfile || can(me, "chat.use")) && <FloatingMessenger key={me.id} />}
       </div>
     </>
   );

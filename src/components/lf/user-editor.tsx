@@ -1,3 +1,6 @@
+import { PermissionChecklist } from "./permission-checklist";
+import { roleProfiles, permissionDefaults } from "@/lib/role-profiles";
+import { useMe } from "@/lib/store";
 import { ModernSelect } from "@/components/ui/modern-select";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -19,6 +22,14 @@ export const blankUser = (role: Role = "customer"): UserDraft => ({
   address: "",
   title: "",
   role,
+  roleProfile:
+    role === "owner"
+      ? "super_admin"
+      : role === "manager"
+        ? "manager"
+        : role === "staff"
+          ? "crew_1"
+          : undefined,
 });
 export function UserFields({
   value,
@@ -118,12 +129,25 @@ export function OwnerUserForm({
   allowRoleSelection?: boolean;
   initialClientId?: string;
 }) {
-  const s = useStore();
+  const s = useStore(),
+    me = useMe();
   const [draft, setDraft] = useState(() => blankUser(defaultRole)),
     [busy, setBusy] = useState(false);
   useEffect(() => {
-    const c = s.clients.find(c => c.id === initialClientId);
-    setDraft({...blankUser(defaultRole), ...(c ? {clientId:c.id,name:c.name,email:c.email,phone:c.phone,address:c.address,company:c.company} : {})});
+    const c = s.clients.find((c) => c.id === initialClientId);
+    setDraft({
+      ...blankUser(defaultRole),
+      ...(c
+        ? {
+            clientId: c.id,
+            name: c.name,
+            email: c.email,
+            phone: c.phone,
+            address: c.address,
+            company: c.company,
+          }
+        : {}),
+    });
   }, [defaultRole, initialClientId]);
   const role = draft.role ?? "customer";
   return (
@@ -138,7 +162,7 @@ export function OwnerUserForm({
           if (error) toast.error(error);
           else {
             toast.success(
-              `${role === "customer" ? draft.clientId ? "Customer login" : "Customer profile and login" : "User login"} created`,
+              `${role === "customer" ? (draft.clientId ? "Customer login" : "Customer profile and login") : "User login"} created`,
             );
             onSaved();
           }
@@ -155,22 +179,32 @@ export function OwnerUserForm({
           disabled={!allowRoleSelection}
           id="user-role"
           className="h-10 w-full rounded-xl border bg-card px-3 text-sm"
-          value={role}
-          onChange={(e) =>
-            setDraft({ ...blankUser(e.target.value as Role), name: draft.name, email: draft.email })
-          }
+          value={draft.roleProfile || role}
+          onChange={(e) => {
+            const p = roleProfiles.find((p) => p.id === e.target.value);
+            if (p)
+              setDraft({
+                ...draft,
+                role: p.baseRole,
+                roleProfile: p.id,
+                permissions: {},
+                managerId: "",
+              });
+          }}
         >
-          {((defaultRole === "customer" ? ["customer"] : ["owner", "manager", "staff"]) as Role[]).map((role) => (
-            <option key={role} value={role}>
-              {role === "owner"
-                ? "Owner"
-                : role === "manager"
-                  ? "Manager"
-                  : role === "staff"
-                    ? "Staff member"
-                    : "Customer"}
-            </option>
-          ))}
+          {defaultRole === "customer" ? (
+            <option value="customer">Customer</option>
+          ) : (
+            <>
+              {roleProfiles
+                .filter((p) => me?.roleProfile !== "admin" || p.baseRole !== "owner")
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                  </option>
+                ))}
+            </>
+          )}
         </ModernSelect>
         <p className="text-xs text-muted-foreground">
           Only an owner can create users or assign these roles.
@@ -200,9 +234,24 @@ export function OwnerUserForm({
           </p>
         </div>
       )}
+      {role !== "customer" && draft.roleProfile !== "super_admin" && (
+        <PermissionChecklist
+          baseRole={role}
+          defaults={permissionDefaults(draft.roleProfile, s.rolePermissions, role)}
+          overrides={draft.permissions || {}}
+          onChange={(permissions) => setDraft({ ...draft, permissions })}
+          ceiling={me?.roleProfile === "admin"}
+        />
+      )}
       <UserFields value={draft} onChange={setDraft} customer={role === "customer"} />
       <Button type="submit" className="w-full" disabled={busy}>
-        {busy ? "Creating…" : role === "customer" ? draft.clientId ? "Create login" : "Create customer & login" : "Create user"}
+        {busy
+          ? "Creating…"
+          : role === "customer"
+            ? draft.clientId
+              ? "Create login"
+              : "Create customer & login"
+            : "Create user"}
       </Button>
     </form>
   );

@@ -1,3 +1,6 @@
+import { PermissionChecklist } from "@/components/lf/permission-checklist";
+import { roleProfiles, roleLabel, permissionDefaults } from "@/lib/role-profiles";
+import { can } from "@/lib/access";
 import { api } from "@/lib/api";
 import { ModernSelect } from "@/components/ui/modern-select";
 import { createFileRoute } from "@tanstack/react-router";
@@ -22,16 +25,20 @@ function Page() {
     [filter, setFilter] = useState("all"),
     [editing, setEditing] = useState<User | null>(null),
     [role, setRole] = useState<Role>("staff"),
+    [profile, setProfile] = useState<string | undefined>(),
+    [overrides, setOverrides] = useState<Record<string, boolean>>({}),
     [status, setStatus] = useState<User["status"]>("Active"),
     [managerId, setManagerId] = useState(""),
     [password, setPassword] = useState(""),
     [email, setEmail] = useState(""),
     [phone, setPhone] = useState(""),
     [busy, setBusy] = useState(false);
-  if (me?.role !== "owner") return <PageHeader title="Owner access required" />;
+  if (!can(me, "users.manage")) return <PageHeader title="Owner access required" />;
   const rows = s.users.filter(
     (u) =>
-      u.role !== "customer" && (filter === "all" || u.role === filter) &&
+      u.role !== "customer" &&
+      (filter === "all" ||
+        (u.roleProfile || (u.role === "owner" ? "super_admin" : u.role)) === filter) &&
       [u.name, u.email, u.username].join(" ").toLowerCase().includes(query.toLowerCase()),
   );
   const openCreate = (r: Role) => {
@@ -42,10 +49,9 @@ function Page() {
     <>
       <PageHeader
         title="People & access"
-        subtitle="Internal owners, managers and staff. Manage customers from Customers; extra customer access from Workspaces."
+        subtitle="Choose a role preset, then customize permissions. Customer portal accounts remain in Customers."
         actions={
           <>
-
             <Button onClick={() => openCreate("staff")}>
               <Plus />
               Add user
@@ -54,12 +60,15 @@ function Page() {
         }
       />
       <div className="mb-6 grid grid-cols-2 gap-3 xl:grid-cols-4">
-        {(["owner", "manager", "staff"] as Role[]).map((r) => (
-          <div key={r} className="metric-card">
-            <p className="metric-label capitalize">{r === "customer" ? "Customer logins" : r === "staff" ? "Staff members" : r + "s"}</p>
-            <p className="metric-value">{s.users.filter((u) => u.role === r).length}</p>
-            <p className="metric-footer">
-              {s.users.filter((u) => u.role === r && u.status === "Active").length} active
+        {roleProfiles.map((p) => (
+          <div key={p.id} className="metric-card">
+            <p className="metric-label">{p.label}</p>
+            <p className="metric-value">
+              {
+                s.users.filter(
+                  (u) => (u.roleProfile || (u.role === "owner" ? "super_admin" : u.role)) === p.id,
+                ).length
+              }
             </p>
           </div>
         ))}
@@ -79,9 +88,9 @@ function Page() {
           onChange={(e) => setFilter(e.target.value)}
         >
           <option value="all">All roles</option>
-          {["owner", "manager", "staff"].map((r) => (
+          {[...roleProfiles.map((p) => p.id), "staff"].map((r) => (
             <option key={r} value={r}>
-              {r}
+              {roleProfiles.find((p) => p.id === r)?.label || r}
             </option>
           ))}
         </ModernSelect>
@@ -110,7 +119,7 @@ function Page() {
                   </div>
                 </td>
                 <td className="p-4 font-mono text-xs">{u.username ?? u.email}</td>
-                <td className="p-4 capitalize">{u.role}</td>
+                <td className="p-4">{roleLabel(u)}</td>
                 <td className="p-4">
                   {u.role === "staff"
                     ? s.users.find((m) => m.id === u.managerId)?.name || "Needs manager"
@@ -128,6 +137,8 @@ function Page() {
                       setEmail(u.email);
                       setPhone(u.phone ?? "");
                       setRole(u.role);
+                      setProfile(u.roleProfile);
+                      setOverrides(u.permissionOverrides || {});
                       setStatus(u.status);
                       setPassword("");
                       setManagerId(u.managerId ?? "");
@@ -156,7 +167,7 @@ function Page() {
         </DialogContent>
       </Dialog>
       <Dialog open={!!editing} onOpenChange={(value) => !value && setEditing(null)}>
-        <DialogContent>
+        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>Edit details & access · {editing?.name}</DialogTitle>
           </DialogHeader>
@@ -169,6 +180,8 @@ function Page() {
               try {
                 const error = await s.updateUserAccess(editing.id, {
                   role,
+                  roleProfile: profile,
+                  permissions: profile === "super_admin" ? {} : overrides,
                   email,
                   phone,
                   status,
@@ -193,36 +206,62 @@ function Page() {
             </p>
             <div className="space-y-2">
               <Label htmlFor="user-email">Email address</Label>
-              <Input id="user-email" type="email" required maxLength={254} value={email} onChange={(e) => setEmail(e.target.value)} />
+              <Input
+                id="user-email"
+                type="email"
+                required
+                maxLength={254}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="user-phone">Phone number</Label>
-              <Input id="user-phone" type="tel" maxLength={250} value={phone} onChange={(e) => setPhone(e.target.value)} />
-              <p className="text-xs text-muted-foreground">Email is used for sign-in and account notifications. A sole customer login also updates the customer contact.</p>
+              <Input
+                id="user-phone"
+                type="tel"
+                maxLength={250}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Email is used for sign-in and account notifications. A sole customer login also
+                updates the customer contact.
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="access-role">Role</Label>
               <ModernSelect
                 id="access-role"
-                disabled={editing?.role === "customer" || editing?.id === me.id}
-                value={role}
-                onChange={(e) => setRole(e.target.value as Role)}
+                disabled={editing?.role === "customer" || editing?.id === me?.id}
+                value={profile || "legacy:" + role}
+                onChange={(e) => {
+                  const p = roleProfiles.find((p) => p.id === e.target.value);
+                  if (p) {
+                    setRole(p.baseRole);
+                    setProfile(p.id);
+                    setOverrides({});
+                  }
+                }}
                 className="h-10 w-full rounded-xl border px-3 text-sm"
               >
-                {(editing?.role === "customer" ? ["customer"] : ["owner", "manager", "staff"]).map(
-                  (r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ),
+                {!profile && (
+                  <option value={"legacy:" + role}>{roleLabel({ role })} (existing)</option>
                 )}
+                {roleProfiles
+                  .filter((p) => me?.roleProfile !== "admin" || p.baseRole !== "owner")
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
+                  ))}
               </ModernSelect>
             </div>
             <div className="space-y-2">
               <Label htmlFor="access-status">Status</Label>
               <ModernSelect
                 id="access-status"
-                disabled={editing?.id === me.id}
+                disabled={editing?.id === me?.id}
                 value={status}
                 onChange={(e) => setStatus(e.target.value as User["status"])}
                 className="h-10 w-full rounded-xl border px-3 text-sm"
@@ -256,6 +295,16 @@ function Page() {
                 </p>
               </div>
             )}
+            {!(role === "owner" && (!profile || profile === "super_admin")) &&
+              editing?.id !== me?.id && (
+                <PermissionChecklist
+                  baseRole={role}
+                  defaults={permissionDefaults(profile, s.rolePermissions, role)}
+                  overrides={overrides}
+                  onChange={setOverrides}
+                  ceiling={me?.roleProfile === "admin"}
+                />
+              )}
             <div className="space-y-2">
               <Label htmlFor="access-password">Set new password (optional)</Label>
               <Input
@@ -270,18 +319,44 @@ function Page() {
                 Leave blank to keep the existing password.
               </p>
             </div>
-            {editing && editing.id !== me.id && <div className="rounded-xl border border-destructive/30 p-3">
-              <p className="mb-3 text-xs text-muted-foreground">Delete this login only after its cases have been reassigned or removed. Managers must also have no assigned staff. Historical records and the customer company are retained.</p>
-              <Button type="button" variant="destructive" disabled={busy} onClick={async () => {
-                if (!window.confirm(`Delete ${editing.name}'s login? They will lose access on every device. Historical records are retained.`)) return;
-                setBusy(true);
-                try {
-                  await api(`/users/${editing.id}`, {method:"DELETE", body:{updatedAt:editing.updatedAt}});
-                  await s.refresh(); setEditing(null); toast.success("User deleted");
-                } catch (error) { toast.error((error as Error).message); }
-                finally { setBusy(false); }
-              }}>Delete user</Button>
-            </div>}
+            {editing && editing.id !== me?.id && (
+              <div className="rounded-xl border border-destructive/30 p-3">
+                <p className="mb-3 text-xs text-muted-foreground">
+                  Delete this login only after its cases have been reassigned or removed. Managers
+                  must also have no assigned staff. Historical records and the customer company are
+                  retained.
+                </p>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  disabled={busy}
+                  onClick={async () => {
+                    if (
+                      !window.confirm(
+                        `Delete ${editing.name}'s login? They will lose access on every device. Historical records are retained.`,
+                      )
+                    )
+                      return;
+                    setBusy(true);
+                    try {
+                      await api(`/users/${editing.id}`, {
+                        method: "DELETE",
+                        body: { updatedAt: editing.updatedAt },
+                      });
+                      await s.refresh();
+                      setEditing(null);
+                      toast.success("User deleted");
+                    } catch (error) {
+                      toast.error((error as Error).message);
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                >
+                  Delete user
+                </Button>
+              </div>
+            )}
             <Button type="submit" disabled={busy}>
               {busy ? "Saving…" : "Save changes"}
             </Button>

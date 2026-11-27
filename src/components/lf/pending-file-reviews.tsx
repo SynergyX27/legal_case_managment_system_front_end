@@ -1,3 +1,4 @@
+import { can } from "@/lib/access";
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ClipboardCheck } from "lucide-react";
@@ -6,7 +7,9 @@ import { useMe } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 export function PendingFileReviews() {
   const me = useMe(),
-    enabled = ["owner", "manager"].includes(me?.role || ""),
+    enabled = me?.roleProfile
+      ? can(me, "files.approve")
+      : ["owner", "manager"].includes(me?.role || ""),
     [data, setData] = useState<any>(null),
     [offset, setOffset] = useState(0),
     [expanded, setExpanded] = useState(false),

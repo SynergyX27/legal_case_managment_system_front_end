@@ -7,17 +7,20 @@ export function visibleCasesFor(
 ) {
   if (!me || me.status !== "Active") return [];
   return cases.filter((c) =>
-    me.role === "owner"
+    me.permissions?.["cases.view_all"] || (me.role === "owner" && !me.roleProfile)
       ? true
       : me.role === "customer"
         ? !!me.clientId && c.clientId === me.clientId
         : me.role === "manager"
-          ? (c.managerId === me.id || c.teamMemberIds?.includes(me.id))
-          : (c.staffId === me.id || c.teamMemberIds?.includes(me.id)),
+          ? c.managerId === me.id || c.teamMemberIds?.includes(me.id)
+          : c.staffId === me.id || c.teamMemberIds?.includes(me.id),
   );
 }
 export const can = (me: User | null | undefined, key: string) =>
-  !!me && me.status === "Active" && (me.role === "owner" || me.permissions?.[key] === true);
+  !!me &&
+  me.status === "Active" &&
+  ((me.role === "owner" && (!me.roleProfile || me.roleProfile === "super_admin")) ||
+    me.permissions?.[key] === true);
 export const canViewInvoices = (me: User | null | undefined) =>
   me?.role === "customer" ||
   ["invoices.view", "invoices.create", "invoices.edit", "invoices.delete"].some((k) => can(me, k));
@@ -35,7 +38,8 @@ export function canMessage(me: User | undefined | null, other: User | undefined,
     !!customer.clientId &&
     cases.some(
       (c) =>
-        c.clientId === customer.clientId && (c.staffId === staff.id || c.managerId === staff.id || c.teamMemberIds?.includes(staff.id)),
+        c.clientId === customer.clientId &&
+        (c.staffId === staff.id || c.managerId === staff.id || c.teamMemberIds?.includes(staff.id)),
     )
   );
 }

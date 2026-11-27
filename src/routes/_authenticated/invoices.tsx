@@ -81,7 +81,8 @@ function Page() {
   const s = useStore();
   const me = useMe();
   const cases = useVisibleCases();
-  const bill = can(me, "invoices.edit");
+  const bill = can(me, "invoices.edit"),
+    recordPayment = can(me, "payments.record");
   const [deleting, setDeleting] = useState<Invoice | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const searchParams = useSearch({ strict: false }) as {
@@ -476,6 +477,11 @@ function Page() {
                         <Trash2 className="size-4" />
                       </Button>
                     )}
+                    {!bill && recordPayment && ["Sent", "Overdue"].includes(i.status) && (
+                      <Button variant="outline" size="sm" onClick={() => setPaidId(i.id)}>
+                        Record payment
+                      </Button>
+                    )}
                     {bill && (
                       <>
                         <Button
@@ -499,7 +505,7 @@ function Page() {
                             <Send className="size-4" />
                           </Button>
                         )}
-                        {["Sent", "Overdue"].includes(i.status) && (
+                        {recordPayment && ["Sent", "Overdue"].includes(i.status) && (
                           <Button
                             variant="ghost"
                             size="icon"
@@ -543,7 +549,12 @@ function Page() {
           </DialogHeader>
           {preview && (
             <>
-              <InvoiceDelivery invoice={preview} editable={bill || can(me, "invoices.create")} />
+              <InvoiceDelivery
+                invoice={preview}
+                editable={
+                  me?.roleProfile ? can(me, "invoices.send") : bill || can(me, "invoices.create")
+                }
+              />
               <div className="flex flex-wrap justify-between gap-4 border-b pb-4">
                 <div>
                   <div className="font-display text-xl font-semibold">LegalFlow</div>

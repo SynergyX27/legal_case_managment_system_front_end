@@ -13,6 +13,7 @@ export type Priority = "Low" | "Medium" | "High" | "Urgent";
 export type InvoiceStatus = "Draft" | "Sent" | "Paid" | "Overdue";
 
 export interface User {
+  roleProfile?: string;
   customerAccess?: "all" | "regional" | "community";
   workspaceIds?: string[];
 

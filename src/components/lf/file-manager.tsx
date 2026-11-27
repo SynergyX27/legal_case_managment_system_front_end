@@ -1,3 +1,4 @@
+import { can } from "@/lib/access";
 import { CaseCamera } from "./case-camera";
 import { useEffect, useState, useRef } from "react";
 import {
@@ -61,7 +62,9 @@ export function FileManager({
   const me = useMe(),
     refresh = useStore((s) => s.refresh),
     internal = me?.role !== "customer",
-    reviewer = ["owner", "manager"].includes(me?.role || "");
+    reviewer = me?.roleProfile
+      ? can(me, "files.approve")
+      : ["owner", "manager"].includes(me?.role || "");
   const [folder, setFolder] = useState(initialCase || ""),
     [collection, setCollection] = useState(initialCollection || ""),
     [folders, setFolders] = useState<FolderRow[]>([]),
@@ -333,7 +336,7 @@ export function FileManager({
               Add collection
             </Button>
           )}
-          {folder && collection && internal && (
+          {folder && collection && internal && (!me?.roleProfile || can(me, "files.upload")) && (
             <>
               <Button disabled={busy} onClick={() => fileInput.current?.click()}>
                 <Upload className="size-4" />

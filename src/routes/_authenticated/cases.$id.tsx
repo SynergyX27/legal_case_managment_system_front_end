@@ -1,3 +1,4 @@
+import { RestrictedCaseEdit } from "@/components/lf/restricted-case-edit";
 import { FileManager } from "@/components/lf/file-manager";
 import { CaseTeam } from "@/components/lf/case-team";
 import { useCaseViewLayout } from "@/lib/case-view-layout";
@@ -147,8 +148,12 @@ function Page() {
         subtitle={c.title}
         actions={
           <>
+            <RestrictedCaseEdit row={c} />
             <CaseTeam rows={[c]} />
-            <SingleCaseReport row={c} />
+            {(!me?.roleProfile ||
+              (can(me, "reports.export") &&
+                can(me, "cases.details") &&
+                can(me, "cases.financials"))) && <SingleCaseReport row={c} />}
             {can(me, "cases.edit") && (
               <Button variant="outline" onClick={() => ui.openCase(id)}>
                 Edit case
@@ -246,14 +251,16 @@ function Page() {
             </div>
             {c.description && <p className="mt-6 border-t pt-4 text-sm">{c.description}</p>}
           </section>
-          <section id="case-file-manager" className="rounded-xl border bg-card p-5">
-            <FileManager
-              key={`${c.id}-${visualKey}`}
-              caseId={c.id}
-              initialCollection={visual}
-              capture={!!visual && !customer}
-            />
-          </section>
+          {(!me?.roleProfile || can(me, "files.view")) && (
+            <section id="case-file-manager" className="rounded-xl border bg-card p-5">
+              <FileManager
+                key={`${c.id}-${visualKey}`}
+                caseId={c.id}
+                initialCollection={visual}
+                capture={!!visual && !customer}
+              />
+            </section>
+          )}
           {canViewInvoices(me) && (
             <section className="rounded-xl border bg-card p-6">
               <div className="mb-5 flex items-center justify-between">

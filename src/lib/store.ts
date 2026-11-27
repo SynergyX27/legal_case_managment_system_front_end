@@ -3,7 +3,7 @@ import { useUI } from "./ui-store";
 import { create } from "zustand";
 import { toast } from "sonner";
 import { api, resetCsrf } from "./api";
-import { canViewInvoices } from "./access";
+import { can, canViewInvoices } from "./access";
 import { visibleCasesFor } from "./access";
 import { caseBilling } from "./billing";
 import {
@@ -50,6 +50,8 @@ export interface TablePrefs {
 }
 
 export interface UserInput {
+  roleProfile?: string;
+  permissions?: Record<string, boolean>;
   name: string;
   email: string;
   username: string;
@@ -119,7 +121,7 @@ export const defaultViews = (): SavedView[] => {
 
 export const uid = (prefix: string) => prefix + crypto.randomUUID();
 export interface RolePermissions {
-  role: "manager" | "staff";
+  role: string;
   permissions: Record<string, boolean>;
   updatedAt: string;
 }
@@ -172,6 +174,7 @@ interface State extends Data {
     id: string,
     patch: {
       role: User["role"];
+      roleProfile?: string;
       status: User["status"];
       password?: string;
       email?: string;
@@ -480,6 +483,20 @@ export function useVisibleCases() {
 }
 export const canAccess = (subject: string | User | null | undefined, section: string) => {
   const role = typeof subject === "string" ? subject : subject?.role;
+  if (typeof subject !== "string" && subject?.roleProfile) {
+    const keys: Record<string, string> = {
+      users: "users.manage",
+      permissions: "permissions.manage",
+      "company-documents": "company.manage",
+      documents: "files.view",
+      email: "email.use",
+      communications: "chat.use",
+      reports: "reports.export",
+      cases: "cases.view",
+    };
+    if (keys[section]) return can(subject, keys[section]);
+  }
+
   if (section === "permissions") return role === "owner";
   if (section === "invoices" && typeof subject !== "string") return canViewInvoices(subject);
   if (["ai", "ai-insights", "automations"].includes(section)) return false;

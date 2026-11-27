@@ -1,3 +1,4 @@
+import { can } from "@/lib/access";
 import { ModernSelect } from "@/components/ui/modern-select";
 import { IncomingEmailSettings } from "@/components/lf/incoming-email-settings";
 import { CompanyBranding } from "@/components/lf/company-branding";
@@ -36,18 +37,18 @@ function Page() {
     [fieldType, setFieldType] = useState<CustomField["type"]>("text"),
     [required, setRequired] = useState(false);
   useEffect(() => {
-    if (me?.role === "owner")
+    if (can(me, "settings.manage"))
       void api("/integrations/dropbox")
         .then(setConnection)
         .catch((e) => setIntegrationError(e.message));
   }, [me?.role]);
   return (
     <>
+      {can(me, "company.manage") && <CompanyBranding />}
       <PageHeader title="Settings" subtitle="Your account, appearance and company connections." />
       <div className="grid gap-6 lg:grid-cols-2">
-        {me?.role === "owner" && (
+        {can(me, "settings.manage") && (
           <>
-            <CompanyBranding />
             <IncomingEmailSettings />
           </>
         )}
@@ -127,7 +128,7 @@ function Page() {
             </div>
             <ThemePicker />
           </Panel>
-          {me?.role === "owner" && (
+          {can(me, "settings.manage") && (
             <Panel title="Dropbox document storage">
               <div className="space-y-4 p-5">
                 <div className="flex items-center gap-2">
@@ -183,8 +184,8 @@ function Page() {
             </Panel>
           )}
         </div>
-        {me?.role === "owner" && <EmailSettings />}
-        {me?.role === "owner" && (
+        {can(me, "settings.manage") && <EmailSettings />}
+        {can(me, "settings.manage") && (
           <Panel title="Case custom fields">
             <div className="space-y-4 p-5">
               {s.customFields.map((f) => (

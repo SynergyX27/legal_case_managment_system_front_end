@@ -1,7 +1,9 @@
+import { can } from "./access";
 import type { Case, User } from "./domain";
 export function canEditTeamMember(me: User | undefined | null, user: User, rows: Case[]) {
+  if (me?.roleProfile && !can(me, "team.assign")) return false;
   if (rows.some((c) => c.staffId === user.id || c.managerId === user.id)) return false;
-  return me?.role === "owner"
+  return (me?.roleProfile ? can(me, "team.assign_managers") : me?.role === "owner")
     ? ["staff", "manager"].includes(user.role) &&
         (user.status === "Active" || rows.every((c) => c.teamMemberIds?.includes(user.id)))
     : me?.role === "manager" &&
