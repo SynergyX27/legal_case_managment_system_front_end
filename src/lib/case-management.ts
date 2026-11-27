@@ -53,11 +53,11 @@ export function filterCases(
       ) &&
       (!filters.status.length || filters.status.includes(c.status)) &&
       (!filters.clientId || c.clientId === filters.clientId) &&
-      (!filters.staffId || c.staffId === filters.staffId) &&
+      (!filters.staffId || c.staffId === filters.staffId || c.teamMemberIds?.includes(filters.staffId)) &&
       (!filters.type || c.type === filters.type) &&
       (!filters.dateFrom || c.serviceDate >= filters.dateFrom) &&
       (!filters.dateTo || c.serviceDate <= filters.dateTo) &&
-      (!filters.mine || c.staffId === userId || c.managerId === userId)
+      (!filters.mine || c.staffId === userId || c.managerId === userId || c.teamMemberIds?.includes(userId || ""))
     );
   });
 }

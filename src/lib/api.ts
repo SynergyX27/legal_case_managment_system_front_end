@@ -26,7 +26,7 @@ export async function api<T = any>(
             ? (options.body as FormData)
             : JSON.stringify(options.body),
       signal: AbortSignal.timeout(
-        form || ["/cases/import/commit", "/cases/bulk"].includes(path) ? 120000 : 30000,
+        form || ["/cases/import/commit", "/cases/bulk", "/cases/team", "/reports/cases/export"].includes(path) ? 120000 : 30000,
       ),
     });
   } catch {
@@ -44,4 +44,11 @@ export async function api<T = any>(
   }
   if (data.csrfToken) csrf = data.csrfToken;
   return data;
+}
+
+export async function apiBlob(path: string, body: unknown): Promise<Blob> {
+ if(!csrf) await api('/auth/session');
+ const r=await fetch(`/api${path}`,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf??''},body:JSON.stringify(body),signal:AbortSignal.timeout(120000)});
+ if(!r.ok) { const e=await r.json().catch(()=>({}));throw new Error(e.error||'Report could not be generated'); }
+ return r.blob();
 }

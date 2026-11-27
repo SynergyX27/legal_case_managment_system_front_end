@@ -1,3 +1,5 @@
+import { SingleCaseReport } from "./single-case-report";
+import { CaseTeam } from "./case-team";
 import { ModernSelect } from "@/components/ui/modern-select";
 import { caseAmounts } from "@/lib/case-portfolio";
 import { api } from "@/lib/api";
@@ -251,7 +253,7 @@ export function CasesTable() {
           <>
             <Button variant="outline" onClick={exportRows}>
               <Download />
-              Export
+              Export CSV
             </Button>
             <CaseImportDialog />
             <CreateCaseButton />
@@ -445,6 +447,8 @@ export function CasesTable() {
       {!customer && selection.length > 0 && (
         <div className="mb-3 flex flex-wrap items-center gap-3 bg-accent px-3 py-2 text-sm">
           <span className="font-medium">{selection.length} selected</span>
+          <CaseTeam rows={cases.filter((c) => selection.includes(c.id))} />
+          <SingleCaseReport rows={cases.filter((c) => selection.includes(c.id))} />
           <Button variant="outline" size="sm" onClick={() => setSelected(rows.map((c) => c.id))}>
             Select all {rows.length} matching cases
           </Button>
@@ -760,7 +764,10 @@ export function CasesTable() {
           </div>
         </div>
       </div>
-      <Dialog open={!!confirmDelete} onOpenChange={(o) => !o && !deleteBusy && setConfirmDelete(null)}>
+      <Dialog
+        open={!!confirmDelete}
+        onOpenChange={(o) => !o && !deleteBusy && setConfirmDelete(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
@@ -768,7 +775,10 @@ export function CasesTable() {
             </DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            The selected cases and all linked email conversations, messages and email attachments will be permanently deleted from LegalFlow. Queued emails will be removed. Emails already delivered to external mailboxes cannot be recalled. Cases with invoices or case documents cannot be deleted. This cannot be undone.
+            The selected cases and all linked email conversations, messages and email attachments
+            will be permanently deleted from LegalFlow. Queued emails will be removed. Emails
+            already delivered to external mailboxes cannot be recalled. Cases with invoices or case
+            documents cannot be deleted. This cannot be undone.
           </p>
           <DialogFooter>
             <Button variant="outline" disabled={deleteBusy} onClick={() => setConfirmDelete(null)}>
@@ -787,7 +797,9 @@ export function CasesTable() {
                   setConfirmDelete(failed.length ? failed : null);
                   setSelected(failed);
                   if (!failed.length) toast.success("Cases and linked email conversations deleted");
-                } finally { setDeleteBusy(false); }
+                } finally {
+                  setDeleteBusy(false);
+                }
               }}
             >
               {deleteBusy ? "Deleting…" : "Delete cases & emails"}

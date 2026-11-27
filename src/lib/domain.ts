@@ -49,6 +49,11 @@ export interface Client {
   accountId: string;
 }
 export interface Attachment {
+  mime?: string;
+  bytes?: number;
+  collectionId?: string;
+  approval?: "pending" | "approved" | "rejected";
+  updatedAt?: string;
   id: string;
   name: string;
   type: "image" | "video" | "pdf" | "word" | "excel" | "other";
@@ -112,6 +117,7 @@ export interface Case {
   notes: string;
   serviceDate: string;
   serviceTime: string;
+  teamMemberIds?: string[];
   staffId: string;
   managerId: string;
   serviceLocation: string;
@@ -121,6 +127,7 @@ export interface Case {
   paymentStatus: "Unpaid" | "Paid" | "Partial";
   createdAt: string;
   updatedAt: string;
+  attachmentsCount?: number;
   attachments: Attachment[];
   comments: Comment[];
   court: string;

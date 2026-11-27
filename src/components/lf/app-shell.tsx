@@ -1,3 +1,4 @@
+import {FileUploadWorker} from "./file-upload-worker";
 import {Mail} from "lucide-react";
 import { ThemeToggle } from "./theme-provider";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
@@ -73,7 +74,7 @@ const navigation = [
   { to: "/cases", label: "Case files", icon: FolderOpen, key: "cases", group: "Workspace" },
   { to: "/clients", label: "Customers", icon: Users, key: "clients", group: "Workspace" },
   { to: "/calendar", label: "Calendar", icon: CalendarDays, key: "calendar", group: "Workspace" },
-  { to: "/documents", label: "Documents", icon: FileText, key: "documents", group: "Workspace" },
+  { to: "/documents", label: "File Manager", icon: FileText, key: "documents", group: "Workspace" },
   {to:"/email",label:"Email",icon:Mail,key:"email",group:"Workspace"},
   { to: "/invoices", label: "Invoices", icon: Receipt, key: "invoices", group: "Workspace" },
   {
@@ -283,7 +284,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     ui.selectChat("");
   }, [me?.id]);
   if (!me) return null;
-  return (
+  return (<> <FileUploadWorker/>
     <div className="workspace-app">
       <aside className={cn("desktop-sidebar", collapsed && "is-collapsed")}>
         <Sidebar collapsed={collapsed} />
@@ -524,5 +525,5 @@ export function AppShell({ children }: { children: ReactNode }) {
       <ClientDialog />
       <FloatingMessenger key={me.id} />
     </div>
-  );
+  </>);
 }

@@ -1,3 +1,5 @@
+import { FileManager } from "@/components/lf/file-manager";
+import { CaseTeam } from "@/components/lf/case-team";
 import { useCaseViewLayout } from "@/lib/case-view-layout";
 import "@/styles/case-view-layout.css";
 import { Download, FileText, ImageIcon, Paperclip } from "lucide-react";
@@ -21,6 +23,13 @@ function Page() {
     cases = useVisibleCases(),
     ui = useUI();
   const [comment, setComment] = useState("");
+  const [visual, setVisual] = useState(""),
+    [visualKey, setVisualKey] = useState(0);
+  const openVisual = (label: string) => {
+    setVisual(label.toLowerCase().replaceAll(" - ", "-"));
+    setVisualKey((v) => v + 1);
+    document.getElementById("case-file-manager")?.scrollIntoView({ behavior: "smooth" });
+  };
   const [viewLayout, setViewLayout] = useCaseViewLayout(me?.id || "guest");
   const c = cases.find((c) => c.id === id);
   if (!c)
@@ -138,6 +147,7 @@ function Page() {
         subtitle={c.title}
         actions={
           <>
+            <CaseTeam rows={[c]} />
             <SingleCaseReport row={c} />
             {can(me, "cases.edit") && (
               <Button variant="outline" onClick={() => ui.openCase(id)}>
@@ -216,7 +226,18 @@ function Page() {
                       .map(([label, value]) => (
                         <div key={label}>
                           <dt className="text-xs text-muted-foreground">{label}</dt>
-                          <dd className="mt-1 break-words text-sm font-medium">{value || "—"}</dd>
+                          <dd className="mt-1 break-words text-sm font-medium">
+                            {String(label).startsWith("VIS - ") ? (
+                              <button
+                                className="text-primary underline underline-offset-4"
+                                onClick={() => openVisual(String(label))}
+                              >
+                                {value || "Open collection"}
+                              </button>
+                            ) : (
+                              value || "—"
+                            )}
+                          </dd>
                         </div>
                       ))}
                   </dl>
@@ -225,65 +246,13 @@ function Page() {
             </div>
             {c.description && <p className="mt-6 border-t pt-4 text-sm">{c.description}</p>}
           </section>
-          <section className="rounded-xl border bg-card p-6">
-            <div className="mb-5 flex items-center gap-3">
-              <span className="rounded-xl bg-primary/10 p-2 text-primary">
-                <Paperclip className="size-5" />
-              </span>
-              <div>
-                <h2 className="font-semibold">
-                  Documents & photos{" "}
-                  <span className="text-muted-foreground">({c.attachments.length})</span>
-                </h2>
-                <p className="mt-1 text-xs text-muted-foreground">Files attached to this case</p>
-              </div>
-            </div>
-            {c.attachments.length ? (
-              <div className="grid gap-3 sm:grid-cols-2">
-                {c.attachments.map((file) => {
-                  const available = !!file.url?.startsWith("/api/documents/");
-                  return (
-                    <div
-                      key={file.id}
-                      className="flex min-w-0 items-center gap-3 rounded-xl border bg-muted/20 p-3"
-                    >
-                      <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                        {file.type === "image" ? (
-                          <ImageIcon className="size-5" />
-                        ) : (
-                          <FileText className="size-5" />
-                        )}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium" title={file.name}>
-                          {file.name}
-                        </p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {file.size} · {fmtDate(file.uploadedAt)}
-                        </p>
-                      </div>
-                      {available ? (
-                        <Button asChild size="icon" variant="outline">
-                          <a
-                            href={`${file.url}${file.url!.includes("?") ? "&" : "?"}download=1`}
-                            download={file.name}
-                            aria-label={`Download ${file.name}`}
-                          >
-                            <Download className="size-4" />
-                          </a>
-                        </Button>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">Unavailable</span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-                No documents or photos attached yet.
-              </p>
-            )}
+          <section id="case-file-manager" className="rounded-xl border bg-card p-5">
+            <FileManager
+              key={`${c.id}-${visualKey}`}
+              caseId={c.id}
+              initialCollection={visual}
+              capture={!!visual && !customer}
+            />
           </section>
           {canViewInvoices(me) && (
             <section className="rounded-xl border bg-card p-6">
@@ -374,8 +343,8 @@ function Page() {
         </div>
         <aside className="space-y-6">
           <section className="rounded-xl border bg-card p-5">
-            <h2 className="mb-4 font-semibold">Your case team</h2>
-            {[c.managerId, c.staffId]
+            <h2 className="mb-4 font-semibold">Team Members</h2>
+            {[c.managerId, c.staffId, ...(c.teamMemberIds || [])]
               .filter((v, i, a) => v && a.indexOf(v) === i)
               .map((uid) => {
                 const u = s.users.find((x) => x.id === uid);

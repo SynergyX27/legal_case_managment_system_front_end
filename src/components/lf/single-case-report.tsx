@@ -1,19 +1,37 @@
 import { ModernSelect } from "@/components/ui/modern-select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { api } from "@/lib/api";
-import { caseCsv } from "@/lib/case-management";
-import { useStore } from "@/lib/store";
-import type { Case } from "@/lib/domain";
+import { api, apiBlob } from "@/lib/api";
+import type { Attachment, Case } from "@/lib/domain";
 import { toast } from "sonner";
-export function SingleCaseReport({ row }: { row: Case }) {
-  const s = useStore(),
-    [open, setOpen] = useState(false),
+export function SingleCaseReport({ row, rows }: { row?: Case; rows?: Case[] }) {
+  const selected = rows || (row ? [row] : []);
+  row = selected[0];
+  const [open, setOpen] = useState(false),
     [photoId, setPhoto] = useState(""),
     [to, setTo] = useState(""),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),
+    [downloadFormat, setDownloadFormat] = useState("pdf");
+  const [photos, setPhotos] = useState<Attachment[]>([]),
+    [photoOffset, setPhotoOffset] = useState(0),
+    [morePhotos, setMorePhotos] = useState(false);
+  useEffect(() => {
+    if (!open || selected.length !== 1 || !row?.id) return;
+    let live = true;
+    void api(`/file-manager/cases/${row.id}/files?kind=image&offset=${photoOffset}`)
+      .then((r) => {
+        if (live) {
+          setPhotos((p) => (photoOffset ? [...p, ...r.files] : r.files));
+          setMorePhotos(r.hasMore);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [open, row?.id, selected.length, photoOffset]);
   const run = async (kind: string) => {
     const popup = kind === "print" ? window.open("", "_blank") : null;
     if (kind === "print" && !popup) {
@@ -23,26 +41,24 @@ export function SingleCaseReport({ row }: { row: Case }) {
     setBusy(true);
     try {
       if (kind === "email") {
-        await api(`/cases/${row.id}/report/email`, {
+        await api("/reports/cases/export", {
           method: "POST",
-          body: { to, photoId: photoId || undefined },
+          body: {
+            to,
+            caseIds: selected.map((c) => c.id),
+            format: "pdf",
+            photoId: selected.length === 1 ? photoId || undefined : undefined,
+          },
         });
         toast.success("Report queued for email delivery");
         return;
       }
-      let blob: Blob;
-      if (kind === "csv")
-        blob = new Blob([caseCsv([row], s.clients, s.users, s.invoices)], {
-          type: "text/csv;charset=utf-8",
-        });
-      else {
-        const r = await fetch(
-          `/api/cases/${row.id}/report/pdf${photoId ? "?photoId=" + encodeURIComponent(photoId) : ""}`,
-          { credentials: "same-origin", signal: AbortSignal.timeout(120000) },
-        );
-        if (!r.ok) throw new Error((await r.json()).error || "Report could not be generated");
-        blob = await r.blob();
-      }
+      const format = kind === "xlsx" ? "xlsx" : "pdf";
+      const blob = await apiBlob("/reports/cases/export", {
+        caseIds: selected.map((c) => c.id),
+        format,
+        photoId: selected.length === 1 ? photoId || undefined : undefined,
+      });
       const url = URL.createObjectURL(blob);
       if (popup) {
         popup.location.href = url;
@@ -50,7 +66,7 @@ export function SingleCaseReport({ row }: { row: Case }) {
       } else {
         const a = document.createElement("a");
         a.href = url;
-        a.download = `case-${row.number.replace(/[^a-zA-Z0-9_-]/g, "_")}.${kind === "csv" ? "csv" : "pdf"}`;
+        a.download = `case-reports-${selected.length}.${format}`;
         a.click();
       }
       setTimeout(() => URL.revokeObjectURL(url), 300000);
@@ -64,7 +80,7 @@ export function SingleCaseReport({ row }: { row: Case }) {
   return (
     <>
       <Button variant="outline" onClick={() => setOpen(!open)}>
-        Case report
+        {rows ? `Reports · ${selected.length} cases` : "Case report"}
       </Button>
       <Dialog
         open={open}
@@ -74,17 +90,20 @@ export function SingleCaseReport({ row }: { row: Case }) {
       >
         <DialogContent className="space-y-4 sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Case report · {row.number}</DialogTitle>
+            <DialogTitle>
+              Case reports · {selected.length === 1 ? row?.number : `${selected.length} selected`}
+            </DialogTitle>
           </DialogHeader>
           <label className="block text-sm">
             Cover photo
             <ModernSelect
               className="mt-1 w-full rounded border bg-background p-2"
+              disabled={selected.length !== 1}
               value={photoId}
               onChange={(e) => setPhoto(e.target.value)}
             >
               <option value="">Use property address cover</option>
-              {row.attachments
+              {photos
                 .filter((a) => /\.(png|jpe?g)$/i.test(a.name))
                 .map((a) => (
                   <option key={a.id} value={a.id}>
@@ -93,18 +112,30 @@ export function SingleCaseReport({ row }: { row: Case }) {
                 ))}
             </ModernSelect>
           </label>
+          {morePhotos && (
+            <Button variant="outline" disabled={busy} onClick={() => setPhotoOffset((v) => v + 50)}>
+              More cover photos
+            </Button>
+          )}
           <p className="text-xs text-muted-foreground">
-            Choose a PNG / JPEG up to 5 MB. Company details come from owner Settings.
+            Company details come from owner Settings. Combined PDF: up to 25 cases, each starting on
+            a new page. Excel: up to 200 cases.
           </p>
           <div className="flex flex-wrap gap-2">
-            <Button disabled={busy} onClick={() => run("pdf")}>
-              Download PDF
+            <ModernSelect
+              aria-label="Download format"
+              value={downloadFormat}
+              onChange={(e) => setDownloadFormat(e.target.value)}
+              disabled={busy}
+            >
+              <option value="pdf">PDF document</option>
+              <option value="xlsx">Excel workbook (.xlsx)</option>
+            </ModernSelect>
+            <Button disabled={busy || !selected.length} onClick={() => run(downloadFormat)}>
+              Download report
             </Button>
             <Button disabled={busy} variant="outline" onClick={() => run("print")}>
               Print PDF
-            </Button>
-            <Button disabled={busy} variant="outline" onClick={() => run("csv")}>
-              Export CSV
             </Button>
           </div>
           <Input

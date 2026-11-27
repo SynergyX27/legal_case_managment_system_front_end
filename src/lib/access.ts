@@ -12,8 +12,8 @@ export function visibleCasesFor(
       : me.role === "customer"
         ? !!me.clientId && c.clientId === me.clientId
         : me.role === "manager"
-          ? c.managerId === me.id
-          : c.staffId === me.id,
+          ? (c.managerId === me.id || c.teamMemberIds?.includes(me.id))
+          : (c.staffId === me.id || c.teamMemberIds?.includes(me.id)),
   );
 }
 export const can = (me: User | null | undefined, key: string) =>
@@ -35,7 +35,7 @@ export function canMessage(me: User | undefined | null, other: User | undefined,
     !!customer.clientId &&
     cases.some(
       (c) =>
-        c.clientId === customer.clientId && (c.staffId === staff.id || c.managerId === staff.id),
+        c.clientId === customer.clientId && (c.staffId === staff.id || c.managerId === staff.id || c.teamMemberIds?.includes(staff.id)),
     )
   );
 }

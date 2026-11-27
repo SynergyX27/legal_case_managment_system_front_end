@@ -4,6 +4,7 @@ import type {ComponentType} from 'react';
 import {useStore} from '@/lib/store';
 vi.mock('@tanstack/react-router',()=>({createFileRoute:()=>(options:any)=>({options,useParams:()=>({id:'view-case'})}),Link:({children}:any)=><a>{children}</a>}));
 vi.mock('@/components/lf/single-case-report',()=>({SingleCaseReport:()=>null}));
+vi.mock('@/components/lf/file-manager',()=>({FileManager:({caseId}:any)=><section aria-label="Case File Manager">File Manager for {caseId}</section>}));
 vi.mock('@/components/lf/workspace-assignment',()=>({WorkspaceAssignment:()=>null}));
 import {Route} from '@/routes/_authenticated/cases.$id';
 const Page=Route.options.component as ComponentType;
@@ -19,7 +20,7 @@ it('switches the case-view section layout, retains documents and remembers the v
  fireEvent.click(screen.getByRole('radio',{name:'Side-by-side'}));
  expect(document.querySelector('.case-details-panel')).toHaveAttribute('data-view-layout','side-by-side');
  expect(Array.from(document.querySelectorAll('.case-detail-section')).map(n=>n.getAttribute('data-section'))).toEqual(['case','property','financials','data']);
- expect(screen.getByRole('link',{name:'Download Proof.pdf'})).toHaveAttribute('href','/api/documents/file?download=1');
+ expect(screen.getByRole('region',{name:'Case File Manager'})).toHaveTextContent('view-case');
  expect(localStorage.getItem('legalflow.case-form-layout.owner')).toBe('columns');
  view.unmount();render(<Page/>);
  expect(screen.getByRole('radio',{name:'Side-by-side'})).toHaveAttribute('aria-checked','true');

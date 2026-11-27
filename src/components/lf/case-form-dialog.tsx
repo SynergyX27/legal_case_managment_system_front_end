@@ -688,6 +688,7 @@ export function CaseForm({
         </Section>
       )}
       <Section n={s.customFields.length ? 8 : 7} title="Attachments">
+        <p className="text-xs text-muted-foreground">Use File Manager on the case page to view and manage all files. New uploads require office approval.</p>
         <FileDrop files={c.attachments} setFiles={(a) => set("attachments", a)} />
       </Section>
     </div>
