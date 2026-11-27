@@ -58,7 +58,7 @@ export interface Attachment {
   updatedAt?: string;
   id: string;
   name: string;
-  type: "image" | "video" | "pdf" | "word" | "excel" | "other";
+  type: "image" | "video" | "audio" | "pdf" | "word" | "excel" | "other";
   size: string;
   uploadedAt: string;
   uploadedBy: string;

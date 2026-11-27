@@ -19,3 +19,5 @@ it("renders labeled large and compact file badges", () => {
   expect(screen.getByRole("img", { name: "Excel spreadsheet" })).toHaveAttribute("width", "44");
   expect(screen.getByText("XLSX")).toBeInTheDocument();
 });
+
+it("recognizes every supported audio extension",()=>{for(const ext of ["mp3","wav","m4a","aac","ogg"])expect(fileTypeInfo({name:`voice.${ext}`}).kind).toBe("audio");});

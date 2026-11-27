@@ -19,6 +19,17 @@ export function fileTypeInfo(file: FileInfo) {
     };
   if (["doc", "docx"].includes(ext || "") || file.type === "word" || mime.includes("word"))
     return { kind: "word", label: "DOC", name: "Word document", color: "#2867bd" };
+  if (
+    file.type === "audio" ||
+    mime.startsWith("audio/") ||
+    ["mp3", "wav", "m4a", "aac", "ogg"].includes(ext || "")
+  )
+    return {
+      kind: "audio",
+      label: ext?.toUpperCase() || "AUDIO",
+      name: "Audio recording",
+      color: "#b8752e",
+    };
   if (file.type === "video" || mime.startsWith("video/"))
     return { kind: "video", label: "VIDEO", name: "Video file", color: "#7c3aed" };
   return {
@@ -46,7 +57,11 @@ export function FileTypeBadge({ file, compact = false }: { file: FileInfo; compa
           strokeWidth="2"
         />
         <path d="M65 8v15a5 5 0 0 0 5 5h14" fill="none" stroke={info.color} strokeWidth="2" />
-        {info.kind === "excel" ? (
+        {info.kind === "audio" ? (
+          <g fill="none" stroke={info.color} strokeWidth="3">
+            <path d="M38 49v9m8-18v27m8-32v37m8-30v23m8-14v7" />
+          </g>
+        ) : info.kind === "excel" ? (
           <g fill="none" stroke={info.color} strokeWidth="2" opacity=".8">
             <rect x="36" y="39" width="34" height="28" rx="2" />
             <path d="M36 48h34M36 57h34M48 39v28M59 39v28" />

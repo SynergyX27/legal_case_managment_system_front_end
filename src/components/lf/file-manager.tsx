@@ -757,6 +757,21 @@ export function FileManager({
                 alt={preview.name}
                 className="max-h-[70vh] w-full object-contain"
               />
+            ) : preview.type === "audio" ? (
+              <div className="space-y-4 p-6">
+                <FileTypeBadge file={preview} />
+                <audio
+                  key={preview.id}
+                  aria-label={preview.name}
+                  className="w-full"
+                  src={preview.url}
+                  controls
+                  preload="metadata"
+                />
+                <p className="text-xs text-muted-foreground">
+                  If playback is unavailable, download the file to listen in another app.
+                </p>
+              </div>
             ) : preview.type === "video" ? (
               <video
                 key={preview.id}

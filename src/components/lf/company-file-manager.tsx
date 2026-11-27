@@ -476,6 +476,21 @@ export function CompanyFileManager() {
                   src={preview.url}
                   alt={preview.name}
                 />
+              ) : preview.type === "audio" ? (
+                <div className="space-y-4 p-6">
+                  <FileTypeBadge file={preview} />
+                  <audio
+                    key={preview.id}
+                    aria-label={preview.name}
+                    className="w-full"
+                    src={preview.url}
+                    controls
+                    preload="metadata"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    If playback is unavailable, download the file to listen in another app.
+                  </p>
+                </div>
               ) : preview.type === "video" ? (
                 <video className="max-h-[65dvh] w-full" src={preview.url} controls />
               ) : preview.type === "pdf" ? (

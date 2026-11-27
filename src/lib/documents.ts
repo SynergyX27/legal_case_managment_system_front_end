@@ -22,17 +22,19 @@ export function filterDocuments(
 }
 export function fileKind(file: Pick<File, "type" | "name">): Attachment["type"] {
   const name = file.name.toLowerCase();
-  return file.type.startsWith("image/")
-    ? "image"
-    : file.type.startsWith("video/")
-      ? "video"
-      : name.endsWith(".pdf")
-        ? "pdf"
-        : /\.docx?$/.test(name)
-          ? "word"
-          : /\.xlsx?$/.test(name)
-            ? "excel"
-            : "other";
+  return file.type.startsWith("audio/") || /\.(mp3|wav|m4a|aac|ogg)$/.test(name)
+    ? "audio"
+    : file.type.startsWith("image/")
+      ? "image"
+      : file.type.startsWith("video/")
+        ? "video"
+        : name.endsWith(".pdf")
+          ? "pdf"
+          : /\.docx?$/.test(name)
+            ? "word"
+            : /\.xlsx?$/.test(name)
+              ? "excel"
+              : "other";
 }
 export function hasLocalContent(file: Attachment) {
   return !!file.url?.startsWith("/api/documents/");
