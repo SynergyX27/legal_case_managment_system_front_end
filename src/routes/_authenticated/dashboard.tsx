@@ -1,4 +1,4 @@
-import {PendingFileReviews} from "@/components/lf/pending-file-reviews";
+import { PendingFileReviews } from "@/components/lf/pending-file-reviews";
 import { CaseMoney, CaseStatusTiles } from "@/components/lf/case-portfolio";
 import { CreateCaseButton } from "@/components/lf/create-case-button";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -124,7 +124,7 @@ function Page() {
       ];
   return (
     <>
-      <PendingFileReviews/>
+      <PendingFileReviews />
       <section className="overview-hero">
         <div>
           <p className="hero-kicker">
@@ -338,14 +338,14 @@ function Page() {
                   <Bar
                     isAnimationActive={false}
                     dataKey="Scheduled"
-                    fill="#285ba7"
+                    fill="var(--chart-1)"
                     radius={[5, 5, 0, 0]}
                     maxBarSize={24}
                   />
                   <Bar
                     isAnimationActive={false}
                     dataKey="Completed"
-                    fill="#b9cfee"
+                    fill="var(--chart-2)"
                     radius={[5, 5, 0, 0]}
                     maxBarSize={24}
                   />

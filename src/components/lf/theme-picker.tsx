@@ -120,7 +120,7 @@ function ThemeSample({ id, dark }: { id: PaletteId; dark: boolean }) {
               <div
                 key={color}
                 style={{
-                  background: c.card,
+                  background: i === 0 ? c.button : i === 1 ? "#0e7490" : "#047857",
                   border: `1px solid ${c.border}`,
                   borderTop: `3px solid ${color}`,
                   borderRadius: 7,
@@ -128,8 +128,8 @@ function ThemeSample({ id, dark }: { id: PaletteId; dark: boolean }) {
                   flex: 1,
                 }}
               >
-                <b style={{ color }}>{[24, 8, 12][i]}</b>
-                <div style={{ color: c.muted }}>Sample</div>
+                <b style={{ color: "white" }}>{[24, 8, 12][i]}</b>
+                <div style={{ color: "#ffffffcc" }}>Sample</div>
               </div>
             ))}
           </div>

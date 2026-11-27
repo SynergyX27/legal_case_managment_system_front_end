@@ -1,7 +1,16 @@
 import { ModernSelect } from "@/components/ui/modern-select";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Printer, Mail, Settings2 } from "lucide-react";
+import {
+  FolderOpen,
+  Clock3,
+  CalendarClock,
+  CircleCheck,
+  Activity,
+  Printer,
+  Mail,
+  Settings2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -175,10 +184,16 @@ export function CaseStatusTiles({
         </DialogContent>
       </Dialog>
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {selected.map((status) => {
+        {selected.map((status, index) => {
+          const TileIcon = [FolderOpen, Clock3, CalendarClock, CircleCheck, Activity][index % 5];
           const content = (
             <>
-              <p className="metric-label">{status}</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="metric-label">{status}</p>
+                <span className="status-tile-icon">
+                  <TileIcon size={22} />
+                </span>
+              </div>
               <p className="metric-value">
                 {status === "All cases"
                   ? cases.length
@@ -191,12 +206,13 @@ export function CaseStatusTiles({
               type="button"
               key={status}
               onClick={() => onSelect(status)}
-              className="metric-card text-left hover:border-primary/50"
+              className="metric-card colorful-stat text-left"
+              data-color={index % 5}
             >
               {content}
             </button>
           ) : (
-            <section key={status} className="metric-card">
+            <section key={status} className="metric-card colorful-stat" data-color={index % 5}>
               {content}
             </section>
           );

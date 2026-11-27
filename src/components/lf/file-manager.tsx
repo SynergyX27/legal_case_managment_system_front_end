@@ -405,9 +405,9 @@ export function FileManager({
             <button
               key={f.id}
               onClick={() => go(f.id)}
-              className="rounded-2xl border bg-card p-5 text-left transition hover:border-primary hover:shadow-md"
+              className="case-folder-card rounded-2xl border bg-card p-5 text-left transition hover:border-primary hover:shadow-md"
             >
-              <span className="mb-4 inline-flex rounded-xl bg-primary/10 p-3 text-primary">
+              <span className="folder-color-icon mb-4 inline-flex rounded-xl p-3">
                 <Folder className="size-7" />
               </span>
               <h3 className="font-semibold">{f.number}</h3>

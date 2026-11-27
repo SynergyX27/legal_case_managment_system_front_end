@@ -177,7 +177,9 @@ function Sidebar({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: (
                         collapsed && "is-collapsed",
                       )}
                     >
-                      <n.icon className="size-[18px] shrink-0" />
+                      <span className="nav-color-icon" data-nav={n.key}>
+                        <n.icon className="size-[18px] shrink-0" />
+                      </span>
                       {!collapsed && (
                         <>
                           <span className="flex-1 truncate">{n.label}</span>
