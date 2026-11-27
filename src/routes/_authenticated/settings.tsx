@@ -1,5 +1,5 @@
 import { ModernSelect } from "@/components/ui/modern-select";
-import {IncomingEmailSettings} from "@/components/lf/incoming-email-settings";
+import { IncomingEmailSettings } from "@/components/lf/incoming-email-settings";
 import { CompanyBranding } from "@/components/lf/company-branding";
 import { EmailSettings } from "@/components/lf/email-settings";
 import { createFileRoute } from "@tanstack/react-router";
@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useMe, useStore, uid } from "@/lib/store";
 import { api } from "@/lib/api";
+import { ThemePicker } from "@/components/lf/theme-picker";
 import { ThemeToggle } from "@/components/lf/theme-provider";
 import type { CustomField } from "@/lib/domain";
 export const Route = createFileRoute("/_authenticated/settings")({ component: Page });
@@ -44,7 +45,12 @@ function Page() {
     <>
       <PageHeader title="Settings" subtitle="Your account, appearance and company connections." />
       <div className="grid gap-6 lg:grid-cols-2">
-        {me?.role === "owner" && <><CompanyBranding/><IncomingEmailSettings/></>}
+        {me?.role === "owner" && (
+          <>
+            <CompanyBranding />
+            <IncomingEmailSettings />
+          </>
+        )}
         <Panel title="My account">
           <form
             className="space-y-4 p-5"
@@ -119,6 +125,7 @@ function Page() {
               </p>
               <ThemeToggle />
             </div>
+            <ThemePicker />
           </Panel>
           {me?.role === "owner" && (
             <Panel title="Dropbox document storage">

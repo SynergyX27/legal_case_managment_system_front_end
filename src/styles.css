@@ -2303,3 +2303,13 @@
   background: #315fa6;
   color: white;
 }
+
+/* Palette overrides keep Classic unchanged and preserve semantic status colors. */
+:root:not([data-palette="classic"]) .workspace-topbar {background:var(--sidebar);}
+:root:not([data-palette="classic"]) .sidebar-link {color:var(--sidebar-foreground);}
+:root:not([data-palette="classic"]) .sidebar-link:hover,:root:not([data-palette="classic"]) .sidebar-link.active {background:var(--sidebar-accent);color:var(--sidebar-accent-foreground);}
+:root:not([data-palette="classic"]) .sidebar-workspace,:root:not([data-palette="classic"]) .sidebar-note,:root:not([data-palette="classic"]) .topbar-search {background:var(--muted);border-color:var(--border);color:var(--muted-foreground);}
+
+:root:not([data-palette="classic"]) .metric-card {border-top:3px solid var(--chart-1);}
+:root:not([data-palette="classic"]) .metric-card:nth-child(3n+2) {border-top-color:var(--chart-2);}
+:root:not([data-palette="classic"]) .metric-card:nth-child(3n) {border-top-color:var(--chart-3);}
