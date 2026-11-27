@@ -1,3 +1,5 @@
+import "@/styles/file-manager.css";
+import { visualTone } from "@/lib/visual-tone";
 import { can } from "@/lib/access";
 import { CaseCamera } from "./case-camera";
 import { useEffect, useState, useRef } from "react";
@@ -15,6 +17,12 @@ import {
   LayoutGrid,
   List,
   MoreHorizontal,
+  ArrowUpRight,
+  FolderOpen,
+  MapPin,
+  Files,
+  RefreshCw,
+  ShieldCheck,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useMe, useStore } from "@/lib/store";
@@ -295,10 +303,14 @@ export function FileManager({
     icon = (file: Attachment) =>
       file.type === "image" ? <ImageIcon /> : file.type === "video" ? <Film /> : <FileText />;
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
+    <div className={`fm-page space-y-5 ${initialCase ? "is-embedded" : ""}`}>
+      <div className="fm-heading flex flex-wrap items-center justify-between gap-3">
+        <div className="fm-heading-copy">
+          <p className="fm-eyebrow">
+            <FolderOpen size={15} />
+            {folder ? "CASE FILE LIBRARY" : "YOUR CASE LIBRARY"}
+          </p>
+          <div className="fm-breadcrumb flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
             {!initialCase && (
               <Button variant="link" onClick={() => go("")}>
                 All case folders
@@ -324,13 +336,23 @@ export function FileManager({
               ? current?.name || caseInfo.number
               : "File Manager"}
           </h2>
+          {!folder && (
+            <p className="fm-description">
+              Every case has a place. Find documents, photos and fieldwork in one organized library.
+            </p>
+          )}
           {folder && (
-            <p className="text-sm text-muted-foreground">
+            <p className="fm-description text-sm text-muted-foreground">
               {caseInfo?.tenant} · {caseInfo?.address}
             </p>
           )}
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="fm-heading-actions flex flex-wrap gap-2">
+          <div className="fm-heading-art" aria-hidden="true">
+            <span />
+            <FolderOpen />
+            <Files />
+          </div>
           {folder && !collection && me?.role === "owner" && (
             <Button variant="outline" onClick={() => edit("new-collection")}>
               Add collection
@@ -350,7 +372,7 @@ export function FileManager({
           )}
         </div>
       </div>
-      <div className="flex flex-wrap gap-2 rounded-xl border bg-card p-3">
+      <div className="fm-toolbar flex flex-wrap gap-2 rounded-xl border bg-card p-3">
         <div className="relative min-w-48 flex-1">
           <Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
           <Input
@@ -383,18 +405,28 @@ export function FileManager({
             <option value="rejected">Rejected</option>
           </ModernSelect>
         )}
-        {collection && (
-          <>
-            <Button variant="outline" aria-label="Grid view" onClick={() => setGrid(true)}>
+        {(!folder || collection) && (
+          <div className="fm-view-switch" role="group" aria-label="Display layout">
+            <Button
+              variant="ghost"
+              aria-label="Grid view"
+              aria-pressed={grid}
+              onClick={() => setGrid(true)}
+            >
               <LayoutGrid className="size-4" />
             </Button>
-            <Button variant="outline" aria-label="List view" onClick={() => setGrid(false)}>
+            <Button
+              variant="ghost"
+              aria-label="List view"
+              aria-pressed={!grid}
+              onClick={() => setGrid(false)}
+            >
               <List className="size-4" />
             </Button>
-          </>
+          </div>
         )}
         <Button variant="outline" onClick={reload}>
-          Refresh
+          <RefreshCw size={15} /> Refresh
         </Button>
       </div>
       {loading && (
@@ -403,74 +435,109 @@ export function FileManager({
         </p>
       )}
       {!folder && (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {folders.map((f) => (
-            <button
-              key={f.id}
-              onClick={() => go(f.id)}
-              className="case-folder-card rounded-2xl border bg-card p-5 text-left transition hover:border-primary hover:shadow-md"
-            >
-              <span className="folder-color-icon mb-4 inline-flex rounded-xl p-3">
-                <Folder className="size-7" />
-              </span>
-              <h3 className="font-semibold">{f.number}</h3>
-              <p className="mt-1 truncate text-sm">{f.tenant || f.community}</p>
-              <p className="mt-1 truncate text-xs text-muted-foreground">
-                {f.address || "No address"}
+        <>
+          <div className="fm-section-label">
+            <div>
+              <h3>Case folders</h3>
+              <p>
+                {loading
+                  ? "Loading your library…"
+                  : `${folders.length} folders on this page · ${folders.reduce((n, f) => n + Number(f.files || 0), 0)} files in these folders`}
               </p>
-              <p className="mt-4 text-xs text-muted-foreground">{f.files} files</p>
-            </button>
-          ))}
-        </div>
+            </div>
+            <span className="fm-private-note">
+              <ShieldCheck size={14} /> Permission-based access
+            </span>
+          </div>
+          <div className={`fm-folder-layout ${grid ? "" : "is-list"}`}>
+            {folders.map((f) => (
+              <button
+                key={f.id}
+                onClick={() => go(f.id)}
+                className="fm-folder"
+                data-tone={visualTone(f.id)}
+              >
+                <div className="fm-folder-top">
+                  <span className="fm-folder-art" aria-hidden="true">
+                    <FolderOpen />
+                  </span>
+                  <span className="fm-count">
+                    {f.files} {f.files === 1 ? "file" : "files"}
+                  </span>
+                </div>
+                <div className="fm-folder-copy">
+                  <h3 title={f.number}>{f.number}</h3>
+                  <p className="fm-tenant">{f.tenant || f.community || "Case folder"}</p>
+                  <p className="fm-address" title={f.address}>
+                    <MapPin size={12} />
+                    <span>{f.address || "No address"}</span>
+                  </p>
+                </div>
+                <div className="fm-folder-footer">
+                  <span>{f.files ? "Explore files" : "Ready for files"}</span>
+                  <ArrowUpRight size={16} />
+                </div>
+              </button>
+            ))}
+          </div>
+        </>
       )}
       {folder && !collection && (
-        <div className="grid gap-5 lg:grid-cols-2">
-          {(["docs", "visuals"] as const).map((group) => (
-            <section key={group} className="rounded-2xl border bg-card p-5">
-              <h3 className="mb-4 text-sm font-semibold tracking-wider">
-                {group === "docs" ? "DOCS" : "VISUALS"}
-              </h3>
-              <div className="space-y-3">
-                {collections
-                  .filter(
-                    (c) =>
-                      c.section === group && c.name.toLowerCase().includes(query.toLowerCase()),
-                  )
-                  .map((c) => (
-                    <div key={c.id} className="flex items-center gap-2 rounded-xl border p-3">
-                      <button
-                        className="flex min-w-0 flex-1 items-center gap-3 text-left"
-                        onClick={() => go(folder, c.id)}
-                      >
-                        <span className="rounded-lg bg-primary/10 p-2 text-primary">
-                          {group === "docs" ? (
-                            <FileText className="size-5" />
-                          ) : (
-                            <ImageIcon className="size-5" />
-                          )}
+        <div className="fm-collections">
+          {(["docs", "visuals"] as const).map((group) => {
+            const groups = collections.filter((c) => c.section === group),
+              shown = groups.filter((c) => c.name.toLowerCase().includes(query.toLowerCase()));
+            const GroupIcon = group === "docs" ? FileText : Camera;
+            return (
+              <section key={group} className="fm-collection-section" data-section={group}>
+                <header>
+                  <div className="fm-section-symbol">
+                    <GroupIcon size={24} />
+                  </div>
+                  <div>
+                    <h3>{group === "docs" ? "DOCS" : "VISUALS"}</h3>
+                    <p>
+                      {group === "docs"
+                        ? "Legal paperwork & supporting records"
+                        : "On-site photos & field evidence"}
+                    </p>
+                  </div>
+                  <span className="fm-count">
+                    {groups.reduce((n, c) => n + Number(c.files || 0), 0)} files
+                  </span>
+                </header>
+                <div className="fm-collection-grid">
+                  {shown.map((c) => (
+                    <div key={c.id} className="fm-collection-tile" data-tone={visualTone(c.id)}>
+                      <button className="fm-collection-open" onClick={() => go(folder, c.id)}>
+                        <span className="fm-collection-icon">
+                          {group === "docs" ? <FileText size={22} /> : <ImageIcon size={22} />}
                         </span>
-                        <span className="min-w-0">
-                          <span className="block truncate text-sm font-medium">{c.name}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {c.files} files{c.pending ? ` · ${c.pending} pending` : ""}
-                          </span>
+                        <span className="fm-collection-title">{c.name}</span>
+                        <span className="fm-collection-meta">
+                          {c.files ? `${c.files} files` : "No files yet"}
+                          {!!c.pending && <span className="fm-pending">{c.pending} pending</span>}
                         </span>
+                        <ChevronRight className="fm-collection-arrow" size={16} />
                       </button>
                       {me?.role === "owner" && (
                         <Button
+                          className="fm-collection-menu"
                           variant="ghost"
                           size="icon"
                           aria-label={`Manage ${c.name}`}
                           onClick={() => edit("collection", undefined, c)}
                         >
-                          <MoreHorizontal className="size-4" />
+                          <MoreHorizontal size={16} />
                         </Button>
                       )}
                     </div>
                   ))}
-              </div>
-            </section>
-          ))}
+                </div>
+                {!shown.length && <p className="fm-no-collections">No matching collections.</p>}
+              </section>
+            );
+          })}
         </div>
       )}
       {!!queue.length && (

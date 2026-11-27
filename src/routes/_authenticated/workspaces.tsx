@@ -1,3 +1,4 @@
+import { visualTone } from "@/lib/visual-tone";
 import { useUI } from "@/lib/ui-store";
 import { can } from "@/lib/access";
 import { CustomerLoginEditor } from "@/components/lf/customer-login-editor";
@@ -153,7 +154,7 @@ function Workspaces() {
   };
   return (
     <div className="workspace-page mx-auto w-full max-w-[1500px] space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-5">
+      <header className="ws-page-heading flex flex-wrap items-start justify-between gap-5">
         <div>
           <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[.16em] text-primary">
             <Layers3 className="size-4" />
@@ -253,7 +254,7 @@ function Workspaces() {
                   </button>
                 ))}
               </div>
-              <div className="flex min-w-0 flex-1 flex-wrap justify-end gap-2">
+              <div className="ws-filter-controls flex min-w-0 flex-1 flex-wrap justify-end gap-2">
                 <label className="relative min-w-[200px] max-w-sm flex-1">
                   <Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
                   <Input
@@ -292,35 +293,45 @@ function Workspaces() {
                 {filtered.map((w) => (
                   <button
                     key={w.id}
+                    data-tone={visualTone(w.id)}
                     onClick={() => navigateWorkspace(w.id)}
                     className="workspace-card group flex flex-col overflow-hidden rounded-2xl border bg-card text-left transition duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
                   >
                     <div
                       className={`workspace-card-cover flex items-center justify-between px-5 py-5 ${w.kind === "territory" ? "bg-primary/8" : "bg-muted/70"}`}
                     >
-                      <span className="flex size-11 items-center justify-center rounded-xl border border-primary/10 bg-card text-primary">
+                      <span className="ws-cover-icon flex size-11 items-center justify-center rounded-xl">
                         {w.kind === "territory" ? (
                           <MapPin className="size-5" />
                         ) : (
                           <Building2 className="size-5" />
                         )}
                       </span>
-                      <span className="rounded-full border border-primary/10 bg-card/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      <span className="ws-type-badge rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wider">
                         {w.kind === "territory" ? "Workspace" : "Community"}
                         {w.state ? " · " + w.state : ""}
                       </span>
                     </div>
-                    <div className="flex flex-1 flex-col p-5">
-                      <p className="truncate text-xs text-muted-foreground">
+                    <div className="ws-card-body flex flex-1 flex-col p-5">
+                      <p className="ws-customer truncate text-xs text-muted-foreground">
                         {companyName(w.clientId)}
                       </p>
-                      <h3 className="mt-2 text-lg font-semibold tracking-tight">{w.name}</h3>
+                      <h3 className="mt-2 text-lg font-semibold tracking-tight" title={w.name}>
+                        {w.name}
+                      </h3>
                       <p className="mt-1 min-h-5 text-xs text-muted-foreground">
                         {w.parentId
                           ? "In " + (rows.find((p) => p.id === w.parentId)?.name || "territory")
                           : live.filter((x) => x.parentId === w.id).length + " communities"}
                       </p>
-                      <div className="mt-6 flex items-center justify-between border-t pt-4">
+                      <div className="ws-open-meter" aria-hidden="true">
+                        <span
+                          style={{
+                            width: `${w.caseCount ? Math.min(100, Math.max(0, (w.openCount / w.caseCount) * 100)) : 0}%`,
+                          }}
+                        />
+                      </div>
+                      <div className="ws-card-footer flex items-center justify-between">
                         <div className="flex gap-4 text-xs">
                           <span>
                             <strong className="mr-1 text-sm">{w.caseCount}</strong>
@@ -331,7 +342,9 @@ function Workspaces() {
                             <span className="text-muted-foreground">open</span>
                           </span>
                         </div>
-                        <ArrowUpRight className="size-4 text-primary transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                        <span className="ws-open-arrow">
+                          <ArrowUpRight size={16} />
+                        </span>
                       </div>
                     </div>
                   </button>
@@ -530,7 +543,8 @@ function Workspaces() {
                       <button
                         key={w.id}
                         onClick={() => navigateWorkspace(w.id)}
-                        className="rounded-xl border p-5 text-left transition hover:border-primary"
+                        className="ws-community-card rounded-xl border p-5 text-left transition hover:border-primary"
+                        data-tone={visualTone(w.id)}
                       >
                         <Building2 className="mb-3 size-5 text-primary" />
                         <h3 className="font-semibold">

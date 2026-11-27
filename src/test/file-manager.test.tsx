@@ -84,3 +84,16 @@ it("customers have no upload or review controls", async () => {
   expect(screen.queryByRole("button", { name: "Approve selected" })).not.toBeInTheDocument();
   expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
 });
+it("switches case folders to list view and keeps paged counts explicit", async () => {
+  setup("owner");
+  render(<FileManager />);
+  await screen.findByRole("button", { name: /LF-001/ });
+  expect(screen.getByText(/folders on this page/)).toBeInTheDocument();
+  const list = screen.getByRole("button", { name: "List view" });
+  fireEvent.click(list);
+  expect(list).toHaveAttribute("aria-pressed", "true");
+  expect(document.querySelector(".fm-folder-layout")).toHaveClass("is-list");
+  fireEvent.click(screen.getByRole("button", { name: /LF-001/ }));
+  expect(await screen.findByText("DOCS")).toBeInTheDocument();
+  expect(await screen.findByText("1 pending")).toBeInTheDocument();
+});
