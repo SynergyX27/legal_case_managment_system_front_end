@@ -1,3 +1,4 @@
+import { PaymentMode } from "@/components/lf/payment-mode";
 import { can } from "@/lib/access";
 import { ModernSelect } from "@/components/ui/modern-select";
 import { IncomingEmailSettings } from "@/components/lf/incoming-email-settings";
@@ -47,6 +48,7 @@ function Page() {
       {can(me, "company.manage") && <CompanyBranding />}
       <PageHeader title="Settings" subtitle="Your account, appearance and company connections." />
       <div className="grid gap-6 lg:grid-cols-2">
+        {me?.role === "owner" && can(me, "settings.manage") && <PaymentMode settings />}
         {can(me, "settings.manage") && (
           <>
             <IncomingEmailSettings />

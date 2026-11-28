@@ -60,7 +60,10 @@ describe("customer invoice payments", () => {
     await waitFor(() => expect(button).not.toBeDisabled());
     fireEvent.click(button);
     await waitFor(() =>
-      expect(request).toHaveBeenCalledWith("/invoices/invoice-1/checkout", { method: "POST" }),
+      expect(request).toHaveBeenCalledWith("/invoices/invoice-1/checkout", {
+        method: "POST",
+        body: { paymentMode: "test" },
+      }),
     );
     expect(screen.getByText(/No real money will be charged/)).toBeInTheDocument();
   });

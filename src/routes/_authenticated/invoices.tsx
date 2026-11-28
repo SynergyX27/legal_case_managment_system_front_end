@@ -151,7 +151,7 @@ function Page() {
     try {
       const result = await api<{ url?: string; paid?: boolean }>(
         `/invoices/${invoice.id}/checkout`,
-        { method: "POST" },
+        { method: "POST", body: { paymentMode: paymentConfig?.testMode ? "test" : "live" } },
       );
       if (result.paid) {
         await s.refresh();

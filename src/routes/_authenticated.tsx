@@ -1,3 +1,4 @@
+import { PaymentMode } from "@/components/lf/payment-mode";
 import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { AppShell } from "@/components/lf/app-shell";
@@ -26,6 +27,7 @@ function AuthLayout() {
   }
   return (
     <AppShell>
+      <PaymentMode />
       {canAccess(me, section === "ai-insights" ? "ai" : section) ? (
         <Outlet />
       ) : (

@@ -66,12 +66,12 @@ const date = (v: string) =>
         year: "numeric",
       })
     : "—";
-export async function publicRequest(path: string, token: string) {
+export async function publicRequest(path: string, token: string, paymentMode?: string) {
   const r = await fetch(`/api/public/invoices/${path}`, {
     method: "POST",
     credentials: "omit",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token }),
+    body: JSON.stringify({ token, ...(paymentMode ? { paymentMode } : {}) }),
     signal: AbortSignal.timeout(path === "pdf" ? 120000 : 45000),
   });
   if (!r.ok) {
@@ -192,7 +192,9 @@ export function PublicInvoice() {
     setBusy("pay");
     setMessage("");
     try {
-      const r = await (await publicRequest("checkout", token)).json();
+      const r = await (
+        await publicRequest("checkout", token, data?.payment.testMode ? "test" : "live")
+      ).json();
       if (r.paid) {
         await load();
         return;
