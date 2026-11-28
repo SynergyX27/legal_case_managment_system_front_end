@@ -1,3 +1,5 @@
+import { CaseAlternateViews, type CaseDisplay } from "./case-alternate-views";
+import "@/styles/case-display.css";
 import { VisualCollectionLink } from "./visual-collection-link";
 import { SingleCaseReport } from "./single-case-report";
 import { CaseTeam } from "./case-team";
@@ -13,6 +15,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { caseBilling } from "@/lib/billing";
 import { toast } from "sonner";
 import {
+  Table2, LayoutGrid, List, Columns3,
   ArrowDown,
   ArrowUp,
   ChevronLeft,
@@ -141,6 +144,7 @@ function Choice({
   );
 }
 export function CasesTable() {
+  const [display, setDisplay] = useState<CaseDisplay>("table");
   const s = useStore();
   const me = useMe();
   const customer = me?.role === "customer";
@@ -510,211 +514,310 @@ export function CasesTable() {
           </Button>
         </div>
       )}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="case-view-switch" role="group" aria-label="Case display view">
+          {(
+            [
+              ["table", "Table"],
+              ["card", "Cards"],
+              ["list", "List"],
+              ["board", "Board"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={display === id}
+              onClick={() => setDisplay(id)}
+            >
+              {id === "table" ? <Table2 className="size-4"/> : id === "card" ? <LayoutGrid className="size-4"/> : id === "list" ? <List className="size-4"/> : <Columns3 className="size-4"/>}{label}
+            </button>
+          ))}
+        </div>
+        {display !== "table" && (
+          <div className="flex items-center gap-2">
+            <ModernSelect
+              aria-label="Sort cases"
+              value={sort.key}
+              onChange={(e) => {
+                setSort({ key: e.target.value as SortKey, desc: sort.desc });
+                setPage(0);
+              }}
+            >
+              <option value="number">Case number</option>
+              <option value="serviceDate">Service date</option>
+              <option value="status">Status</option>
+              <option value="priority">Priority</option>
+            </ModernSelect>
+            <Button
+              size="sm"
+              variant="outline"
+              aria-label="Reverse case sort"
+              onClick={() => setSort((v) => ({ ...v, desc: !v.desc }))}
+            >
+              {sort.desc ? <ArrowDown /> : <ArrowUp />}
+            </Button>
+          </div>
+        )}
+      </div>
+      {display !== "table" && !customer && shown.length > 0 && (
+        <div className="mb-3 flex items-center gap-2 text-xs">
+          <Checkbox
+            aria-label="Select page"
+            checked={shown.every((c) => selection.includes(c.id))}
+            onCheckedChange={(checked) =>
+              setSelected(
+                checked
+                  ? [...new Set([...selection, ...shown.map((c) => c.id)])]
+                  : selection.filter((id) => !shown.some((c) => c.id === id)),
+              )
+            }
+          />
+          Select this page
+        </div>
+      )}
       <div className="case-table overflow-hidden rounded-lg border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/60">
-              <TableHead className="w-10">
-                <Checkbox
-                  disabled={customer}
-                  aria-label="Select page"
-                  checked={shown.length > 0 && shown.every((c) => selection.includes(c.id))}
-                  onCheckedChange={(v) =>
-                    setSelected(
-                      v
-                        ? [...new Set([...selected, ...shown.map((c) => c.id)])]
-                        : selected.filter((id) => !shown.some((c) => c.id === id)),
-                    )
-                  }
-                />
-              </TableHead>
-              {columns
-                .filter((c) => visible.includes(c.id))
-                .map((col) => (
-                  <TableHead key={col.id} className="whitespace-nowrap">
-                    {col.id === "invoice" || extraColumns.some((x) => x.id === col.id) ? (
-                      col.label
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="-ml-3"
-                        onClick={() =>
-                          setSort({
-                            key: col.id as SortKey,
-                            desc: sort.key === col.id ? !sort.desc : false,
-                          })
-                        }
-                      >
-                        {col.label}
-                        {sort.key === col.id &&
-                          (sort.desc ? (
-                            <ArrowDown className="size-3" />
-                          ) : (
-                            <ArrowUp className="size-3" />
-                          ))}
-                      </Button>
-                    )}
-                  </TableHead>
-                ))}
-              <TableHead className="w-20">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {shown.map((c) => {
-              const client = s.clients.find((x) => x.id === c.clientId);
-              const staff = s.users.find((x) => x.id === c.staffId);
-              return (
-                <TableRow key={c.id} data-state={selection.includes(c.id) ? "selected" : undefined}>
-                  <TableCell>
-                    <Checkbox
-                      disabled={customer}
-                      aria-label={`Select ${c.number}`}
-                      checked={selection.includes(c.id)}
-                      onCheckedChange={() => toggle(c.id)}
-                    />
-                  </TableCell>
-                  {visible.includes("number") && (
-                    <TableCell className="min-w-56 max-w-72">
-                      <Button
-                        variant="link"
-                        className="h-auto p-0 text-info"
-                        onClick={() => nav({ to: "/cases/$id", params: { id: c.id } })}
-                      >
-                        {c.number}
-                      </Button>
-                      <div className="truncate text-xs text-muted-foreground" title={c.title}>
-                        {c.title}
-                      </div>
-                      <div className="mt-1 text-xs">{c.type}</div>
-                    </TableCell>
-                  )}
-                  {visible.includes("client") && (
-                    <TableCell className="min-w-48">
-                      <div className="text-sm font-medium">
-                        {client?.company ?? "Unknown client"}
-                      </div>
-                      <div className="text-xs text-muted-foreground">{c.residentName}</div>
-                    </TableCell>
-                  )}
-                  {visible.includes("status") && (
-                    <TableCell>
-                      <StatusBadge value={c.status} />
-                    </TableCell>
-                  )}
-                  {visible.includes("priority") && (
-                    <TableCell>
-                      <StatusBadge value={c.priority} />
-                    </TableCell>
-                  )}
-                  {visible.includes("serviceDate") && (
-                    <TableCell className="whitespace-nowrap">
-                      <div>{fmtDate(c.serviceDate)}</div>
-                      <div className="text-xs text-muted-foreground">{c.serviceTime}</div>
-                    </TableCell>
-                  )}
-                  {visible.includes("staff") && (
-                    <TableCell>
-                      <div className="flex items-center gap-2 whitespace-nowrap">
-                        <Avatar name={staff?.name ?? "Unassigned"} />
-                        <span className="text-xs">{staff?.name ?? "Unassigned"}</span>
-                      </div>
-                    </TableCell>
-                  )}
-                  {visible.includes("fee") && (
-                    <TableCell className="font-medium tabular-nums">{money(c.fee)}</TableCell>
-                  )}
-                  {visible.includes("invoice") && (
-                    <TableCell>
-                      <span className="whitespace-nowrap">
-                        {
-                          s.invoices.filter(
-                            (i) => i.caseId === c.id && (!customer || i.status !== "Draft"),
-                          ).length
-                        }{" "}
-                        invoices
-                      </span>
-                    </TableCell>
-                  )}
-                  {extraColumns
-                    .filter((col) => visible.includes(col.id))
-                    .map((col) => {
-                      const b = caseBilling(s.invoices, c.id);
-                      const value =
-                        col.id === "manager"
-                          ? s.users.find((u) => u.id === c.managerId)?.name
-                          : col.id === "tenant"
-                            ? c.residentName
-                            : col.id === "address"
-                              ? c.residentAddress
-                              : col.id === "lastPayment"
-                                ? b.lastPaymentDate
-                                  ? `${money(b.lastPayment)} · ${fmtDate(b.lastPaymentDate)}`
-                                  : "—"
-                                : col.id === "moneyOwed"
-                                  ? money(caseAmounts(c).due)
-                                  : col.id === "balance"
-                                    ? money(b.balance)
-                                    : col.id === "setoutTime"
-                                      ? c.serviceTime
-                                      : c[col.id as keyof typeof c];
-                      return (
-                        <TableCell key={col.id} className="min-w-28 whitespace-nowrap">
-                          {["visLO", "visTO", "visRI"].includes(col.id) ? <span className="inline-flex items-center gap-2"><span>{typeof value === "string" || typeof value === "number" ? value || "—" : "—"}</span><VisualCollectionLink caseId={c.id} caseNumber={c.number} field={col.id}/></span> : typeof value === "string" || typeof value === "number" ? value || "—" : "—"}
-                        </TableCell>
-                      );
-                    })}
-                  <TableCell>
-                    <div className="flex">
-                      {!customer && (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            disabled={!can(me, "cases.edit")}
-                            title="Edit case"
-                            aria-label={`Edit ${c.number}`}
-                            onClick={() => openCase(c.id)}
-                          >
-                            <Pencil className="size-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            disabled={!can(me, "cases.delete")}
-                            title="Delete case"
-                            aria-label={`Delete ${c.number}`}
-                            onClick={() => setConfirmDelete([c.id])}
-                          >
-                            <Trash2 className="size-3.5 text-muted-foreground" />
-                          </Button>
-                        </>
+        {display !== "table" ? (
+          <CaseAlternateViews
+            view={display}
+            rows={shown}
+            clients={s.clients}
+            users={s.users}
+            me={me}
+            selected={selection}
+            onSelect={(id, checked) =>
+              setSelected((v) => (checked ? [...new Set([...v, id])] : v.filter((x) => x !== id)))
+            }
+            onView={(id) => nav({ to: "/cases/$id", params: { id } })}
+            onEdit={openCase}
+            onDelete={(id) => setConfirmDelete([id])}
+          />
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/60">
+                <TableHead className="w-10">
+                  <Checkbox
+                    disabled={customer}
+                    aria-label="Select page"
+                    checked={shown.length > 0 && shown.every((c) => selection.includes(c.id))}
+                    onCheckedChange={(v) =>
+                      setSelected(
+                        v
+                          ? [...new Set([...selected, ...shown.map((c) => c.id)])]
+                          : selected.filter((id) => !shown.some((c) => c.id === id)),
+                      )
+                    }
+                  />
+                </TableHead>
+                {columns
+                  .filter((c) => visible.includes(c.id))
+                  .map((col) => (
+                    <TableHead key={col.id} className="whitespace-nowrap">
+                      {col.id === "invoice" || extraColumns.some((x) => x.id === col.id) ? (
+                        col.label
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="-ml-3"
+                          onClick={() =>
+                            setSort({
+                              key: col.id as SortKey,
+                              desc: sort.key === col.id ? !sort.desc : false,
+                            })
+                          }
+                        >
+                          {col.label}
+                          {sort.key === col.id &&
+                            (sort.desc ? (
+                              <ArrowDown className="size-3" />
+                            ) : (
+                              <ArrowUp className="size-3" />
+                            ))}
+                        </Button>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => nav({ to: "/cases/$id", params: { id: c.id } })}
-                      >
-                        View
-                      </Button>
-                    </div>
+                    </TableHead>
+                  ))}
+                <TableHead className="w-20">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {shown.map((c) => {
+                const client = s.clients.find((x) => x.id === c.clientId);
+                const staff = s.users.find((x) => x.id === c.staffId);
+                return (
+                  <TableRow
+                    key={c.id}
+                    data-state={selection.includes(c.id) ? "selected" : undefined}
+                  >
+                    <TableCell>
+                      <Checkbox
+                        disabled={customer}
+                        aria-label={`Select ${c.number}`}
+                        checked={selection.includes(c.id)}
+                        onCheckedChange={() => toggle(c.id)}
+                      />
+                    </TableCell>
+                    {visible.includes("number") && (
+                      <TableCell className="min-w-56 max-w-72">
+                        <Button
+                          variant="link"
+                          className="h-auto p-0 text-info"
+                          onClick={() => nav({ to: "/cases/$id", params: { id: c.id } })}
+                        >
+                          {c.number}
+                        </Button>
+                        <div className="truncate text-xs text-muted-foreground" title={c.title}>
+                          {c.title}
+                        </div>
+                        <div className="mt-1 text-xs">{c.type}</div>
+                      </TableCell>
+                    )}
+                    {visible.includes("client") && (
+                      <TableCell className="min-w-48">
+                        <div className="text-sm font-medium">
+                          {client?.company ?? "Unknown client"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">{c.residentName}</div>
+                      </TableCell>
+                    )}
+                    {visible.includes("status") && (
+                      <TableCell>
+                        <StatusBadge value={c.status} />
+                      </TableCell>
+                    )}
+                    {visible.includes("priority") && (
+                      <TableCell>
+                        <StatusBadge value={c.priority} />
+                      </TableCell>
+                    )}
+                    {visible.includes("serviceDate") && (
+                      <TableCell className="whitespace-nowrap">
+                        <div>{fmtDate(c.serviceDate)}</div>
+                        <div className="text-xs text-muted-foreground">{c.serviceTime}</div>
+                      </TableCell>
+                    )}
+                    {visible.includes("staff") && (
+                      <TableCell>
+                        <div className="flex items-center gap-2 whitespace-nowrap">
+                          <Avatar name={staff?.name ?? "Unassigned"} />
+                          <span className="text-xs">{staff?.name ?? "Unassigned"}</span>
+                        </div>
+                      </TableCell>
+                    )}
+                    {visible.includes("fee") && (
+                      <TableCell className="font-medium tabular-nums">{money(c.fee)}</TableCell>
+                    )}
+                    {visible.includes("invoice") && (
+                      <TableCell>
+                        <span className="whitespace-nowrap">
+                          {
+                            s.invoices.filter(
+                              (i) => i.caseId === c.id && (!customer || i.status !== "Draft"),
+                            ).length
+                          }{" "}
+                          invoices
+                        </span>
+                      </TableCell>
+                    )}
+                    {extraColumns
+                      .filter((col) => visible.includes(col.id))
+                      .map((col) => {
+                        const b = caseBilling(s.invoices, c.id);
+                        const value =
+                          col.id === "manager"
+                            ? s.users.find((u) => u.id === c.managerId)?.name
+                            : col.id === "tenant"
+                              ? c.residentName
+                              : col.id === "address"
+                                ? c.residentAddress
+                                : col.id === "lastPayment"
+                                  ? b.lastPaymentDate
+                                    ? `${money(b.lastPayment)} · ${fmtDate(b.lastPaymentDate)}`
+                                    : "—"
+                                  : col.id === "moneyOwed"
+                                    ? money(caseAmounts(c).due)
+                                    : col.id === "balance"
+                                      ? money(b.balance)
+                                      : col.id === "setoutTime"
+                                        ? c.serviceTime
+                                        : c[col.id as keyof typeof c];
+                        return (
+                          <TableCell key={col.id} className="min-w-28 whitespace-nowrap">
+                            {["visLO", "visTO", "visRI"].includes(col.id) ? (
+                              <span className="inline-flex items-center gap-2">
+                                <span>
+                                  {typeof value === "string" || typeof value === "number"
+                                    ? value || "—"
+                                    : "—"}
+                                </span>
+                                <VisualCollectionLink
+                                  caseId={c.id}
+                                  caseNumber={c.number}
+                                  field={col.id}
+                                />
+                              </span>
+                            ) : typeof value === "string" || typeof value === "number" ? (
+                              value || "—"
+                            ) : (
+                              "—"
+                            )}
+                          </TableCell>
+                        );
+                      })}
+                    <TableCell>
+                      <div className="flex">
+                        {!customer && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              disabled={!can(me, "cases.edit")}
+                              title="Edit case"
+                              aria-label={`Edit ${c.number}`}
+                              onClick={() => openCase(c.id)}
+                            >
+                              <Pencil className="size-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              disabled={!can(me, "cases.delete")}
+                              title="Delete case"
+                              aria-label={`Delete ${c.number}`}
+                              onClick={() => setConfirmDelete([c.id])}
+                            >
+                              <Trash2 className="size-3.5 text-muted-foreground" />
+                            </Button>
+                          </>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => nav({ to: "/cases/$id", params: { id: c.id } })}
+                        >
+                          View
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {shown.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={visible.length + 2} className="h-60 text-center">
+                    <FolderOpen className="mx-auto mb-3 size-8 text-muted-foreground" />
+                    <div className="font-medium">No matching case files</div>
+                    <Button variant="link" onClick={() => changeView("all")}>
+                      Clear filters
+                    </Button>
                   </TableCell>
                 </TableRow>
-              );
-            })}
-            {shown.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={visible.length + 2} className="h-60 text-center">
-                  <FolderOpen className="mx-auto mb-3 size-8 text-muted-foreground" />
-                  <div className="font-medium">No matching case files</div>
-                  <Button variant="link" onClick={() => changeView("all")}>
-                    Clear filters
-                  </Button>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              )}
+            </TableBody>
+          </Table>
+        )}
         <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 text-xs text-muted-foreground">
           <span>
             {rows.length ? currentPage * pageSize + 1 : 0}–

@@ -159,3 +159,21 @@ it("shows the remaining balance after an invoice is paid and exports both amount
 });
 
 it("keeps every visual table shortcut tied to its own case",()=>{render(<CasesTable/>);expect(screen.getByRole("link",{name:"Open VIS - LO for A-001"})).toHaveAttribute("href","/documents?caseId=case-a&collectionId=vis-lo");expect(screen.getByRole("link",{name:"Open VIS - TO for A-002"})).toHaveAttribute("href","/documents?caseId=case-b&collectionId=vis-to");});
+it("switches table, card, list and page-scoped board without losing filters or selection",()=>{
+ render(<CasesTable/>);
+ expect(screen.getByRole('button',{name:'Table'})).toHaveAttribute('aria-pressed','true');
+ expect(screen.getByRole('table')).toBeInTheDocument();
+ fireEvent.click(screen.getByRole('button',{name:'Cards'}));
+ expect(screen.queryByRole('table')).not.toBeInTheDocument();
+ expect(screen.getByRole('article',{name:'Case A-001'})).toBeInTheDocument();
+ fireEvent.click(screen.getByLabelText('Select A-001'));
+ fireEvent.click(screen.getByRole('button',{name:'List'}));
+ expect(screen.getByLabelText('Select A-001')).toBeChecked();
+ fireEvent.change(screen.getByLabelText('Search cases'),{target:{value:'A-003'}});
+ expect(screen.queryByRole('article',{name:'Case A-001'})).not.toBeInTheDocument();
+ fireEvent.click(screen.getByRole('button',{name:'Board'}));
+ expect(screen.getByRole('article',{name:'Case A-003'})).toBeInTheDocument();
+ expect(screen.getByText(/showing cases on this page/)).toBeInTheDocument();
+ fireEvent.click(screen.getByRole('button',{name:'Table'}));
+ expect(screen.getByRole('table')).toBeInTheDocument();expect(screen.queryByText('A-001')).not.toBeInTheDocument();
+});
