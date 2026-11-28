@@ -1,3 +1,4 @@
+import { VisualCollectionLink } from "@/components/lf/visual-collection-link";
 import { RestrictedCaseEdit } from "@/components/lf/restricted-case-edit";
 import { FileManager } from "@/components/lf/file-manager";
 import { CaseTeam } from "@/components/lf/case-team";
@@ -24,13 +25,6 @@ function Page() {
     cases = useVisibleCases(),
     ui = useUI();
   const [comment, setComment] = useState("");
-  const [visual, setVisual] = useState(""),
-    [visualKey, setVisualKey] = useState(0);
-  const openVisual = (label: string) => {
-    setVisual(label.toLowerCase().replaceAll(" - ", "-"));
-    setVisualKey((v) => v + 1);
-    document.getElementById("case-file-manager")?.scrollIntoView({ behavior: "smooth" });
-  };
   const [viewLayout, setViewLayout] = useCaseViewLayout(me?.id || "guest");
   const c = cases.find((c) => c.id === id);
   if (!c)
@@ -232,16 +226,16 @@ function Page() {
                         <div key={label}>
                           <dt className="text-xs text-muted-foreground">{label}</dt>
                           <dd className="mt-1 break-words text-sm font-medium">
-                            {String(label).startsWith("VIS - ") ? (
-                              <button
-                                className="text-primary underline underline-offset-4"
-                                onClick={() => openVisual(String(label))}
-                              >
-                                {value || "Open collection"}
-                              </button>
-                            ) : (
-                              value || "—"
-                            )}
+                            <span className="inline-flex items-center gap-2">
+                              <span>{value || "—"}</span>
+                              {String(label).startsWith("VIS - ") && (
+                                <VisualCollectionLink
+                                  caseId={c.id}
+                                  caseNumber={c.number}
+                                  field={String(label)}
+                                />
+                              )}
+                            </span>
                           </dd>
                         </div>
                       ))}
@@ -253,12 +247,7 @@ function Page() {
           </section>
           {(!me?.roleProfile || can(me, "files.view")) && (
             <section id="case-file-manager" className="rounded-xl border bg-card p-5">
-              <FileManager
-                key={`${c.id}-${visualKey}`}
-                caseId={c.id}
-                initialCollection={visual}
-                capture={!!visual && !customer}
-              />
+              <FileManager key={c.id} caseId={c.id} />
             </section>
           )}
           {canViewInvoices(me) && (

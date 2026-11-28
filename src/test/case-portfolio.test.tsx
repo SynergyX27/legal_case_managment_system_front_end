@@ -157,3 +157,5 @@ it("shows the remaining balance after an invoice is paid and exports both amount
   expect(csv).toContain('"15000","2000","2000","13000"');
   expect(caseAmounts({ ...paidCase, paidInvoiceTotal: 20000 }).due).toBe(0);
 });
+
+it("keeps every visual table shortcut tied to its own case",()=>{render(<CasesTable/>);expect(screen.getByRole("link",{name:"Open VIS - LO for A-001"})).toHaveAttribute("href","/documents?caseId=case-a&collectionId=vis-lo");expect(screen.getByRole("link",{name:"Open VIS - TO for A-002"})).toHaveAttribute("href","/documents?caseId=case-b&collectionId=vis-to");});

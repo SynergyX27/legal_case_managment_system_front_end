@@ -27,3 +27,5 @@ it('switches the case-view section layout, retains documents and remembers the v
  fireEvent.click(screen.getByRole('radio',{name:'Stacked'}));
  expect(screen.getAllByText('VIEW-001').length).toBeGreaterThan(0);
 });
+
+it('shows direct collection links beside blank visual values in case details',()=>{render(<Page/>);expect(screen.getByRole('link',{name:'Open VIS - LO for VIEW-001'})).toHaveAttribute('href','/documents?caseId=view-case&collectionId=vis-lo');expect(screen.getByRole('link',{name:'Open VIS - TO for VIEW-001'})).toHaveAttribute('href','/documents?caseId=view-case&collectionId=vis-to');});

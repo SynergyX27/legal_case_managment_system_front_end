@@ -1,3 +1,4 @@
+import { VisualCollectionLink } from "./visual-collection-link";
 import { SingleCaseReport } from "./single-case-report";
 import { CaseTeam } from "./case-team";
 import { ModernSelect } from "@/components/ui/modern-select";
@@ -659,9 +660,7 @@ export function CasesTable() {
                                       : c[col.id as keyof typeof c];
                       return (
                         <TableCell key={col.id} className="min-w-28 whitespace-nowrap">
-                          {typeof value === "string" || typeof value === "number"
-                            ? value || "—"
-                            : "—"}
+                          {["visLO", "visTO", "visRI"].includes(col.id) ? <span className="inline-flex items-center gap-2"><span>{typeof value === "string" || typeof value === "number" ? value || "—" : "—"}</span><VisualCollectionLink caseId={c.id} caseNumber={c.number} field={col.id}/></span> : typeof value === "string" || typeof value === "number" ? value || "—" : "—"}
                         </TableCell>
                       );
                     })}
