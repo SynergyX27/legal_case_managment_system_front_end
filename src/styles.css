@@ -2361,3 +2361,6 @@
 
 .page-header h1::before {content:"";display:inline-block;width:9px;height:25px;margin-right:12px;vertical-align:-1px;border-radius:5px;background:linear-gradient(var(--primary),#a78bfa);}
 .app-main .visual-panel>header h2::before {content:"";display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:9px;background:var(--primary);box-shadow:0 0 0 4px color-mix(in srgb,var(--primary) 10%,transparent);}
+
+/* Keep recovery instructions readable, including on smaller screens. */
+.toaster [data-sonner-toast]:is([data-type="error"],[data-type="warning"]) [data-title] {white-space:pre-line;overflow-wrap:anywhere;line-height:1.55;max-height:60dvh;overflow-y:auto;}

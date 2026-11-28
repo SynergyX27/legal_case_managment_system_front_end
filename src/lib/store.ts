@@ -246,8 +246,9 @@ export const useStore = create<State>((set, get) => {
   };
   const mutate = async (path: string, method: string, body?: unknown) => {
     try {
-      await api(path, { method, body });
+      const result = await api(path, { method, body });
       await refresh();
+      for (const warning of result?.warnings || []) toast.warning(warning, { duration: 15000 });
       return true;
     } catch (e) {
       toast.error((e as Error).message);

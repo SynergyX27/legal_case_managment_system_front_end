@@ -1,0 +1,4 @@
+import {it,expect,vi} from 'vitest';import {userErrorMessage} from '../lib/user-error';
+it('keeps actionable server guidance and replaces technical transport failures',()=>{const detail='The customer cannot access this case.\n1. Open Workspaces → Customer access.';expect(userErrorMessage(detail,422)).toBe(detail);expect(userErrorMessage('Internal Server Error',500)).toContain('check whether your change was saved');expect(userErrorMessage('',403)).toContain('role and case or community access');expect(userErrorMessage('Input: Invalid',422)).not.toContain('Input: Invalid');});
+
+it('does not report success for an unreadable successful response',async()=>{const {api}=await import('../lib/api');vi.stubGlobal('fetch',vi.fn(async()=>new Response('not json',{status:200})));try{await expect(api('/workspace')).rejects.toThrow(/check whether your change was saved/);}finally{vi.unstubAllGlobals();}});
